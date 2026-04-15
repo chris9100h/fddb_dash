@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>FDDB Checkliste</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+
+  <style>
+    :root {
+      --bg:          #0c0c0c;
+      --surface:     #141414;
+      --card:        #1c1c1c;
+      --border:      #282828;
+      --orange:      #ff6b00;
+      --orange-dim:  #b84d00;
+      --text:        #f0f0f0;
+      --muted:       #5a5a5a;
+      --safe-top:    env(safe-area-inset-top);
+      --safe-bot:    env(safe-area-inset-bottom);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100dvh;
+      overflow-x: hidden;
+    }
+
+    .page {
+      max-width: 1140px;
+      margin: 0 auto;
+      padding: calc(var(--safe-top) + 20px) 20px calc(var(--safe-bot) + 36px);
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 22px;
+    }
+    .logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.4rem;
+      letter-spacing: .06em;
+      color: var(--orange);
+      line-height: 1;
+    }
+    .logo span { color: var(--text); }
+    .logo-sub { font-size: .58rem; letter-spacing: .22em; color: var(--muted); text-transform: uppercase; }
+
+    /* ── Date bar ── */
+    .date-bar { display: flex; gap: 10px; margin-bottom: 22px; }
+    .date-bar input[type="date"] {
+      flex: 1;
+      max-width: 240px;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: .92rem;
+      padding: 11px 14px;
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+      transition: border-color .2s;
+    }
+    .date-bar input[type="date"]:focus { border-color: var(--orange); }
+    .date-bar input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: invert(55%) sepia(90%) saturate(500%) hue-rotate(5deg);
+    }
+    .btn-load {
+      background: var(--orange);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 0 20px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: .88rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 46px;
+      transition: background .15s, transform .1s;
+    }
+    .btn-load:hover  { background: #ff7d1a; }
+    .btn-load:active { background: var(--orange-dim); transform: scale(.97); }
+
+    /* ── Stats row ── */
+    .stats-row {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .stats-row.visible { display: flex; }
+
+    .stat-block {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 12px;
+    }
+    .stat-block-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: .95rem;
+      letter-spacing: .12em;
+      color: var(--muted);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .stat-block-title i { color: var(--orange); font-size: .75rem; }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+    .stat-pill {
+      background: var(--card);
+      border-radius: 10px;
+      padding: 9px 4px;
+      text-align: center;
+    }
+    .stat-val {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.45rem;
+      line-height: 1;
+      letter-spacing: .02em;
+    }
+    .stat-lbl { font-size: .52rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-top: 3px; }
+    .c-kcal { color: var(--orange); }
+    .c-p    { color: #60a5fa; }
+    .c-c    { color: #facc15; }
+    .c-f    { color: #f87171; }
+
+    .checked-block .stat-val { opacity: .25; transition: opacity .25s; }
+    .checked-block.has-data .stat-val { opacity: 1; }
+
+    .progress-row {
+      margin-top: 9px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .progress-track {
+      flex: 1;
+      height: 3px;
+      background: var(--border);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--orange);
+      border-radius: 99px;
+      width: 0%;
+      transition: width .3s ease;
+    }
+    .progress-label { font-size: .68rem; color: var(--muted); white-space: nowrap; }
+
+    /* ── Meal grid ── */
+    .meal-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    /* ── Meal card ── */
+    .meal-card {
+      background: var(--surface);
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      animation: slideUp .32s cubic-bezier(.22,.68,0,1.2) both;
+    }
+    @keyframes slideUp {
+      from { opacity:0; transform: translateY(12px); }
+      to   { opacity:1; transform: translateY(0); }
+    }
+
+    .meal-title {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 12px 15px;
+      background: linear-gradient(90deg, #1d1100 0%, #161616 100%);
+      border-bottom: 1px solid var(--border);
+    }
+    .meal-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--orange);
+      box-shadow: 0 0 6px var(--orange);
+      flex-shrink: 0;
+    }
+    .meal-name {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.1rem;
+      letter-spacing: .09em;
+      color: var(--orange);
+    }
+    .meal-kcal { margin-left: auto; font-size: .72rem; color: var(--muted); font-weight: 500; }
+
+    .items-list { padding: 7px; display: flex; flex-direction: column; gap: 5px; }
+
+    /* ── Food item ── */
+    .food-item {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      background: var(--card);
+      border-radius: 10px;
+      padding: 11px 11px;
+      min-height: 56px;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      transition: background .12s, opacity .2s;
+    }
+    .food-item:hover  { background: #222; }
+    .food-item:active { background: #232323; }
+    .food-item.checked { opacity: .32; }
+
+    .cb-box {
+      width: 21px; height: 21px;
+      border-radius: 6px;
+      border: 2px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: background .15s, border-color .15s;
+      font-size: .7rem;
+      color: transparent;
+    }
+    .food-item.checked .cb-box {
+      background: var(--orange);
+      border-color: var(--orange);
+      color: #fff;
+    }
+
+    .food-item-body {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .food-name {
+      flex: 1;
+      font-size: .8rem;
+      font-weight: 500;
+      line-height: 1.3;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-width: 0;
+    }
+    .food-badge {
+      font-size: .57rem;
+      color: var(--orange);
+      border: 1px solid var(--orange-dim);
+      border-radius: 4px;
+      padding: 1px 5px;
+      flex-shrink: 0;
+    }
+
+    .macro-pills { display: flex; gap: 3px; flex-shrink: 0; }
+    .mp {
+      border-radius: 6px;
+      padding: 4px 6px;
+      text-align: center;
+      min-width: 40px;
+    }
+    .mp-val { font-family: 'Bebas Neue', sans-serif; font-size: .88rem; line-height: 1; }
+    .mp-lbl { font-size: .46rem; text-transform: uppercase; letter-spacing: .07em; margin-top: 2px; opacity: .6; }
+    .mp-kcal { background: rgba(255,107,0,.12);  color: var(--orange); }
+    .mp-p    { background: rgba(96,165,250,.12);  color: #60a5fa; }
+    .mp-c    { background: rgba(250,204,21,.12);  color: #facc15; }
+    .mp-f    { background: rgba(248,113,113,.12); color: #f87171; }
+
+    /* ── Placeholder / Spinner ── */
+    .placeholder { text-align: center; padding: 60px 20px; color: var(--muted); font-size: .88rem; grid-column: 1/-1; }
+    .placeholder i { font-size: 2.6rem; color: var(--border); margin-bottom: 12px; display: block; }
+    .spinner-wrap  { display: flex; align-items: center; justify-content: center; padding: 70px 0; grid-column: 1/-1; }
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid var(--border);
+      border-top-color: var(--orange);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div>
+      <div class="logo">FDDB<span>·</span>Check</div>
+      <div class="logo-sub">Tagesplanung</div>
+    </div>
+    <i class="fas fa-fire" style="color:var(--orange);font-size:1.4rem;opacity:.7"></i>
+  </header>
+
+  <div class="date-bar">
+    <input type="date" id="dateInput">
+    <button class="btn-load" onclick="loadDay()">
+      <i class="fas fa-bolt"></i> Laden
+    </button>
+  </div>
+
+  <!-- Stats oben -->
+  <div class="stats-row" id="statsRow">
+    <div class="stat-block">
+      <div class="stat-block-title"><i class="fas fa-chart-bar"></i> Tagesbilanz</div>
+      <div class="stat-grid" id="totalPills"></div>
+    </div>
+    <div class="stat-block checked-block" id="checkedBlock">
+      <div class="stat-block-title"><i class="fas fa-circle-check"></i> Abgehakt</div>
+      <div class="stat-grid" id="checkedPills"></div>
+      <div class="progress-row">
+        <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="progress-label" id="progressLabel">0 / 0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Meal cards -->
+  <div class="meal-grid" id="content"></div>
+
+</div>
+<script>
+  const SUPABASE_URL = 'https://lzhkbbwcjfsvpkpmcwdu.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6aGtiYndjamZzdnBrcG1jd2R1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4NTUzNDUsImV4cCI6MjA5MTQzMTM0NX0.GhbRy4qhwHbcLgPcp0v5JEtC_oS95O7sh0yl7VXxgDI';
+  const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  const ORDER  = ['frühstück','zwischenmahlzeit 1','mittagessen','zwischenmahlzeit 2','abendbrot','abendessen'];
+  const LABELS = {
+    'frühstück':          'Frühstück',
+    'zwischenmahlzeit 1': 'Zwischenmahlzeit 1',
+    'mittagessen':        'Mittagessen',
+    'zwischenmahlzeit 2': 'Zwischenmahlzeit 2',
+    'abendbrot':          'Abendessen',
+    'abendessen':         'Abendessen',
+  };
+
+  let allRows = [];
+  let totals  = { kcal: 0, p: 0, c: 0, f: 0 };
+
+  document.getElementById('dateInput').value = new Date().toISOString().split('T')[0];
+  loadDay();
+
+  async function loadDay() {
+    const dateVal = document.getElementById('dateInput').value;
+    if (!dateVal) return alert('Bitte Datum auswählen');
+
+    document.getElementById('content').innerHTML = '<div class="spinner-wrap"><div class="spinner"></div></div>';
+    document.getElementById('statsRow').classList.remove('visible');
+    allRows = [];
+
+    const { data, error } = await db
+      .from('daily_macros')
+      .select('*')
+      .eq('date', dateVal)
+      .order('meal', { ascending: true });
+
+    if (error) {
+      document.getElementById('content').innerHTML =
+        `<div class="placeholder"><i class="fas fa-exclamation-triangle"></i>Fehler: ${error.message}</div>`;
+      return;
+    }
+    renderDashboard(data || []);
+  }
+
+  function renderDashboard(entries) {
+    const content = document.getElementById('content');
+    content.innerHTML = '';
+
+    if (!entries.length) {
+      content.innerHTML = '<div class="placeholder"><i class="fas fa-bowl-food"></i>Keine Einträge für dieses Datum</div>';
+      return;
+    }
+
+    const grouped = {};
+    totals = { kcal: 0, p: 0, c: 0, f: 0 };
+
+    entries.forEach(e => {
+      (grouped[e.meal] = grouped[e.meal] || []).push(e);
+      totals.kcal += e.kcal || 0;
+      totals.p    += parseFloat(e.protein) || 0;
+      totals.c    += parseFloat(e.carbs)   || 0;
+      totals.f    += parseFloat(e.fat)     || 0;
+    });
+
+    const sorted = Object.keys(grouped).sort((a, b) => {
+      const ai = ORDER.indexOf(a), bi = ORDER.indexOf(b);
+      return (ai < 0 ? 99 : ai) - (bi < 0 ? 99 : bi);
+    });
+
+    sorted.forEach((meal, mi) => {
+      const items    = grouped[meal];
+      const mealKcal = items.reduce((s, i) => s + (i.kcal || 0), 0);
+
+      const card = document.createElement('div');
+      card.className = 'meal-card';
+      card.style.animationDelay = `${mi * 0.06}s`;
+
+      card.innerHTML = `
+        <div class="meal-title">
+          <div class="meal-dot"></div>
+          <div class="meal-name">${LABELS[meal] || meal}</div>
+          <div class="meal-kcal">${Math.round(mealKcal)} kcal</div>
+        </div>`;
+
+      const list = document.createElement('div');
+      list.className = 'items-list';
+
+      items.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'food-item';
+        row.innerHTML = `
+          <div class="cb-box"><i class="fas fa-check"></i></div>
+          <div class="food-item-body">
+            <div class="food-name">${item.item_name}${item.type === 'recipe' ? ' <span class="food-badge">Rezept</span>' : ''}</div>
+            <div class="macro-pills">
+              <div class="mp mp-kcal"><div class="mp-val">${Math.round(item.kcal||0)}</div><div class="mp-lbl">kcal</div></div>
+              <div class="mp mp-p"><div class="mp-val">${parseFloat(item.protein||0).toFixed(1)}</div><div class="mp-lbl">P</div></div>
+              <div class="mp mp-c"><div class="mp-val">${parseFloat(item.carbs||0).toFixed(1)}</div><div class="mp-lbl">C</div></div>
+              <div class="mp mp-f"><div class="mp-val">${parseFloat(item.fat||0).toFixed(1)}</div><div class="mp-lbl">F</div></div>
+            </div>
+          </div>`;
+
+        row._m = {
+          kcal: item.kcal || 0,
+          p: parseFloat(item.protein) || 0,
+          c: parseFloat(item.carbs)   || 0,
+          f: parseFloat(item.fat)     || 0,
+        };
+        row.addEventListener('click', () => { row.classList.toggle('checked'); updateChecked(); });
+        allRows.push(row);
+        list.appendChild(row);
+      });
+
+      card.appendChild(list);
+      content.appendChild(card);
+    });
+
+    // render stats
+    document.getElementById('totalPills').innerHTML = pillsHTML(
+      Math.round(totals.kcal), totals.p.toFixed(1), totals.c.toFixed(1), totals.f.toFixed(1)
+    );
+    updateChecked();
+    document.getElementById('statsRow').classList.add('visible');
+  }
+
+  function updateChecked() {
+    const checked = allRows.filter(r => r.classList.contains('checked'));
+    const ck = checked.reduce((a, r) => ({
+      kcal: a.kcal + r._m.kcal, p: a.p + r._m.p, c: a.c + r._m.c, f: a.f + r._m.f
+    }), { kcal:0, p:0, c:0, f:0 });
+
+    document.getElementById('checkedPills').innerHTML = pillsHTML(
+      Math.round(ck.kcal), ck.p.toFixed(1), ck.c.toFixed(1), ck.f.toFixed(1)
+    );
+    const pct = allRows.length > 0 ? (checked.length / allRows.length) * 100 : 0;
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressLabel').textContent = `${checked.length} / ${allRows.length}`;
+    document.getElementById('checkedBlock').classList.toggle('has-data', checked.length > 0);
+  }
+
+  function pillsHTML(kcal, p, c, f) {
+    return `
+      <div class="stat-pill"><div class="stat-val c-kcal">${kcal}</div><div class="stat-lbl">Kcal</div></div>
+      <div class="stat-pill"><div class="stat-val c-p">${p}</div><div class="stat-lbl">Protein</div></div>
+      <div class="stat-pill"><div class="stat-val c-c">${c}</div><div class="stat-lbl">Carbs</div></div>
+      <div class="stat-pill"><div class="stat-val c-f">${f}</div><div class="stat-lbl">Fett</div></div>`;
+  }
+</script>
+</body>
+</html>
