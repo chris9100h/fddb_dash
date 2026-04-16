@@ -1253,8 +1253,8 @@
       <div class="edit-section">
         <div class="edit-section-title"><i class="fas fa-plus"></i> Add Ingredient</div>
         <div class="add-tabs">
-          <div class="add-tab ${editAddTab==='day'?'active':''}" onclick="editSwitchTab('day')">Aus aktuellem Tag</div>
-          <div class="add-tab ${editAddTab==='text'?'active':''}" onclick="editSwitchTab('text')">Freitext</div>
+          <div class="add-tab ${editAddTab==='day'?'active':''}" onclick="editSwitchTab('day')">From today</div>
+          <div class="add-tab ${editAddTab==='text'?'active':''}" onclick="editSwitchTab('text')">Manual entry</div>
         </div>
         <div class="add-tab-panel ${editAddTab==='day'?'active':''}">
           ${available.length === 0
