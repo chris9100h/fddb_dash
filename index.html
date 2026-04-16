@@ -919,7 +919,7 @@
             // Ingredient sub-list
             const ingList = document.createElement('div');
             ingList.className = 'recipe-ingredients';
-            recEntries.forEach(ing => {
+            [...recEntries].sort((a, b) => stripAmount(a.item_name).localeCompare(stripAmount(b.item_name))).forEach(ing => {
               const ingRow = document.createElement('div');
               ingRow.className = 'ingredient-row';
               ingRow.innerHTML = `<span class="ingredient-name">${ing.item_name}</span><div class="ing-pills"><div class="ip ip-kcal">${Math.round((ing.kcal||0)/servings)}</div><div class="ip ip-p">${(parseFloat(ing.protein||0)/servings).toFixed(1)}</div><div class="ip ip-c">${(parseFloat(ing.carbs||0)/servings).toFixed(1)}</div><div class="ip ip-f">${(parseFloat(ing.fat||0)/servings).toFixed(1)}</div></div>`;
@@ -1006,8 +1006,9 @@
       btnNext.disabled = !creatorMeal;
 
     } else if (creatorStep === 1) {
-      // Items in selected meal
-      const items = currentDayEntries.filter(e => e.meal === creatorMeal);
+      // Items in selected meal — sorted alphabetically
+      const items = [...currentDayEntries.filter(e => e.meal === creatorMeal)]
+        .sort((a, b) => stripAmount(a.item_name).localeCompare(stripAmount(b.item_name)));
       const ul = document.getElementById('itemSelectList');
       ul.innerHTML = '';
       items.forEach(item => {
@@ -1117,7 +1118,7 @@
           </div>
         </div>
         <div class="recipe-manage-items">
-          ${recipe.items.map(n => `<div class="manage-ingredient"><i class="fas fa-circle" style="font-size:.4rem;color:var(--orange);margin-right:7px;vertical-align:middle"></i>${n}</div>`).join('')}
+          ${[...recipe.items].sort((a,b) => stripAmount(a).localeCompare(stripAmount(b))).map(n => `<div class="manage-ingredient"><i class="fas fa-circle" style="font-size:.4rem;color:var(--orange);margin-right:7px;vertical-align:middle"></i>${n}</div>`).join('')}
         </div>`;
       el.appendChild(card);
     });
@@ -1193,9 +1194,12 @@
   function renderEditModal() {
     document.getElementById('editModalTitle').textContent = editName;
 
-    // Build day items not already in recipe
-    const dayNames = [...new Set(currentDayEntries.map(e => stripAmount(e.item_name)))];
+    // Build day items not already in recipe — sorted alphabetically
+    const dayNames = [...new Set(currentDayEntries.map(e => stripAmount(e.item_name)))].sort((a,b) => a.localeCompare(b));
     const available = dayNames.filter(n => !editItems.includes(n));
+
+    // Sorted copy of editItems for display (index map for remove button)
+    const sortedItems = [...editItems].sort((a,b) => stripAmount(a).localeCompare(stripAmount(b)));
 
     const body = document.getElementById('editModalBody');
     body.innerHTML = `
@@ -1224,7 +1228,7 @@
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:6px;" id="editCatChips">
           ${allCategories.length === 0
-            ? `<span style="font-size:.8rem;color:var(--muted)">Noch keine Kategorien. Erstelle eine mit "+ New Category".</span>`
+            ? `<span style="font-size:.8rem;color:var(--muted)">No categories yet. Create one with "+ New Category".</span>`
             : allCategories.map(c => `
               <div class="cat-chip${editCatIds.includes(c.id)?' active':''}" onclick="toggleEditCat('${c.id}')">${c.name}</div>
             `).join('')}
@@ -1239,10 +1243,10 @@
         <div id="editIngredientList">
           ${editItems.length === 0
             ? `<div style="font-size:.8rem;color:var(--muted);padding:8px 0">No ingredients – recipe will be deleted on save.</div>`
-            : editItems.map((item, i) => `
+            : sortedItems.map(item => `
               <div class="edit-ingredient-row">
                 <span class="edit-ingredient-name">${item}</span>
-                <button class="btn-remove" onclick="editRemoveItem(${i})"><i class="fas fa-times"></i></button>
+                <button class="btn-remove" onclick="editRemoveItem('${item.replace(/'/g,"\\'")}')"><i class="fas fa-times"></i></button>
               </div>`).join('')}
         </div>
       </div>
@@ -1253,8 +1257,8 @@
       <div class="edit-section">
         <div class="edit-section-title"><i class="fas fa-plus"></i> Add Ingredient</div>
         <div class="add-tabs">
-          <div class="add-tab ${editAddTab==='day'?'active':''}" onclick="editSwitchTab('day')">From today</div>
-          <div class="add-tab ${editAddTab==='text'?'active':''}" onclick="editSwitchTab('text')">Manual entry</div>
+          <div class="add-tab ${editAddTab==='day'?'active':''}" onclick="editSwitchTab('day')">From current day</div>
+          <div class="add-tab ${editAddTab==='text'?'active':''}" onclick="editSwitchTab('text')">Free text</div>
         </div>
         <div class="add-tab-panel ${editAddTab==='day'?'active':''}">
           ${available.length === 0
@@ -1277,8 +1281,8 @@
     document.getElementById('editNameInput').oninput = e => { editName = e.target.value; };
   }
 
-  function editRemoveItem(idx) {
-    editItems.splice(idx, 1);
+  function editRemoveItem(name) {
+    editItems = editItems.filter(i => i !== name);
     renderEditModal();
   }
 
