@@ -639,11 +639,11 @@
      LOAD RECIPES FROM DB
   ══════════════════════════════════════ */
   async function loadRecipes() {
-    const { data: recipes } = await db.from('recipes').select('id, name, servings').order('name');
+    const { data: recipes } = await db.from('fddb_recipes').select('id, name, servings').order('name');
     if (!recipes) return;
-    const { data: items }   = await db.from('recipe_items').select('recipe_id, item_name');
-    const { data: rcats }   = await db.from('recipe_categories').select('recipe_id, category_id');
-    const { data: cats }    = await db.from('categories').select('id, name').order('name');
+    const { data: items }   = await db.from('fddb_recipe_items').select('recipe_id, item_name');
+    const { data: rcats }   = await db.from('fddb_recipe_categories').select('recipe_id, category_id');
+    const { data: cats }    = await db.from('fddb_categories').select('id, name').order('name');
     allCategories = (cats || []);
     allRecipes = (recipes || []).map(r => ({
       id:       r.id,
@@ -665,10 +665,10 @@
     checkables = [];
 
     const [macroRes, statusRes, targetsRes, dayTypeRes] = await Promise.all([
-      db.from('daily_macros').select('*').eq('date', dateVal).order('meal'),
-      db.from('checklist_status').select('item_key, checked').eq('date', dateVal),
-      db.from('coach_targets').select('*').lte('valid_from', dateVal).order('valid_from', { ascending: false }),
-      db.from('day_type').select('type').eq('date', dateVal).maybeSingle(),
+      db.from('fddb_daily_macros').select('*').eq('date', dateVal).order('meal'),
+      db.from('fddb_checklist_status').select('item_key, checked').eq('date', dateVal),
+      db.from('fddb_coach_targets').select('*').lte('valid_from', dateVal).order('valid_from', { ascending: false }),
+      db.from('fddb_day_type').select('type').eq('date', dateVal).maybeSingle(),
     ]);
 
     if (macroRes.error) {
@@ -716,7 +716,7 @@
     renderDayTypeToggle();
     renderTargetBlock();
     // Persist
-    await db.from('day_type').upsert({ date: currentDate, type }, { onConflict: 'date' });
+    await db.from('fddb_day_type').upsert({ date: currentDate, type }, { onConflict: 'date' });
   }
 
   function adherenceScore(pct) {
@@ -961,7 +961,7 @@
     // Debounce: cancel previous timer for this key, write after 600ms idle
     clearTimeout(pendingWrites[itemKey]);
     pendingWrites[itemKey] = setTimeout(async () => {
-      await db.from('checklist_status').upsert(
+      await db.from('fddb_checklist_status').upsert(
         { date: currentDate, item_key: itemKey, checked },
         { onConflict: 'date,item_key' }
       );
@@ -1050,11 +1050,11 @@
     document.getElementById('btnNext').disabled = true;
     document.getElementById('btnNext').textContent = '…';
 
-    const { data: recipe, error: recErr } = await db.from('recipes').insert({ name }).select().single();
+    const { data: recipe, error: recErr } = await db.from('fddb_recipes').insert({ name }).select().single();
     if (recErr) { showToast('Error: ' + recErr.message, 'error'); document.getElementById('btnNext').disabled = false; document.getElementById('btnNext').textContent = 'Save'; return; }
 
     const itemRows = creatorSelected.map(item_name => ({ recipe_id: recipe.id, item_name: stripAmount(item_name) }));
-    const { error: itemErr } = await db.from('recipe_items').insert(itemRows);
+    const { error: itemErr } = await db.from('fddb_recipe_items').insert(itemRows);
     if (itemErr) { showToast('Error: ' + itemErr.message, 'error'); return; }
 
     await loadRecipes();
@@ -1132,14 +1132,14 @@
     const recipe = allRecipes.find(r => r.id === id);
     if (!recipe) return;
     const newName = recipe.name + ' (Copy)';
-    const { data: newRecipe, error: recErr } = await db.from('recipes').insert({ name: newName }).select().single();
+    const { data: newRecipe, error: recErr } = await db.from('fddb_recipes').insert({ name: newName }).select().single();
     if (recErr) { showToast('Error: ' + recErr.message, 'error'); return; }
     if (recipe.items.length > 0) {
       const rows = recipe.items.map(item_name => ({ recipe_id: newRecipe.id, item_name }));
-      await db.from('recipe_items').insert(rows);
+      await db.from('fddb_recipe_items').insert(rows);
     }
     if (recipe.catIds?.length > 0) {
-      await db.from('recipe_categories').insert(recipe.catIds.map(category_id => ({ recipe_id: newRecipe.id, category_id })));
+      await db.from('fddb_recipe_categories').insert(recipe.catIds.map(category_id => ({ recipe_id: newRecipe.id, category_id })));
     }
     await loadRecipes();
     renderRecipeManage();
@@ -1150,7 +1150,7 @@
 
   async function deleteRecipe(id, name) {
     if (!confirm(`Delete recipe "${name}"?`)) return;
-    await db.from('recipes').delete().eq('id', id);
+    await db.from('fddb_recipes').delete().eq('id', id);
     await loadRecipes();
     renderRecipeManage();
     renderDashboard(currentDayEntries);
@@ -1321,7 +1321,7 @@
   async function promptNewCategory() {
     const name = prompt('Category name:');
     if (!name?.trim()) return;
-    const { data, error } = await db.from('categories').insert({ name: name.trim() }).select().single();
+    const { data, error } = await db.from('fddb_categories').insert({ name: name.trim() }).select().single();
     if (error) { showToast('Error: ' + error.message, 'error'); return; }
     allCategories.push({ id: data.id, name: data.name });
     allCategories.sort((a,b) => a.name.localeCompare(b.name,'de'));
@@ -1332,7 +1332,7 @@
   async function manageCategoriesPrompt() {
     const name = prompt('Create new category:');
     if (!name?.trim()) return;
-    const { error } = await db.from('categories').insert({ name: name.trim() });
+    const { error } = await db.from('fddb_categories').insert({ name: name.trim() });
     if (error) { showToast('Error: ' + error.message, 'error'); return; }
     await loadRecipes();
     renderRecipeManage();
@@ -1347,20 +1347,20 @@
     document.getElementById('editSaveBtn').disabled = true;
 
     // Update name + servings
-    const { error: nameErr } = await db.from('recipes').update({ name, servings: editServings }).eq('id', editTargetId);
+    const { error: nameErr } = await db.from('fddb_recipes').update({ name, servings: editServings }).eq('id', editTargetId);
     if (nameErr) { showToast('Error: ' + nameErr.message, 'error'); document.getElementById('editSaveBtn').disabled = false; return; }
 
     // Replace items
-    await db.from('recipe_items').delete().eq('recipe_id', editTargetId);
+    await db.from('fddb_recipe_items').delete().eq('recipe_id', editTargetId);
     if (editItems.length > 0) {
-      const { error: itemErr } = await db.from('recipe_items').insert(editItems.map(item_name => ({ recipe_id: editTargetId, item_name })));
+      const { error: itemErr } = await db.from('fddb_recipe_items').insert(editItems.map(item_name => ({ recipe_id: editTargetId, item_name })));
       if (itemErr) { showToast('Error: ' + itemErr.message, 'error'); document.getElementById('editSaveBtn').disabled = false; return; }
     }
 
     // Replace categories
-    await db.from('recipe_categories').delete().eq('recipe_id', editTargetId);
+    await db.from('fddb_recipe_categories').delete().eq('recipe_id', editTargetId);
     if (editCatIds.length > 0) {
-      await db.from('recipe_categories').insert(editCatIds.map(category_id => ({ recipe_id: editTargetId, category_id })));
+      await db.from('fddb_recipe_categories').insert(editCatIds.map(category_id => ({ recipe_id: editTargetId, category_id })));
     }
 
     document.getElementById('editSaveBtn').disabled = false;
@@ -1383,7 +1383,7 @@
     targetsDraft.training = { ...coachTargets.training };
     targetsDraft.rest     = { ...coachTargets.rest };
     // Load full history for display
-    const { data } = await db.from('coach_targets').select('*').order('valid_from', { ascending: false });
+    const { data } = await db.from('fddb_coach_targets').select('*').order('valid_from', { ascending: false });
     targetsHistory = data || [];
     renderTargetsModal();
     document.getElementById('targetsOverlay').classList.add('open');
@@ -1456,7 +1456,7 @@
   }
 
   async function deleteTargetRow(id) {
-    await db.from('coach_targets').delete().eq('id', id);
+    await db.from('fddb_coach_targets').delete().eq('id', id);
     targetsHistory = targetsHistory.filter(r => r.id !== id);
     renderTargetsModal();
     showToast('Entry deleted');
@@ -1470,8 +1470,8 @@
 
     // Insert new rows for both types with today as valid_from
     const [r1, r2] = await Promise.all([
-      db.from('coach_targets').insert({ type: 'training', valid_from: today, kcal: targetsDraft.training.kcal, protein: targetsDraft.training.p, carbs: targetsDraft.training.c, fat: targetsDraft.training.f }),
-      db.from('coach_targets').insert({ type: 'rest',     valid_from: today, kcal: targetsDraft.rest.kcal,     protein: targetsDraft.rest.p,     carbs: targetsDraft.rest.c,     fat: targetsDraft.rest.f }),
+      db.from('fddb_coach_targets').insert({ type: 'training', valid_from: today, kcal: targetsDraft.training.kcal, protein: targetsDraft.training.p, carbs: targetsDraft.training.c, fat: targetsDraft.training.f }),
+      db.from('fddb_coach_targets').insert({ type: 'rest',     valid_from: today, kcal: targetsDraft.rest.kcal,     protein: targetsDraft.rest.p,     carbs: targetsDraft.rest.c,     fat: targetsDraft.rest.f }),
     ]);
     document.getElementById('targetsSaveBtn').disabled = false;
 
@@ -1532,9 +1532,9 @@
 
     // Fetch macro data and day types for range
     const [macroRes, dayTypeRes, targetsRes] = await Promise.all([
-      db.from('daily_macros').select('date, kcal, protein, carbs, fat').gte('date', from).lte('date', to),
-      db.from('day_type').select('date, type').gte('date', from).lte('date', to),
-      db.from('coach_targets').select('*').lte('valid_from', to).order('valid_from', { ascending: false }),
+      db.from('fddb_daily_macros').select('date, kcal, protein, carbs, fat').gte('date', from).lte('date', to),
+      db.from('fddb_day_type').select('date, type').gte('date', from).lte('date', to),
+      db.from('fddb_coach_targets').select('*').lte('valid_from', to).order('valid_from', { ascending: false }),
     ]);
 
     document.getElementById('statsLoading').style.display = 'none';
