@@ -487,8 +487,10 @@
   let totals = { kcal:0, p:0, c:0, f:0 };
   let allRecipes = [];
   let allCategories = [];
-  let activeFilterCat = null; // category id filter on manage page
+  let activeFilterCat = null;
   let currentDayEntries = [];
+  let currentCheckedMap = {}; // item_key -> bool
+  let currentDate = '';
 
   /* ── Init ── */
   document.getElementById('dateInput').value = new Date().toISOString().split('T')[0];
@@ -532,12 +534,18 @@
     document.getElementById('statsRow').classList.remove('visible');
     checkables = [];
 
-    const { data, error } = await db.from('daily_macros').select('*').eq('date', dateVal).order('meal');
-    if (error) {
-      document.getElementById('content').innerHTML = `<div class="placeholder"><i class="fas fa-exclamation-triangle"></i>Fehler: ${error.message}</div>`;
+    const [macroRes, statusRes] = await Promise.all([
+      db.from('daily_macros').select('*').eq('date', dateVal).order('meal'),
+      db.from('checklist_status').select('item_key, checked').eq('date', dateVal),
+    ]);
+
+    if (macroRes.error) {
+      document.getElementById('content').innerHTML = `<div class="placeholder"><i class="fas fa-exclamation-triangle"></i>Fehler: ${macroRes.error.message}</div>`;
       return;
     }
-    currentDayEntries = data || [];
+    currentDayEntries = macroRes.data || [];
+    currentCheckedMap = Object.fromEntries((statusRes.data || []).map(r => [r.item_key, r.checked]));
+    currentDate = dateVal;
     renderDashboard(currentDayEntries);
   }
 
@@ -627,10 +635,15 @@
         if (block.type === 'item') {
           const e = block.entry;
           const m = { kcal: e.kcal||0, p: parseFloat(e.protein)||0, c: parseFloat(e.carbs)||0, f: parseFloat(e.fat)||0 };
+          const itemKey = `${meal}::${e.item_name}`;
           const row = document.createElement('div');
-          row.className = 'food-item';
+          row.className = 'food-item' + (currentCheckedMap[itemKey] ? ' checked' : '');
           row.innerHTML = `<div class="cb-box"><i class="fas fa-check"></i></div><div class="food-item-body"><div class="food-name">${e.item_name}</div><div class="macro-pills">${pillsHTML(m)}</div></div>`;
-          row.addEventListener('click', () => { row.classList.toggle('checked'); updateChecked(); });
+          row.addEventListener('click', () => {
+            row.classList.toggle('checked');
+            persistChecked(itemKey, row.classList.contains('checked'));
+            updateChecked();
+          });
           checkables.push({ get checked() { return row.classList.contains('checked'); }, macros: m });
           list.appendChild(row);
 
@@ -647,8 +660,9 @@
           };
 
           for (let s = 0; s < servings; s++) {
+            const itemKey = `${meal}::${recipe.name}::${s}`;
             const rb = document.createElement('div');
-            rb.className = 'recipe-row';
+            rb.className = 'recipe-row' + (currentCheckedMap[itemKey] ? ' checked' : '');
 
             const portionLabel = servings > 1 ? ` <span class="recipe-portion-tag">${s+1}/${servings}</span>` : '';
 
@@ -670,13 +684,18 @@
             const body    = hdr.querySelector('.recipe-row-body');
             const chevron = hdr.querySelector('.recipe-chevron');
 
-            cbBox.addEventListener('click',  e => { e.stopPropagation(); rb.classList.toggle('checked'); updateChecked(); });
-            body.addEventListener('click',   ()  => { rb.classList.toggle('checked'); updateChecked(); });
+            const toggleChecked = () => {
+              rb.classList.toggle('checked');
+              persistChecked(itemKey, rb.classList.contains('checked'));
+              updateChecked();
+            };
+            cbBox.addEventListener('click',   e => { e.stopPropagation(); toggleChecked(); });
+            body.addEventListener('click',    ()  => toggleChecked());
             chevron.addEventListener('click', e  => { e.stopPropagation(); rb.classList.toggle('open'); });
 
             rb.appendChild(hdr);
 
-            // Ingredient sub-list (same for all portions, but macros divided)
+            // Ingredient sub-list
             const ingList = document.createElement('div');
             ingList.className = 'recipe-ingredients';
             recEntries.forEach(ing => {
@@ -710,6 +729,22 @@
     document.getElementById('progressFill').style.width = pct+'%';
     document.getElementById('progressLabel').textContent = `${ch.length} / ${checkables.length}`;
     document.getElementById('checkedBlock').classList.toggle('has-data', ch.length > 0);
+  }
+
+  /* ══════════════════════════════════════
+     PERSIST CHECKED STATUS
+  ══════════════════════════════════════ */
+  const pendingWrites = {};
+  function persistChecked(itemKey, checked) {
+    currentCheckedMap[itemKey] = checked;
+    // Debounce: cancel previous timer for this key, write after 600ms idle
+    clearTimeout(pendingWrites[itemKey]);
+    pendingWrites[itemKey] = setTimeout(async () => {
+      await db.from('checklist_status').upsert(
+        { date: currentDate, item_key: itemKey, checked },
+        { onConflict: 'date,item_key' }
+      );
+    }, 600);
   }
 
   /* ══════════════════════════════════════
