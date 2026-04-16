@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>FDDB Checkliste</title>
+  <title>FDDB Checklist</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -110,7 +110,7 @@
     .dtt-btn { background: none; border: none; color: var(--muted); border-radius: 6px; width: 28px; height: 24px; font-size: .72rem; cursor: pointer; transition: background .15s, color .15s; display: flex; align-items: center; justify-content: center; }
     .dtt-btn.active { background: var(--orange); color: #fff; }
 
-    /* ── Macro progress rows (Geplant block) ── */
+    /* ── Macro progress rows (Planned block) ── */
     .macro-prog-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
     .macro-prog-row:last-child { margin-bottom: 0; }
     .macro-prog-lbl { font-size: .65rem; text-transform: uppercase; letter-spacing: .07em; width: 52px; flex-shrink: 0; }
@@ -388,16 +388,16 @@
   <header>
     <div>
       <div class="logo">FDDB<span>·</span>Check</div>
-      <div class="logo-sub">Tagesplanung</div>
+      <div class="logo-sub">Daily Planner</div>
     </div>
     <div class="header-actions">
-      <button class="icon-btn" title="Statistiken" onclick="showView('viewStats')">
+      <button class="icon-btn" title="Statistics" onclick="showView('viewStats')">
         <i class="fas fa-chart-line"></i>
       </button>
-      <button class="icon-btn" title="Rezepte verwalten" onclick="showView('viewRecipes')">
+      <button class="icon-btn" title="Manage Recipes" onclick="showView('viewRecipes')">
         <i class="fas fa-book-open"></i>
       </button>
-      <button class="icon-btn orange" title="Rezept erstellen" onclick="openCreator()">
+      <button class="icon-btn orange" title="Create Recipe" onclick="openCreator()">
         <i class="fas fa-plus"></i>
       </button>
       <i class="fas fa-fire" style="color:var(--orange);font-size:1.3rem;opacity:.7;margin-left:2px"></i>
@@ -406,7 +406,7 @@
 
   <div class="date-bar">
     <input type="date" id="dateInput">
-    <button class="btn-load" onclick="loadDay()"><i class="fas fa-bolt"></i> Laden</button>
+    <button class="btn-load" onclick="loadDay()"><i class="fas fa-bolt"></i> Load</button>
   </div>
 
   <div class="stats-row" id="statsRow">
@@ -414,13 +414,13 @@
     <!-- Geplant vs Ziel -->
     <div class="stat-block" id="targetBlock">
       <div class="stat-block-title" style="justify-content:space-between">
-        <span><i class="fas fa-bullseye"></i> Geplant</span>
+        <span><i class="fas fa-bullseye"></i> Planned</span>
         <div style="display:flex;align-items:center;gap:8px">
           <div class="day-type-toggle" id="dayTypeToggle">
             <button class="dtt-btn" id="dttTraining" onclick="setDayType('training')"><i class="fas fa-dumbbell"></i></button>
             <button class="dtt-btn" id="dttRest"     onclick="setDayType('rest')"><i class="fas fa-bed"></i></button>
           </div>
-          <button class="icon-btn" style="width:28px;height:28px;font-size:.7rem" onclick="openTargetsModal()" title="Ziele bearbeiten"><i class="fas fa-pen"></i></button>
+          <button class="icon-btn" style="width:28px;height:28px;font-size:.7rem" onclick="openTargetsModal()" title="Edit Goals"><i class="fas fa-pen"></i></button>
         </div>
       </div>
       <div id="targetMacroRows"></div>
@@ -428,7 +428,7 @@
 
     <!-- Gegessen -->
     <div class="stat-block checked-block" id="checkedBlock">
-      <div class="stat-block-title"><i class="fas fa-circle-check"></i> Gegessen</div>
+      <div class="stat-block-title"><i class="fas fa-circle-check"></i> Eaten</div>
       <div class="stat-grid" id="checkedPills"></div>
       <div class="progress-row">
         <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
@@ -447,12 +447,12 @@
 <div id="viewRecipes" class="view">
 <div class="page">
   <button class="back-btn" onclick="showView('viewMain')">
-    <i class="fas fa-arrow-left"></i> Zurück
+    <i class="fas fa-arrow-left"></i> Back
   </button>
-  <div class="manage-title">Meine Rezepte</div>
+  <div class="manage-title">My Recipes</div>
   <div style="position:relative;margin-bottom:12px;">
     <i class="fas fa-search" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.8rem;pointer-events:none"></i>
-    <input class="text-input" id="recipeSearch" placeholder="Suchen…" autocomplete="off"
+    <input class="text-input" id="recipeSearch" placeholder="Search…" autocomplete="off"
       style="margin-bottom:0;padding-left:38px;"
       oninput="renderRecipeManage()">
   </div>
@@ -465,15 +465,15 @@
 <div id="viewStats" class="view">
 <div class="page">
   <button class="back-btn" onclick="showView('viewMain')">
-    <i class="fas fa-arrow-left"></i> Zurück
+    <i class="fas fa-arrow-left"></i> Back
   </button>
-  <div class="manage-title">Statistiken</div>
+  <div class="manage-title">Statistics</div>
 
   <!-- Period tabs -->
   <div class="stats-period-tabs" id="statsPeriodTabs">
-    <button class="spt-btn active" onclick="setStatsPeriod('week')">KW</button>
-    <button class="spt-btn" onclick="setStatsPeriod('month')">Monat</button>
-    <button class="spt-btn" onclick="setStatsPeriod('3months')">3 Monate</button>
+    <button class="spt-btn active" onclick="setStatsPeriod('week')">CW</button>
+    <button class="spt-btn" onclick="setStatsPeriod('month')">Month</button>
+    <button class="spt-btn" onclick="setStatsPeriod('3months')">3 Months</button>
     <button class="spt-btn" onclick="setStatsPeriod('custom')">Custom</button>
   </div>
 
@@ -507,20 +507,20 @@
 
     <!-- Adherence line chart -->
     <div class="stats-chart-card" id="statsLineCard">
-      <div class="stats-chart-title"><i class="fas fa-chart-line"></i> Tägliche Abweichung vom Ziel</div>
+      <div class="stats-chart-title"><i class="fas fa-chart-line"></i> Daily Deviation from Target</div>
       <div style="position:relative;height:180px"><canvas id="statsLineChart"></canvas></div>
     </div>
 
     <!-- Adherence bar chart -->
     <div class="stats-chart-card" id="statsBarCard">
-      <div class="stats-chart-title"><i class="fas fa-chart-bar"></i> Ø Abweichung vom Ziel</div>
+      <div class="stats-chart-title"><i class="fas fa-chart-bar"></i> Avg. Deviation from Target</div>
       <div style="position:relative;height:160px"><canvas id="statsBarChart"></canvas></div>
     </div>
 
   </div>
 
   <div id="statsEmpty" class="placeholder" style="display:none">
-    <i class="fas fa-chart-line"></i>Keine Daten für diesen Zeitraum
+    <i class="fas fa-chart-line"></i>No data for this period
   </div>
 </div>
 </div>
@@ -530,7 +530,7 @@
   <div class="modal">
     <div class="modal-handle"></div>
     <div class="modal-header">
-      <div class="modal-title" id="creatorTitle">Rezept erstellen</div>
+      <div class="modal-title" id="creatorTitle">Create Recipe</div>
       <button class="modal-close" onclick="closeCreator()"><i class="fas fa-times"></i></button>
     </div>
     <div class="modal-body">
@@ -542,26 +542,26 @@
 
       <!-- Step 0: Pick meal -->
       <div class="step-panel active" id="step-panel-0">
-        <div class="step-label">Schritt 1 · Mahlzeit wählen</div>
+        <div class="step-label">Step 1 · Select Meal</div>
         <div class="meal-chips" id="mealChips"></div>
       </div>
 
       <!-- Step 1: Pick items -->
       <div class="step-panel" id="step-panel-1">
-        <div class="step-label">Schritt 2 · Zutaten auswählen</div>
+        <div class="step-label">Step 2 · Select Ingredients</div>
         <div id="itemSelectList"></div>
       </div>
 
       <!-- Step 2: Name -->
       <div class="step-panel" id="step-panel-2">
-        <div class="step-label">Schritt 3 · Rezept benennen</div>
+        <div class="step-label">Step 3 · Name Recipe</div>
         <div class="selected-summary" id="selectedSummary"></div>
-        <input class="text-input" id="recipeNameInput" type="text" placeholder="z.B. Whey Shake, Overnight Oats …" autocomplete="off">
+        <input class="text-input" id="recipeNameInput" type="text" placeholder="e.g. Whey Shake, Overnight Oats …" autocomplete="off">
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary" id="btnBack" onclick="creatorBack()">Zurück</button>
-      <button class="btn btn-primary" id="btnNext" onclick="creatorNext()" disabled>Weiter</button>
+      <button class="btn btn-secondary" id="btnBack" onclick="creatorBack()">Back</button>
+      <button class="btn btn-primary" id="btnNext" onclick="creatorNext()" disabled>Next</button>
     </div>
   </div>
 </div>
@@ -571,13 +571,13 @@
   <div class="modal">
     <div class="modal-handle"></div>
     <div class="modal-header">
-      <div class="modal-title" id="editModalTitle">Rezept bearbeiten</div>
+      <div class="modal-title" id="editModalTitle">Edit Recipe</div>
       <button class="modal-close" onclick="closeEditModal()"><i class="fas fa-times"></i></button>
     </div>
     <div class="modal-body" id="editModalBody"></div>
     <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeEditModal()">Abbrechen</button>
-      <button class="btn btn-primary" id="editSaveBtn" onclick="saveEdit()">Speichern</button>
+      <button class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+      <button class="btn btn-primary" id="editSaveBtn" onclick="saveEdit()">Save</button>
     </div>
   </div>
 </div>
@@ -587,13 +587,13 @@
   <div class="modal">
     <div class="modal-handle"></div>
     <div class="modal-header">
-      <div class="modal-title" id="targetsModalTitle">Ziele bearbeiten</div>
+      <div class="modal-title" id="targetsModalTitle">Edit Goals</div>
       <button class="modal-close" onclick="closeTargetsModal()"><i class="fas fa-times"></i></button>
     </div>
     <div class="modal-body" id="targetsModalBody"></div>
     <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeTargetsModal()">Abbrechen</button>
-      <button class="btn btn-primary" id="targetsSaveBtn" onclick="saveTargets()">Speichern</button>
+      <button class="btn btn-secondary" onclick="closeTargetsModal()">Cancel</button>
+      <button class="btn btn-primary" id="targetsSaveBtn" onclick="saveTargets()">Save</button>
     </div>
   </div>
 </div>
@@ -608,7 +608,7 @@
   const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   const ORDER  = ['frühstück','zwischenmahlzeit 1','mittagessen','zwischenmahlzeit 2','abendbrot','abendessen'];
-  const LABELS = { 'frühstück':'Frühstück','zwischenmahlzeit 1':'Zwischenmahlzeit 1','mittagessen':'Mittagessen','zwischenmahlzeit 2':'Zwischenmahlzeit 2','abendbrot':'Abendessen','abendessen':'Abendessen' };
+  const LABELS = { 'frühstück':'Breakfast','zwischenmahlzeit 1':'Snack 1','mittagessen':'Lunch','zwischenmahlzeit 2':'Snack 2','abendbrot':'Dinner','abendessen':'Dinner' };
 
   let checkables = [];
   let totals = { kcal:0, p:0, c:0, f:0 };
@@ -659,7 +659,7 @@
   ══════════════════════════════════════ */
   async function loadDay() {
     const dateVal = document.getElementById('dateInput').value;
-    if (!dateVal) return alert('Bitte Datum auswählen');
+    if (!dateVal) return alert('Please select a date');
     document.getElementById('content').innerHTML = '<div class="spinner-wrap"><div class="spinner"></div></div>';
     document.getElementById('statsRow').classList.remove('visible');
     checkables = [];
@@ -672,7 +672,7 @@
     ]);
 
     if (macroRes.error) {
-      document.getElementById('content').innerHTML = `<div class="placeholder"><i class="fas fa-exclamation-triangle"></i>Fehler: ${macroRes.error.message}</div>`;
+      document.getElementById('content').innerHTML = `<div class="placeholder"><i class="fas fa-exclamation-triangle"></i>Error: ${macroRes.error.message}</div>`;
       return;
     }
 
@@ -703,7 +703,7 @@
     return `<div class="mp mp-kcal"><div class="mp-val">${Math.round(m.kcal)}</div><div class="mp-lbl">kcal</div></div><div class="mp mp-p"><div class="mp-val">${m.p.toFixed(1)}</div><div class="mp-lbl">P</div></div><div class="mp mp-c"><div class="mp-val">${m.c.toFixed(1)}</div><div class="mp-lbl">C</div></div><div class="mp mp-f"><div class="mp-val">${m.f.toFixed(1)}</div><div class="mp-lbl">F</div></div>`;
   }
   function statPillsHTML(m) {
-    return `<div class="stat-pill"><div class="stat-val c-kcal">${Math.round(m.kcal)}</div><div class="stat-lbl">Kcal</div></div><div class="stat-pill"><div class="stat-val c-p">${m.p.toFixed(1)}</div><div class="stat-lbl">Protein</div></div><div class="stat-pill"><div class="stat-val c-c">${m.c.toFixed(1)}</div><div class="stat-lbl">Carbs</div></div><div class="stat-pill"><div class="stat-val c-f">${m.f.toFixed(1)}</div><div class="stat-lbl">Fett</div></div>`;
+    return `<div class="stat-pill"><div class="stat-val c-kcal">${Math.round(m.kcal)}</div><div class="stat-lbl">Kcal</div></div><div class="stat-pill"><div class="stat-val c-p">${m.p.toFixed(1)}</div><div class="stat-lbl">Protein</div></div><div class="stat-pill"><div class="stat-val c-c">${m.c.toFixed(1)}</div><div class="stat-lbl">Carbs</div></div><div class="stat-pill"><div class="stat-val c-f">${m.f.toFixed(1)}</div><div class="stat-lbl">Fat</div></div>`;
   }
 
   function renderDayTypeToggle() {
@@ -733,10 +733,10 @@
   function renderTargetBlock() {
     const tgt = coachTargets[currentDayType];
     const macros = [
-      { key: 'kcal', label: 'Kcal',    val: Math.round(totals.kcal), goal: tgt.kcal, color: 'var(--orange)' },
+      { key: 'kcal', label: 'Kcal',  val: Math.round(totals.kcal), goal: tgt.kcal, color: 'var(--orange)' },
       { key: 'p',    label: 'Protein', val: totals.p.toFixed(1),     goal: tgt.p,    color: '#60a5fa' },
       { key: 'c',    label: 'Carbs',   val: totals.c.toFixed(1),     goal: tgt.c,    color: '#facc15' },
-      { key: 'f',    label: 'Fett',    val: totals.f.toFixed(1),     goal: tgt.f,    color: '#f87171' },
+      { key: 'f',    label: 'Fat',    val: totals.f.toFixed(1),     goal: tgt.f,    color: '#f87171' },
     ];
 
     // Overall adherence = average score of P/C/F
@@ -768,7 +768,7 @@
         </div>`;
     }).join('') + (overallAdh !== null ? `
       <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-top:10px;padding-top:8px;border-top:1px solid var(--border)">
-        <span style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em">Gesamt-Adherence</span>
+        <span style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em">Overall Adherence</span>
         <span style="font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:${adherenceColor(overallAdh)}">${overallAdh}%</span>
       </div>` : '');
   }
@@ -787,7 +787,7 @@
     const content = document.getElementById('content');
     content.innerHTML = '';
     if (!entries.length) {
-      content.innerHTML = '<div class="placeholder"><i class="fas fa-bowl-food"></i>Keine Einträge für dieses Datum</div>';
+      content.innerHTML = '<div class="placeholder"><i class="fas fa-bowl-food"></i>No entries for this date</div>';
       return;
     }
 
@@ -894,7 +894,7 @@
               <div class="recipe-row-body">
                 <div class="recipe-row-title">
                   <span class="recipe-row-name">${recipe.name}</span>
-                  <span class="recipe-tag">Rezept</span>
+                  <span class="recipe-tag">Recipe</span>
                   ${portionLabel}
                 </div>
                 <div class="macro-pills">${pillsHTML(portionM)}</div>
@@ -995,7 +995,7 @@
     const btnBack = document.getElementById('btnBack');
     const btnNext = document.getElementById('btnNext');
     btnBack.style.display = creatorStep === 0 ? 'none' : '';
-    btnNext.textContent = creatorStep === 2 ? 'Speichern' : 'Weiter';
+    btnNext.textContent = creatorStep === 2 ? 'Save' : 'Next';
 
     if (creatorStep === 0) {
       // Meal chips: only meals present in current day
@@ -1051,16 +1051,16 @@
     document.getElementById('btnNext').textContent = '…';
 
     const { data: recipe, error: recErr } = await db.from('recipes').insert({ name }).select().single();
-    if (recErr) { showToast('Fehler: ' + recErr.message, 'error'); document.getElementById('btnNext').disabled = false; document.getElementById('btnNext').textContent = 'Speichern'; return; }
+    if (recErr) { showToast('Error: ' + recErr.message, 'error'); document.getElementById('btnNext').disabled = false; document.getElementById('btnNext').textContent = 'Save'; return; }
 
     const itemRows = creatorSelected.map(item_name => ({ recipe_id: recipe.id, item_name: stripAmount(item_name) }));
     const { error: itemErr } = await db.from('recipe_items').insert(itemRows);
-    if (itemErr) { showToast('Fehler: ' + itemErr.message, 'error'); return; }
+    if (itemErr) { showToast('Error: ' + itemErr.message, 'error'); return; }
 
     await loadRecipes();
     closeCreator();
     renderDashboard(currentDayEntries); // re-render with new recipe applied
-    showToast(`Rezept "${name}" gespeichert`, 'success');
+    showToast(`Recipe "${name}" saved`, 'success');
   }
 
   /* ══════════════════════════════════════
@@ -1074,11 +1074,11 @@
     const filterRow = document.getElementById('catFilterRow');
     if (filterRow) {
       filterRow.innerHTML = [
-        `<div class="cat-chip${activeFilterCat===null?' active':''}" onclick="setFilterCat(null)">Alle</div>`,
+        `<div class="cat-chip${activeFilterCat===null?' active':''}" onclick="setFilterCat(null)">All</div>`,
         ...allCategories.map(c =>
           `<div class="cat-chip${activeFilterCat===c.id?' active':''}" onclick="setFilterCat('${c.id}')">${c.name}</div>`
         ),
-        `<div class="cat-chip" style="background:rgba(96,165,250,.08);border-color:rgba(96,165,250,.3);color:#60a5fa;font-size:.72rem;padding:5px 10px" onclick="manageCategoriesPrompt()" title="Kategorien verwalten"><i class="fas fa-tags"></i> Kategorien</div>`
+        `<div class="cat-chip" style="background:rgba(96,165,250,.08);border-color:rgba(96,165,250,.3);color:#60a5fa;font-size:.72rem;padding:5px 10px" onclick="manageCategoriesPrompt()" title="Kategorien verwalten"><i class="fas fa-tags"></i> Categories</div>`
       ].join('');
     }
 
@@ -1091,11 +1091,11 @@
       });
 
     if (!allRecipes.length) {
-      el.innerHTML = '<div class="empty-recipes"><i class="fas fa-book-open"></i>Noch keine Rezepte erstellt</div>';
+      el.innerHTML = '<div class="empty-recipes"><i class="fas fa-book-open"></i>No recipes created yet</div>';
       return;
     }
     if (!filtered.length) {
-      el.innerHTML = '<div class="empty-recipes"><i class="fas fa-search"></i>Keine Rezepte gefunden</div>';
+      el.innerHTML = '<div class="empty-recipes"><i class="fas fa-search"></i>No recipes found</div>';
       return;
     }
     el.innerHTML = '';
@@ -1109,7 +1109,7 @@
             <div class="recipe-manage-name">${recipe.name}</div>
             ${catNames.length ? `<div class="recipe-cat-tags">${catNames.map(n=>`<span class="recipe-cat-tag">${n}</span>`).join('')}</div>` : ''}
           </div>
-          <div class="recipe-manage-count">${recipe.items.length} Zut. · ${recipe.servings} Port.</div>
+          <div class="recipe-manage-count">${recipe.items.length} Ing. · ${recipe.servings} Serv.</div>
           <div class="recipe-manage-actions">
             <button class="btn-icon-sm btn-dupe" onclick="event.stopPropagation(); duplicateRecipe('${recipe.id}')"><i class="fas fa-copy"></i></button>
             <button class="btn-icon-sm btn-edit" onclick="event.stopPropagation(); openEditModal('${recipe.id}')"><i class="fas fa-pen"></i></button>
@@ -1131,9 +1131,9 @@
   async function duplicateRecipe(id) {
     const recipe = allRecipes.find(r => r.id === id);
     if (!recipe) return;
-    const newName = recipe.name + ' (Kopie)';
+    const newName = recipe.name + ' (Copy)';
     const { data: newRecipe, error: recErr } = await db.from('recipes').insert({ name: newName }).select().single();
-    if (recErr) { showToast('Fehler: ' + recErr.message, 'error'); return; }
+    if (recErr) { showToast('Error: ' + recErr.message, 'error'); return; }
     if (recipe.items.length > 0) {
       const rows = recipe.items.map(item_name => ({ recipe_id: newRecipe.id, item_name }));
       await db.from('recipe_items').insert(rows);
@@ -1143,18 +1143,18 @@
     }
     await loadRecipes();
     renderRecipeManage();
-    showToast(`"${newName}" erstellt`, 'success');
+    showToast(`"${newName}" created`, 'success');
     // auto-open edit modal so user can rename + adjust immediately
     openEditModal(newRecipe.id);
   }
 
   async function deleteRecipe(id, name) {
-    if (!confirm(`Rezept "${name}" löschen?`)) return;
+    if (!confirm(`Delete recipe "${name}"?`)) return;
     await db.from('recipes').delete().eq('id', id);
     await loadRecipes();
     renderRecipeManage();
     renderDashboard(currentDayEntries);
-    showToast(`"${name}" gelöscht`);
+    showToast(`"${name}" deleted`);
   }
 
   /* ── Strip leading amount: "150 g Hähnchen" → "Hähnchen", "10g Whey" → "Whey" ── */
@@ -1202,29 +1202,29 @@
       <!-- Name -->
       <div class="edit-section">
         <div class="edit-section-title"><i class="fas fa-pen"></i> Name</div>
-        <input class="text-input" id="editNameInput" value="${editName.replace(/"/g,'&quot;')}" placeholder="Rezeptname…" autocomplete="off">
+        <input class="text-input" id="editNameInput" value="${editName.replace(/"/g,'&quot;')}" placeholder="Recipe name…" autocomplete="off">
       </div>
 
       <!-- Portionen -->
       <div class="edit-section">
-        <div class="edit-section-title"><i class="fas fa-utensils"></i> Portionen</div>
+        <div class="edit-section-title"><i class="fas fa-utensils"></i> Servings</div>
         <div style="display:flex;align-items:center;gap:12px;">
           <button onclick="changeServings(-1)" style="width:36px;height:36px;border-radius:8px;border:1.5px solid var(--border);background:var(--card);color:var(--text);font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
           <span id="servingsDisplay" style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;color:var(--orange);min-width:24px;text-align:center">${editServings}</span>
           <button onclick="changeServings(1)"  style="width:36px;height:36px;border-radius:8px;border:1.5px solid var(--border);background:var(--card);color:var(--text);font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
-          <span style="font-size:.8rem;color:var(--muted)">Portion${editServings!==1?'en':''} → je ${editServings>1?'1/'+editServings:'1×'} der Makros im Dashboard</span>
+          <span style="font-size:.8rem;color:var(--muted)">Serving${editServings!==1?'s':''} → ${editServings>1?'1/'+editServings:'1×'} of macros per serving in dashboard</span>
         </div>
       </div>
 
       <!-- Kategorien -->
       <div class="edit-section">
         <div class="edit-section-title" style="justify-content:space-between">
-          <span><i class="fas fa-tags"></i> Kategorien</span>
-          <button onclick="promptNewCategory()" style="background:none;border:none;color:var(--orange);font-size:.75rem;cursor:pointer;font-family:'DM Sans',sans-serif">+ Neue Kategorie</button>
+          <span><i class="fas fa-tags"></i> Categories</span>
+          <button onclick="promptNewCategory()" style="background:none;border:none;color:var(--orange);font-size:.75rem;cursor:pointer;font-family:'DM Sans',sans-serif">+ New Category</button>
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:6px;" id="editCatChips">
           ${allCategories.length === 0
-            ? `<span style="font-size:.8rem;color:var(--muted)">Noch keine Kategorien. Erstelle eine mit "+ Neue Kategorie".</span>`
+            ? `<span style="font-size:.8rem;color:var(--muted)">Noch keine Kategorien. Erstelle eine mit "+ New Category".</span>`
             : allCategories.map(c => `
               <div class="cat-chip${editCatIds.includes(c.id)?' active':''}" onclick="toggleEditCat('${c.id}')">${c.name}</div>
             `).join('')}
@@ -1235,10 +1235,10 @@
 
       <!-- Current ingredients -->
       <div class="edit-section">
-        <div class="edit-section-title"><i class="fas fa-list"></i> Zutaten (${editItems.length})</div>
+        <div class="edit-section-title"><i class="fas fa-list"></i> Ingredients (${editItems.length})</div>
         <div id="editIngredientList">
           ${editItems.length === 0
-            ? `<div style="font-size:.8rem;color:var(--muted);padding:8px 0">Keine Zutaten – Rezept wird beim Speichern gelöscht.</div>`
+            ? `<div style="font-size:.8rem;color:var(--muted);padding:8px 0">No ingredients – recipe will be deleted on save.</div>`
             : editItems.map((item, i) => `
               <div class="edit-ingredient-row">
                 <span class="edit-ingredient-name">${item}</span>
@@ -1251,14 +1251,14 @@
 
       <!-- Add ingredients -->
       <div class="edit-section">
-        <div class="edit-section-title"><i class="fas fa-plus"></i> Zutat hinzufügen</div>
+        <div class="edit-section-title"><i class="fas fa-plus"></i> Add Ingredient</div>
         <div class="add-tabs">
           <div class="add-tab ${editAddTab==='day'?'active':''}" onclick="editSwitchTab('day')">Aus aktuellem Tag</div>
           <div class="add-tab ${editAddTab==='text'?'active':''}" onclick="editSwitchTab('text')">Freitext</div>
         </div>
         <div class="add-tab-panel ${editAddTab==='day'?'active':''}">
           ${available.length === 0
-            ? `<div style="font-size:.8rem;color:var(--muted);padding:8px 0">Alle Items des aktuellen Tages sind bereits enthalten.</div>`
+            ? `<div style="font-size:.8rem;color:var(--muted);padding:8px 0">All items from today are already included.</div>`
             : available.map(n => `
               <div class="select-item" onclick="editAddItem('${n.replace(/'/g,"\\'")}')">
                 <div class="sel-box"><i class="fas fa-plus" style="font-size:.6rem"></i></div>
@@ -1267,7 +1267,7 @@
         </div>
         <div class="add-tab-panel ${editAddTab==='text'?'active':''}">
           <div class="freitext-row">
-            <input class="text-input" id="editFreitext" placeholder="z.B. Haferflocken…" autocomplete="off"
+            <input class="text-input" id="editFreitext" placeholder="e.g. Oats…" autocomplete="off"
               onkeydown="if(event.key==='Enter') editAddFreitext()">
             <button class="btn-add-item" onclick="editAddFreitext()"><i class="fas fa-plus"></i></button>
           </div>
@@ -1305,7 +1305,7 @@
     document.getElementById('servingsDisplay').textContent = editServings;
     // update hint text
     const hint = document.querySelector('#editModalBody .edit-section span[style*="color:var(--muted)"]');
-    if (hint) hint.textContent = `Portion${editServings!==1?'en':''} → je ${editServings>1?'1/'+editServings:'1×'} der Makros im Dashboard`;
+    if (hint) hint.textContent = `Serving${editServings!==1?'s':''} → ${editServings>1?'1/'+editServings:'1×'} of macros per serving in dashboard`;
   }
 
   function toggleEditCat(id) {
@@ -1319,10 +1319,10 @@
   }
 
   async function promptNewCategory() {
-    const name = prompt('Kategoriename:');
+    const name = prompt('Category name:');
     if (!name?.trim()) return;
     const { data, error } = await db.from('categories').insert({ name: name.trim() }).select().single();
-    if (error) { showToast('Fehler: ' + error.message, 'error'); return; }
+    if (error) { showToast('Error: ' + error.message, 'error'); return; }
     allCategories.push({ id: data.id, name: data.name });
     allCategories.sort((a,b) => a.name.localeCompare(b.name,'de'));
     editCatIds.push(data.id);
@@ -1330,31 +1330,31 @@
   }
 
   async function manageCategoriesPrompt() {
-    const name = prompt('Neue Kategorie erstellen:');
+    const name = prompt('Create new category:');
     if (!name?.trim()) return;
     const { error } = await db.from('categories').insert({ name: name.trim() });
-    if (error) { showToast('Fehler: ' + error.message, 'error'); return; }
+    if (error) { showToast('Error: ' + error.message, 'error'); return; }
     await loadRecipes();
     renderRecipeManage();
-    showToast(`Kategorie "${name.trim()}" erstellt`, 'success');
+    showToast(`Category "${name.trim()}" created`, 'success');
   }
 
   async function saveEdit() {
     const name = (document.getElementById('editNameInput')?.value || '').trim();
-    if (!name) { showToast('Bitte einen Namen eingeben', 'error'); return; }
+    if (!name) { showToast('Please enter a name', 'error'); return; }
     if (!editTargetId) return;
 
     document.getElementById('editSaveBtn').disabled = true;
 
     // Update name + servings
     const { error: nameErr } = await db.from('recipes').update({ name, servings: editServings }).eq('id', editTargetId);
-    if (nameErr) { showToast('Fehler: ' + nameErr.message, 'error'); document.getElementById('editSaveBtn').disabled = false; return; }
+    if (nameErr) { showToast('Error: ' + nameErr.message, 'error'); document.getElementById('editSaveBtn').disabled = false; return; }
 
     // Replace items
     await db.from('recipe_items').delete().eq('recipe_id', editTargetId);
     if (editItems.length > 0) {
       const { error: itemErr } = await db.from('recipe_items').insert(editItems.map(item_name => ({ recipe_id: editTargetId, item_name })));
-      if (itemErr) { showToast('Fehler: ' + itemErr.message, 'error'); document.getElementById('editSaveBtn').disabled = false; return; }
+      if (itemErr) { showToast('Error: ' + itemErr.message, 'error'); document.getElementById('editSaveBtn').disabled = false; return; }
     }
 
     // Replace categories
@@ -1368,7 +1368,7 @@
     await loadRecipes();
     renderRecipeManage();
     renderDashboard(currentDayEntries);
-    showToast(`"${name}" gespeichert`, 'success');
+    showToast(`"${name}" saved`, 'success');
   }
 
   /* ══════════════════════════════════════
@@ -1416,20 +1416,20 @@
       .slice(0, 5); // show last 5
 
     document.getElementById('targetsModalTitle').textContent =
-      targetsEditType === 'training' ? '🏋️ Ziele bearbeiten' : '🛌 Ziele bearbeiten';
+      targetsEditType === 'training' ? '🏋️ Edit Goals' : '🛌 Edit Goals';
 
     document.getElementById('targetsModalBody').innerHTML = `
       <div style="display:flex;gap:6px;margin-bottom:18px;">
-        <div class="add-tab${targetsEditType==='training'?' active':''}" style="flex:1;text-align:center;cursor:pointer" onclick="switchTargetsType('training')"><i class="fas fa-dumbbell"></i> Trainingstag</div>
-        <div class="add-tab${targetsEditType==='rest'?' active':''}" style="flex:1;text-align:center;cursor:pointer" onclick="switchTargetsType('rest')"><i class="fas fa-bed"></i> Ruhetag</div>
+        <div class="add-tab${targetsEditType==='training'?' active':''}" style="flex:1;text-align:center;cursor:pointer" onclick="switchTargetsType('training')"><i class="fas fa-dumbbell"></i> Training Day</div>
+        <div class="add-tab${targetsEditType==='rest'?' active':''}" style="flex:1;text-align:center;cursor:pointer" onclick="switchTargetsType('rest')"><i class="fas fa-bed"></i> Rest Day</div>
       </div>
 
       <!-- Current values to edit -->
       ${[
-        { id:'t_kcal', label:'Kalorien (kcal)', val: t.kcal, color:'var(--orange)' },
+        { id:'t_kcal', label:'Calories (kcal)', val: t.kcal, color:'var(--orange)' },
         { id:'t_p',    label:'Protein (g)',     val: t.p,    color:'#60a5fa' },
         { id:'t_c',    label:'Carbs (g)',       val: t.c,    color:'#facc15' },
-        { id:'t_f',    label:'Fett (g)',        val: t.f,    color:'#f87171' },
+        { id:'t_f',    label:'Fat (g)',        val: t.f,    color:'#f87171' },
       ].map(f => `
         <div class="edit-section" style="margin-bottom:12px">
           <div class="edit-section-title" style="color:${f.color}"><i class="fas fa-circle" style="font-size:.4rem"></i> ${f.label}</div>
@@ -1439,7 +1439,7 @@
       <!-- History -->
       ${hist.length > 1 ? `
         <div class="edit-divider"></div>
-        <div class="edit-section-title" style="margin-bottom:8px"><i class="fas fa-history" style="color:var(--orange);font-size:.72rem"></i> Verlauf</div>
+        <div class="edit-section-title" style="margin-bottom:8px"><i class="fas fa-history" style="color:var(--orange);font-size:.72rem"></i> History</div>
         ${hist.map((r, i) => `
           <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);opacity:${i===0?'1':'0.5'}">
             <div style="font-size:.75rem;color:var(--muted);flex-shrink:0;width:80px">${r.valid_from}${i===0?' <span style="color:var(--orange);font-size:.6rem">Aktuell</span>':''}</div>
@@ -1452,14 +1452,14 @@
             ${i > 0 ? `<button onclick="deleteTargetRow('${r.id}')" style="background:rgba(248,113,113,.12);color:#f87171;border:none;border-radius:5px;width:24px;height:24px;cursor:pointer;font-size:.65rem;display:flex;align-items:center;justify-content:center"><i class="fas fa-trash"></i></button>` : ''}
           </div>`).join('')}` : ''}`;
 
-    document.getElementById('targetsSaveBtn').textContent = 'Ab heute anwenden';
+    document.getElementById('targetsSaveBtn').textContent = 'Apply from today';
   }
 
   async function deleteTargetRow(id) {
     await db.from('coach_targets').delete().eq('id', id);
     targetsHistory = targetsHistory.filter(r => r.id !== id);
     renderTargetsModal();
-    showToast('Eintrag gelöscht');
+    showToast('Entry deleted');
   }
 
   async function saveTargets() {
@@ -1475,13 +1475,13 @@
     ]);
     document.getElementById('targetsSaveBtn').disabled = false;
 
-    if (r1.error || r2.error) { showToast('Fehler beim Speichern', 'error'); return; }
+    if (r1.error || r2.error) { showToast('Error saving', 'error'); return; }
 
     coachTargets.training = { ...targetsDraft.training };
     coachTargets.rest     = { ...targetsDraft.rest };
     closeTargetsModal();
     renderTargetBlock();
-    showToast('Ziele ab heute aktualisiert ✓', 'success');
+    showToast('Goals updated from today ✓', 'success');
   }
 
   /* ══════════════════════════════════════
@@ -1604,23 +1604,23 @@
     const adhColor = avgAdh !== null ? adherenceColor(avgAdh) : 'var(--muted)';
     document.getElementById('statsSummary').innerHTML = `
       <div class="stats-summary-card" style="grid-column:1/-1">
-        <div class="stats-summary-label">Ø Gesamt-Adherence</div>
+        <div class="stats-summary-label">Ø Overall Adherence</div>
         <div class="stats-summary-val" style="color:${adhColor}">${avgAdh !== null ? avgAdh + '%' : '–'}</div>
-        <div class="stats-summary-sub">${withAdh.length} von ${dates.length} Tagen mit Zieldaten</div>
+        <div class="stats-summary-sub">${withAdh.length} of ${dates.length} days with target data</div>
       </div>
       <div class="stats-summary-card">
-        <div class="stats-summary-label">Trainingstage</div>
+        <div class="stats-summary-label">Training Days</div>
         <div class="stats-summary-val" style="color:var(--orange)">${trainingDays}</div>
       </div>
       <div class="stats-summary-card">
-        <div class="stats-summary-label">Ruhetage</div>
+        <div class="stats-summary-label">Rest Days</div>
         <div class="stats-summary-val" style="color:#60a5fa">${restDays}</div>
       </div>`;
 
     // ── Line chart: filled area deviation, 0 = perfect, colour by magnitude ──
     if (statsLineChart) { statsLineChart.destroy(); statsLineChart = null; }
     document.getElementById('statsLineCard').querySelector('.stats-chart-title').innerHTML =
-      '<i class="fas fa-chart-line"></i> Tägliche Abweichung vom Ziel';
+      '<i class="fas fa-chart-line"></i> Daily Deviation from Target';
     const lineCtx = document.getElementById('statsLineChart').getContext('2d');
 
     function devToColor(dev, alpha) {
@@ -1639,7 +1639,7 @@
       data: {
         labels: dayData.map(d => d.date.slice(5)),
         datasets: [{
-          label: 'Abweichung',
+          label: 'Deviation',
           data: devValues,
           borderWidth: 2,
           pointRadius: dayData.length > 30 ? 0 : 4,
@@ -1668,8 +1668,8 @@
           tooltip: {
             callbacks: {
               label: ctx => ctx.raw !== null
-                ? 'Abw: ' + (ctx.raw > 0 ? '+' : '') + ctx.raw + '%'
-                : 'k.A.',
+                ? 'Dev: ' + (ctx.raw > 0 ? '+' : '') + ctx.raw + '%'
+                : 'N/A',
             }
           }
         },
@@ -1697,7 +1697,7 @@
     // ── Bar chart: diverging deviation per macro (0 = perfect, + = over, - = under) ──
     if (statsBarChart) { statsBarChart.destroy(); statsBarChart = null; }
     document.getElementById('statsBarCard').querySelector('.stats-chart-title').innerHTML =
-      '<i class="fas fa-chart-bar"></i> Ø Abweichung vom Ziel';
+      '<i class="fas fa-chart-bar"></i> Avg. Deviation from Target';
     const barCtx = document.getElementById('statsBarChart').getContext('2d');
     const devData  = [avgDevP, avgDevC, avgDevF];
     const devColors = devData.map(v => {
@@ -1710,7 +1710,7 @@
     statsBarChart = new Chart(barCtx, {
       type: 'bar',
       data: {
-        labels: ['Protein', 'Carbs', 'Fett'],
+        labels: ['Protein', 'Carbs', 'Fat'],
         datasets: [{
           data: devData,
           backgroundColor: devColors,
@@ -1723,7 +1723,7 @@
         responsive: true, maintainAspectRatio: false,
         plugins: {
           legend: { display: false },
-          tooltip: { callbacks: { label: ctx => ctx.raw !== null ? (ctx.raw > 0 ? '+' : '') + ctx.raw + '%' : 'k.A.' } },
+          tooltip: { callbacks: { label: ctx => ctx.raw !== null ? (ctx.raw > 0 ? '+' : '') + ctx.raw + '%' : 'N/A' } },
           annotation: {},
         },
         scales: {
@@ -1751,7 +1751,7 @@
       else if (a >= 75)  bg = `rgba(250,204,21,${0.3 + (a-75)*0.046})`;
       else               bg = `rgba(248,113,113,${0.3 + (75-a)*0.028})`;
       cell.style.background = bg;
-      cell.setAttribute('data-tip', `${d.date}: ${a !== null ? a + '%' : 'k.A.'}`);
+      cell.setAttribute('data-tip', `${d.date}: ${a !== null ? a + '%' : 'N/A'}`);
       hm.appendChild(cell);
     });
 
