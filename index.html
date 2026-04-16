@@ -104,6 +104,21 @@
     .progress-fill { height: 100%; background: var(--orange); border-radius: 99px; width: 0%; transition: width .3s ease; }
     .progress-label { font-size: .65rem; color: var(--muted); white-space: nowrap; }
 
+    /* ── Day type toggle ── */
+    .day-type-toggle { display: flex; background: var(--card); border-radius: 8px; padding: 2px; gap: 2px; }
+    .dtt-btn { background: none; border: none; color: var(--muted); border-radius: 6px; width: 28px; height: 24px; font-size: .72rem; cursor: pointer; transition: background .15s, color .15s; display: flex; align-items: center; justify-content: center; }
+    .dtt-btn.active { background: var(--orange); color: #fff; }
+
+    /* ── Macro progress rows (Geplant block) ── */
+    .macro-prog-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+    .macro-prog-row:last-child { margin-bottom: 0; }
+    .macro-prog-lbl { font-size: .65rem; text-transform: uppercase; letter-spacing: .07em; width: 52px; flex-shrink: 0; }
+    .macro-prog-vals { font-family: 'Bebas Neue', sans-serif; font-size: .95rem; line-height: 1; flex-shrink: 0; white-space: nowrap; }
+    .macro-prog-target { font-size: .6rem; color: var(--muted); }
+    .macro-prog-track { flex: 1; height: 5px; background: var(--border); border-radius: 99px; overflow: hidden; }
+    .macro-prog-fill { height: 100%; border-radius: 99px; transition: width .4s ease; }
+    .macro-prog-pct { font-size: .65rem; width: 34px; text-align: right; flex-shrink: 0; font-weight: 600; }
+
     /* ── Meal list ── */
     .meal-list { display: flex; flex-direction: column; gap: 12px; }
     .meal-card { background: var(--surface); border-radius: 16px; overflow: hidden; border: 1px solid var(--border); animation: slideUp .32s cubic-bezier(.22,.68,0,1.2) both; }
@@ -377,10 +392,23 @@
   </div>
 
   <div class="stats-row" id="statsRow">
-    <div class="stat-block">
-      <div class="stat-block-title"><i class="fas fa-chart-bar"></i> Geplant</div>
-      <div class="stat-grid" id="totalPills"></div>
+
+    <!-- Geplant vs Ziel -->
+    <div class="stat-block" id="targetBlock">
+      <div class="stat-block-title" style="justify-content:space-between">
+        <span><i class="fas fa-bullseye"></i> Geplant</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="day-type-toggle" id="dayTypeToggle">
+            <button class="dtt-btn" id="dttTraining" onclick="setDayType('training')"><i class="fas fa-dumbbell"></i></button>
+            <button class="dtt-btn" id="dttRest"     onclick="setDayType('rest')"><i class="fas fa-bed"></i></button>
+          </div>
+          <button class="icon-btn" style="width:28px;height:28px;font-size:.7rem" onclick="openTargetsModal()" title="Ziele bearbeiten"><i class="fas fa-pen"></i></button>
+        </div>
+      </div>
+      <div id="targetMacroRows"></div>
     </div>
+
+    <!-- Gegessen -->
     <div class="stat-block checked-block" id="checkedBlock">
       <div class="stat-block-title"><i class="fas fa-circle-check"></i> Gegessen</div>
       <div class="stat-grid" id="checkedPills"></div>
@@ -389,6 +417,7 @@
         <div class="progress-label" id="progressLabel">0 / 0</div>
       </div>
     </div>
+
   </div>
 
   <div class="meal-list" id="content"></div>
@@ -471,6 +500,22 @@
   </div>
 </div>
 
+<!-- coach targets modal -->
+<div class="modal-overlay" id="targetsOverlay">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title" id="targetsModalTitle">Ziele bearbeiten</div>
+      <button class="modal-close" onclick="closeTargetsModal()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body" id="targetsModalBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeTargetsModal()">Abbrechen</button>
+      <button class="btn btn-primary" id="targetsSaveBtn" onclick="saveTargets()">Speichern</button>
+    </div>
+  </div>
+</div>
+
 <!-- toast -->
 <div class="toast" id="toast"></div>
 
@@ -489,8 +534,10 @@
   let allCategories = [];
   let activeFilterCat = null;
   let currentDayEntries = [];
-  let currentCheckedMap = {}; // item_key -> bool
+  let currentCheckedMap = {};
   let currentDate = '';
+  let coachTargets = { training: {kcal:0,p:0,c:0,f:0}, rest: {kcal:0,p:0,c:0,f:0} };
+  let currentDayType = 'training'; // 'training' | 'rest'
 
   /* ── Init ── */
   document.getElementById('dateInput').value = new Date().toISOString().split('T')[0];
@@ -534,18 +581,30 @@
     document.getElementById('statsRow').classList.remove('visible');
     checkables = [];
 
-    const [macroRes, statusRes] = await Promise.all([
+    const [macroRes, statusRes, targetsRes, dayTypeRes] = await Promise.all([
       db.from('daily_macros').select('*').eq('date', dateVal).order('meal'),
       db.from('checklist_status').select('item_key, checked').eq('date', dateVal),
+      db.from('coach_targets').select('*'),
+      db.from('day_type').select('type').eq('date', dateVal).maybeSingle(),
     ]);
 
     if (macroRes.error) {
       document.getElementById('content').innerHTML = `<div class="placeholder"><i class="fas fa-exclamation-triangle"></i>Fehler: ${macroRes.error.message}</div>`;
       return;
     }
+
     currentDayEntries = macroRes.data || [];
     currentCheckedMap = Object.fromEntries((statusRes.data || []).map(r => [r.item_key, r.checked]));
     currentDate = dateVal;
+
+    // Coach targets
+    (targetsRes.data || []).forEach(t => {
+      coachTargets[t.type] = { kcal: t.kcal, p: t.protein, c: t.carbs, f: t.fat };
+    });
+
+    // Day type — default training if not set
+    currentDayType = dayTypeRes.data?.type || 'training';
+    renderDayTypeToggle();
     renderDashboard(currentDayEntries);
   }
 
@@ -560,6 +619,76 @@
   }
   function statPillsHTML(m) {
     return `<div class="stat-pill"><div class="stat-val c-kcal">${Math.round(m.kcal)}</div><div class="stat-lbl">Kcal</div></div><div class="stat-pill"><div class="stat-val c-p">${m.p.toFixed(1)}</div><div class="stat-lbl">Protein</div></div><div class="stat-pill"><div class="stat-val c-c">${m.c.toFixed(1)}</div><div class="stat-lbl">Carbs</div></div><div class="stat-pill"><div class="stat-val c-f">${m.f.toFixed(1)}</div><div class="stat-lbl">Fett</div></div>`;
+  }
+
+  function renderDayTypeToggle() {
+    document.getElementById('dttTraining')?.classList.toggle('active', currentDayType === 'training');
+    document.getElementById('dttRest')?.classList.toggle('active', currentDayType === 'rest');
+  }
+
+  async function setDayType(type) {
+    currentDayType = type;
+    renderDayTypeToggle();
+    renderTargetBlock();
+    // Persist
+    await db.from('day_type').upsert({ date: currentDate, type }, { onConflict: 'date' });
+  }
+
+  function adherenceColor(pct) {
+    if (pct >= 90 && pct <= 110) return '#4ade80'; // green
+    if (pct >= 75)               return '#facc15'; // yellow
+    return '#f87171';                               // red
+  }
+
+  function renderTargetBlock() {
+    const tgt = coachTargets[currentDayType];
+    const macros = [
+      { key: 'kcal', label: 'Kcal',    val: Math.round(totals.kcal), goal: tgt.kcal, color: 'var(--orange)' },
+      { key: 'p',    label: 'Protein', val: totals.p.toFixed(1),     goal: tgt.p,    color: '#60a5fa' },
+      { key: 'c',    label: 'Carbs',   val: totals.c.toFixed(1),     goal: tgt.c,    color: '#facc15' },
+      { key: 'f',    label: 'Fett',    val: totals.f.toFixed(1),     goal: tgt.f,    color: '#f87171' },
+    ];
+
+    // Overall adherence = average of P/C/F (not kcal)
+    const adherenceMacros = macros.slice(1); // p, c, f only
+    const validAdh = adherenceMacros.filter(m => m.goal > 0);
+    const overallAdh = validAdh.length > 0
+      ? Math.round(validAdh.reduce((s, m) => s + (parseFloat(m.val) / m.goal) * 100, 0) / validAdh.length)
+      : null;
+
+    document.getElementById('targetMacroRows').innerHTML = macros.map(m => {
+      const pct        = m.goal > 0 ? Math.min((parseFloat(m.val) / m.goal) * 100, 120) : 0;
+      const pctDisplay = m.goal > 0 ? Math.round((parseFloat(m.val) / m.goal) * 100) + '%' : '–';
+      const color      = m.goal > 0 ? adherenceColor(Math.round((parseFloat(m.val) / m.goal) * 100)) : 'var(--muted)';
+      return `
+        <div class="macro-prog-row">
+          <div class="macro-prog-lbl" style="color:${m.color}">${m.label}</div>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
+              <span class="macro-prog-vals" style="color:${m.color}">${m.val}</span>
+              <span class="macro-prog-target">/ ${m.goal}</span>
+            </div>
+            <div class="macro-prog-track">
+              <div class="macro-prog-fill" style="width:${pct}%;background:${m.color}"></div>
+            </div>
+          </div>
+          <div class="macro-prog-pct" style="color:${color}">${pctDisplay}</div>
+        </div>`;
+    }).join('') + (overallAdh !== null ? `
+      <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-top:10px;padding-top:8px;border-top:1px solid var(--border)">
+        <span style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em">Gesamt-Adherence</span>
+        <span style="font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:${adherenceColor(overallAdh)}">${overallAdh}%</span>
+      </div>` : '');
+  }
+
+  function updateChecked() {
+    const ch = checkables.filter(c => c.checked);
+    const ck = ch.reduce((a,c) => ({ kcal:a.kcal+c.macros.kcal, p:a.p+c.macros.p, c:a.c+c.macros.c, f:a.f+c.macros.f }), {kcal:0,p:0,c:0,f:0});
+    document.getElementById('checkedPills').innerHTML = statPillsHTML(ck);
+    const pct = checkables.length > 0 ? (ch.length/checkables.length)*100 : 0;
+    document.getElementById('progressFill').style.width = pct+'%';
+    document.getElementById('progressLabel').textContent = `${ch.length} / ${checkables.length}`;
+    document.getElementById('checkedBlock').classList.toggle('has-data', ch.length > 0);
   }
 
   function renderDashboard(entries) {
@@ -716,7 +845,7 @@
       content.appendChild(card);
     });
 
-    document.getElementById('totalPills').innerHTML = statPillsHTML(totals);
+    renderTargetBlock();
     updateChecked();
     document.getElementById('statsRow').classList.add('visible');
   }
@@ -1148,6 +1277,76 @@
     renderRecipeManage();
     renderDashboard(currentDayEntries);
     showToast(`"${name}" gespeichert`, 'success');
+  }
+
+  /* ══════════════════════════════════════
+     COACH TARGETS MODAL
+  ══════════════════════════════════════ */
+  // In-memory draft for both types so switching tabs doesn't lose edits
+  let targetsDraft = { training: null, rest: null };
+
+  function openTargetsModal() {
+    targetsEditType = currentDayType;
+    // Init drafts from current values
+    targetsDraft.training = { ...coachTargets.training };
+    targetsDraft.rest     = { ...coachTargets.rest };
+    renderTargetsModal();
+    document.getElementById('targetsOverlay').classList.add('open');
+  }
+
+  function saveDraftFromInputs() {
+    const kcal = parseInt(document.getElementById('t_kcal')?.value) || 0;
+    const p    = parseFloat(document.getElementById('t_p')?.value)  || 0;
+    const c    = parseFloat(document.getElementById('t_c')?.value)  || 0;
+    const f    = parseFloat(document.getElementById('t_f')?.value)  || 0;
+    targetsDraft[targetsEditType] = { kcal, p, c, f };
+  }
+
+  function switchTargetsType(type) {
+    saveDraftFromInputs(); // save current tab's values before switching
+    targetsEditType = type;
+    renderTargetsModal();
+  }
+
+  function renderTargetsModal() {
+    const t = targetsDraft[targetsEditType];
+    document.getElementById('targetsModalTitle').textContent =
+      targetsEditType === 'training' ? '🏋️ Trainingstag – Ziele' : '🛌 Ruhetag – Ziele';
+    document.getElementById('targetsModalBody').innerHTML = `
+      <div style="display:flex;gap:6px;margin-bottom:18px;">
+        <div class="add-tab${targetsEditType==='training'?' active':''}" style="flex:1;text-align:center;cursor:pointer" onclick="switchTargetsType('training')"><i class="fas fa-dumbbell"></i> Trainingstag</div>
+        <div class="add-tab${targetsEditType==='rest'?' active':''}" style="flex:1;text-align:center;cursor:pointer" onclick="switchTargetsType('rest')"><i class="fas fa-bed"></i> Ruhetag</div>
+      </div>
+      ${[
+        { id:'t_kcal', label:'Kalorien (kcal)', val: t.kcal, color:'var(--orange)' },
+        { id:'t_p',    label:'Protein (g)',     val: t.p,    color:'#60a5fa' },
+        { id:'t_c',    label:'Carbs (g)',       val: t.c,    color:'#facc15' },
+        { id:'t_f',    label:'Fett (g)',        val: t.f,    color:'#f87171' },
+      ].map(f => `
+        <div class="edit-section" style="margin-bottom:14px">
+          <div class="edit-section-title" style="color:${f.color}"><i class="fas fa-circle" style="font-size:.4rem"></i> ${f.label}</div>
+          <input class="text-input" id="${f.id}" type="number" min="0" value="${f.val}" style="margin-bottom:0">
+        </div>`).join('')}`;
+  }
+
+  async function saveTargets() {
+    saveDraftFromInputs(); // capture final tab before saving
+    document.getElementById('targetsSaveBtn').disabled = true;
+
+    // Save both types in parallel
+    const [r1, r2] = await Promise.all([
+      db.from('coach_targets').update({ kcal: targetsDraft.training.kcal, protein: targetsDraft.training.p, carbs: targetsDraft.training.c, fat: targetsDraft.training.f }).eq('type', 'training'),
+      db.from('coach_targets').update({ kcal: targetsDraft.rest.kcal,     protein: targetsDraft.rest.p,     carbs: targetsDraft.rest.c,     fat: targetsDraft.rest.f     }).eq('type', 'rest'),
+    ]);
+    document.getElementById('targetsSaveBtn').disabled = false;
+
+    if (r1.error || r2.error) { showToast('Fehler beim Speichern', 'error'); return; }
+
+    coachTargets.training = { ...targetsDraft.training };
+    coachTargets.rest     = { ...targetsDraft.rest };
+    closeTargetsModal();
+    renderTargetBlock();
+    showToast('Ziele gespeichert', 'success');
   }
 
   /* ══════════════════════════════════════
