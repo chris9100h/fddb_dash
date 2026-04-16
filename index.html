@@ -11,6 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 
   <style>
     :root {
@@ -362,6 +363,20 @@
     .freitext-row .text-input { margin-bottom: 0; }
     .btn-add-item { background: var(--orange); color: #fff; border: none; border-radius: 10px; padding: 0 16px; font-size: .85rem; font-weight: 600; cursor: pointer; white-space: nowrap; min-height: 46px; transition: background .15s; }
     .btn-add-item:hover { background: #ff7d1a; }
+    /* ── Stats view ── */
+    .stats-period-tabs { display: flex; gap: 6px; margin-bottom: 16px; }
+    .spt-btn { flex: 1; background: var(--card); border: 1.5px solid var(--border); color: var(--muted); border-radius: 10px; padding: 9px 4px; font-family: 'DM Sans', sans-serif; font-size: .82rem; font-weight: 600; cursor: pointer; transition: all .15s; }
+    .spt-btn:hover { border-color: var(--orange); color: var(--orange); }
+    .spt-btn.active { background: var(--orange); border-color: var(--orange); color: #fff; }
+    .stats-chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 14px 14px 16px; margin-bottom: 12px; }
+    .stats-chart-title { font-family: 'Bebas Neue', sans-serif; font-size: .95rem; letter-spacing: .1em; color: var(--muted); margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+    .stats-chart-title i { color: var(--orange); font-size: .75rem; }
+    .stats-summary-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 13px 12px; }
+    .stats-summary-label { font-size: .58rem; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); margin-bottom: 4px; }
+    .stats-summary-val { font-family: 'Bebas Neue', sans-serif; font-size: 2rem; line-height: 1; }
+    .stats-summary-sub { font-size: .68rem; color: var(--muted); margin-top: 3px; }
+    .heatmap-cell { width: 22px; height: 22px; border-radius: 4px; cursor: default; position: relative; }
+    .heatmap-cell:hover::after { content: attr(data-tip); position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%); background: #2a2a2a; color: var(--text); font-size: .65rem; padding: 3px 7px; border-radius: 5px; white-space: nowrap; z-index: 10; pointer-events: none; }
   </style>
 </head>
 <body>
@@ -376,6 +391,9 @@
       <div class="logo-sub">Tagesplanung</div>
     </div>
     <div class="header-actions">
+      <button class="icon-btn" title="Statistiken" onclick="showView('viewStats')">
+        <i class="fas fa-chart-line"></i>
+      </button>
       <button class="icon-btn" title="Rezepte verwalten" onclick="showView('viewRecipes')">
         <i class="fas fa-book-open"></i>
       </button>
@@ -443,7 +461,71 @@
 </div>
 </div>
 
-<!-- ════════════════════════ RECIPE CREATOR MODAL ════════════════════════ -->
+<!-- ════════════════════════ STATS VIEW ════════════════════════ -->
+<div id="viewStats" class="view">
+<div class="page">
+  <button class="back-btn" onclick="showView('viewMain')">
+    <i class="fas fa-arrow-left"></i> Zurück
+  </button>
+  <div class="manage-title">Statistiken</div>
+
+  <!-- Period tabs -->
+  <div class="stats-period-tabs" id="statsPeriodTabs">
+    <button class="spt-btn active" onclick="setStatsPeriod('week')">KW</button>
+    <button class="spt-btn" onclick="setStatsPeriod('month')">Monat</button>
+    <button class="spt-btn" onclick="setStatsPeriod('3months')">3 Monate</button>
+    <button class="spt-btn" onclick="setStatsPeriod('custom')">Custom</button>
+  </div>
+
+  <!-- Custom date range -->
+  <div id="statsCustomRange" style="display:none;gap:8px;margin-bottom:16px;align-items:center;flex-wrap:wrap">
+    <input type="date" id="statsFrom" class="text-input" style="width:150px;margin-bottom:0;padding:10px 12px;font-size:.85rem">
+    <span style="color:var(--muted);font-size:.85rem">bis</span>
+    <input type="date" id="statsTo"   class="text-input" style="width:150px;margin-bottom:0;padding:10px 12px;font-size:.85rem">
+    <button class="btn-load" style="min-height:40px;padding:0 16px;font-size:.85rem" onclick="loadStats()"><i class="fas fa-bolt"></i></button>
+  </div>
+
+  <!-- Loading -->
+  <div id="statsLoading" class="spinner-wrap" style="display:none"><div class="spinner"></div></div>
+
+  <!-- Content -->
+  <div id="statsContent" style="display:none">
+
+    <!-- Summary cards -->
+    <div id="statsSummary" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px"></div>
+
+    <!-- Heatmap -->
+    <div class="stats-chart-card">
+      <div class="stats-chart-title"><i class="fas fa-th"></i> Adherence Heatmap</div>
+      <div id="statsHeatmap" style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px"></div>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:10px">
+        <span style="font-size:.6rem;color:var(--muted)">0%</span>
+        <div style="flex:1;height:4px;border-radius:2px;background:linear-gradient(90deg,#f87171,#facc15,#4ade80)"></div>
+        <span style="font-size:.6rem;color:var(--muted)">100%</span>
+      </div>
+    </div>
+
+    <!-- Adherence line chart -->
+    <div class="stats-chart-card" id="statsLineCard">
+      <div class="stats-chart-title"><i class="fas fa-chart-line"></i> Tägliche Abweichung vom Ziel</div>
+      <div style="position:relative;height:180px"><canvas id="statsLineChart"></canvas></div>
+    </div>
+
+    <!-- Adherence bar chart -->
+    <div class="stats-chart-card" id="statsBarCard">
+      <div class="stats-chart-title"><i class="fas fa-chart-bar"></i> Ø Abweichung vom Ziel</div>
+      <div style="position:relative;height:160px"><canvas id="statsBarChart"></canvas></div>
+    </div>
+
+  </div>
+
+  <div id="statsEmpty" class="placeholder" style="display:none">
+    <i class="fas fa-chart-line"></i>Keine Daten für diesen Zeitraum
+  </div>
+</div>
+</div>
+
+
 <div class="modal-overlay" id="creatorOverlay">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -550,6 +632,7 @@
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.getElementById(id).classList.add('active');
     if (id === 'viewRecipes') renderRecipeManage();
+    if (id === 'viewStats')   loadStats();
   }
 
   /* ══════════════════════════════════════
@@ -584,7 +667,7 @@
     const [macroRes, statusRes, targetsRes, dayTypeRes] = await Promise.all([
       db.from('daily_macros').select('*').eq('date', dateVal).order('meal'),
       db.from('checklist_status').select('item_key, checked').eq('date', dateVal),
-      db.from('coach_targets').select('*'),
+      db.from('coach_targets').select('*').lte('valid_from', dateVal).order('valid_from', { ascending: false }),
       db.from('day_type').select('type').eq('date', dateVal).maybeSingle(),
     ]);
 
@@ -597,9 +680,11 @@
     currentCheckedMap = Object.fromEntries((statusRes.data || []).map(r => [r.item_key, r.checked]));
     currentDate = dateVal;
 
-    // Coach targets
-    (targetsRes.data || []).forEach(t => {
-      coachTargets[t.type] = { kcal: t.kcal, p: t.protein, c: t.carbs, f: t.fat };
+    // Pick the most recent target per type valid on this date
+    const rows = targetsRes.data || [];
+    ['training','rest'].forEach(type => {
+      const match = rows.find(r => r.type === type);
+      if (match) coachTargets[type] = { kcal: match.kcal, p: match.protein, c: match.carbs, f: match.fat };
     });
 
     // Day type — default training if not set
@@ -634,10 +719,15 @@
     await db.from('day_type').upsert({ date: currentDate, type }, { onConflict: 'date' });
   }
 
-  function adherenceColor(pct) {
-    if (pct >= 90 && pct <= 110) return '#4ade80'; // green
-    if (pct >= 75)               return '#facc15'; // yellow
-    return '#f87171';                               // red
+  function adherenceScore(pct) {
+    // 100% = perfect, both over and under reduce the score, min 0
+    return Math.max(0, 100 - Math.abs(100 - pct));
+  }
+
+  function adherenceColor(score) {
+    if (score >= 90) return '#4ade80'; // green
+    if (score >= 75) return '#facc15'; // yellow
+    return '#f87171';                  // red
   }
 
   function renderTargetBlock() {
@@ -649,17 +739,19 @@
       { key: 'f',    label: 'Fett',    val: totals.f.toFixed(1),     goal: tgt.f,    color: '#f87171' },
     ];
 
-    // Overall adherence = average of P/C/F (not kcal)
-    const adherenceMacros = macros.slice(1); // p, c, f only
+    // Overall adherence = average score of P/C/F
+    const adherenceMacros = macros.slice(1);
     const validAdh = adherenceMacros.filter(m => m.goal > 0);
     const overallAdh = validAdh.length > 0
-      ? Math.round(validAdh.reduce((s, m) => s + (parseFloat(m.val) / m.goal) * 100, 0) / validAdh.length)
+      ? Math.round(validAdh.reduce((s, m) => s + adherenceScore(Math.round((parseFloat(m.val) / m.goal) * 100)), 0) / validAdh.length)
       : null;
 
     document.getElementById('targetMacroRows').innerHTML = macros.map(m => {
-      const pct        = m.goal > 0 ? Math.min((parseFloat(m.val) / m.goal) * 100, 120) : 0;
-      const pctDisplay = m.goal > 0 ? Math.round((parseFloat(m.val) / m.goal) * 100) + '%' : '–';
-      const color      = m.goal > 0 ? adherenceColor(Math.round((parseFloat(m.val) / m.goal) * 100)) : 'var(--muted)';
+      const rawPct  = m.goal > 0 ? Math.round((parseFloat(m.val) / m.goal) * 100) : 0;
+      const score   = adherenceScore(rawPct);
+      const barPct  = m.goal > 0 ? Math.min((parseFloat(m.val) / m.goal) * 100, 120) : 0;
+      const pctDisplay = m.goal > 0 ? score + '%' : '–';
+      const color   = m.goal > 0 ? adherenceColor(score) : 'var(--muted)';
       return `
         <div class="macro-prog-row">
           <div class="macro-prog-lbl" style="color:${m.color}">${m.label}</div>
@@ -669,7 +761,7 @@
               <span class="macro-prog-target">/ ${m.goal}</span>
             </div>
             <div class="macro-prog-track">
-              <div class="macro-prog-fill" style="width:${pct}%;background:${m.color}"></div>
+              <div class="macro-prog-fill" style="width:${barPct}%;background:${m.color}"></div>
             </div>
           </div>
           <div class="macro-prog-pct" style="color:${color}">${pctDisplay}</div>
@@ -1282,61 +1374,104 @@
   /* ══════════════════════════════════════
      COACH TARGETS MODAL
   ══════════════════════════════════════ */
-  // In-memory draft for both types so switching tabs doesn't lose edits
-  let targetsDraft = { training: null, rest: null };
+  let targetsEditType = 'training';
+  let targetsDraft    = { training: null, rest: null };
+  let targetsHistory  = []; // all rows from DB for history display
 
-  function openTargetsModal() {
+  async function openTargetsModal() {
     targetsEditType = currentDayType;
-    // Init drafts from current values
     targetsDraft.training = { ...coachTargets.training };
     targetsDraft.rest     = { ...coachTargets.rest };
+    // Load full history for display
+    const { data } = await db.from('coach_targets').select('*').order('valid_from', { ascending: false });
+    targetsHistory = data || [];
     renderTargetsModal();
     document.getElementById('targetsOverlay').classList.add('open');
   }
 
+  function closeTargetsModal() {
+    document.getElementById('targetsOverlay').classList.remove('open');
+  }
+
   function saveDraftFromInputs() {
-    const kcal = parseInt(document.getElementById('t_kcal')?.value) || 0;
-    const p    = parseFloat(document.getElementById('t_p')?.value)  || 0;
-    const c    = parseFloat(document.getElementById('t_c')?.value)  || 0;
-    const f    = parseFloat(document.getElementById('t_f')?.value)  || 0;
+    const kcal = parseInt(document.getElementById('t_kcal')?.value)  || 0;
+    const p    = parseFloat(document.getElementById('t_p')?.value)   || 0;
+    const c    = parseFloat(document.getElementById('t_c')?.value)   || 0;
+    const f    = parseFloat(document.getElementById('t_f')?.value)   || 0;
     targetsDraft[targetsEditType] = { kcal, p, c, f };
   }
 
   function switchTargetsType(type) {
-    saveDraftFromInputs(); // save current tab's values before switching
+    saveDraftFromInputs();
     targetsEditType = type;
     renderTargetsModal();
   }
 
   function renderTargetsModal() {
     const t = targetsDraft[targetsEditType];
+
+    // Build history for current type, newest first
+    const hist = targetsHistory
+      .filter(r => r.type === targetsEditType)
+      .slice(0, 5); // show last 5
+
     document.getElementById('targetsModalTitle').textContent =
-      targetsEditType === 'training' ? '🏋️ Trainingstag – Ziele' : '🛌 Ruhetag – Ziele';
+      targetsEditType === 'training' ? '🏋️ Ziele bearbeiten' : '🛌 Ziele bearbeiten';
+
     document.getElementById('targetsModalBody').innerHTML = `
       <div style="display:flex;gap:6px;margin-bottom:18px;">
         <div class="add-tab${targetsEditType==='training'?' active':''}" style="flex:1;text-align:center;cursor:pointer" onclick="switchTargetsType('training')"><i class="fas fa-dumbbell"></i> Trainingstag</div>
         <div class="add-tab${targetsEditType==='rest'?' active':''}" style="flex:1;text-align:center;cursor:pointer" onclick="switchTargetsType('rest')"><i class="fas fa-bed"></i> Ruhetag</div>
       </div>
+
+      <!-- Current values to edit -->
       ${[
         { id:'t_kcal', label:'Kalorien (kcal)', val: t.kcal, color:'var(--orange)' },
         { id:'t_p',    label:'Protein (g)',     val: t.p,    color:'#60a5fa' },
         { id:'t_c',    label:'Carbs (g)',       val: t.c,    color:'#facc15' },
         { id:'t_f',    label:'Fett (g)',        val: t.f,    color:'#f87171' },
       ].map(f => `
-        <div class="edit-section" style="margin-bottom:14px">
+        <div class="edit-section" style="margin-bottom:12px">
           <div class="edit-section-title" style="color:${f.color}"><i class="fas fa-circle" style="font-size:.4rem"></i> ${f.label}</div>
           <input class="text-input" id="${f.id}" type="number" min="0" value="${f.val}" style="margin-bottom:0">
-        </div>`).join('')}`;
+        </div>`).join('')}
+
+      <!-- History -->
+      ${hist.length > 1 ? `
+        <div class="edit-divider"></div>
+        <div class="edit-section-title" style="margin-bottom:8px"><i class="fas fa-history" style="color:var(--orange);font-size:.72rem"></i> Verlauf</div>
+        ${hist.map((r, i) => `
+          <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);opacity:${i===0?'1':'0.5'}">
+            <div style="font-size:.75rem;color:var(--muted);flex-shrink:0;width:80px">${r.valid_from}${i===0?' <span style="color:var(--orange);font-size:.6rem">Aktuell</span>':''}</div>
+            <div style="flex:1;display:flex;gap:8px;font-size:.75rem;font-family:\'Bebas Neue\',sans-serif">
+              <span style="color:var(--orange)">${r.kcal} kcal</span>
+              <span style="color:#60a5fa">${r.protein}p</span>
+              <span style="color:#facc15">${r.carbs}c</span>
+              <span style="color:#f87171">${r.fat}f</span>
+            </div>
+            ${i > 0 ? `<button onclick="deleteTargetRow('${r.id}')" style="background:rgba(248,113,113,.12);color:#f87171;border:none;border-radius:5px;width:24px;height:24px;cursor:pointer;font-size:.65rem;display:flex;align-items:center;justify-content:center"><i class="fas fa-trash"></i></button>` : ''}
+          </div>`).join('')}` : ''}`;
+
+    document.getElementById('targetsSaveBtn').textContent = 'Ab heute anwenden';
+  }
+
+  async function deleteTargetRow(id) {
+    await db.from('coach_targets').delete().eq('id', id);
+    targetsHistory = targetsHistory.filter(r => r.id !== id);
+    renderTargetsModal();
+    showToast('Eintrag gelöscht');
   }
 
   async function saveTargets() {
-    saveDraftFromInputs(); // capture final tab before saving
+    saveDraftFromInputs();
     document.getElementById('targetsSaveBtn').disabled = true;
 
-    // Save both types in parallel
+    const today = new Date().toISOString().split('T')[0];
+
+    // Insert new rows for both types with today as valid_from
     const [r1, r2] = await Promise.all([
-      db.from('coach_targets').update({ kcal: targetsDraft.training.kcal, protein: targetsDraft.training.p, carbs: targetsDraft.training.c, fat: targetsDraft.training.f }).eq('type', 'training'),
-      db.from('coach_targets').update({ kcal: targetsDraft.rest.kcal,     protein: targetsDraft.rest.p,     carbs: targetsDraft.rest.c,     fat: targetsDraft.rest.f     }).eq('type', 'rest'),
+      db.from('coach_targets').insert({ type: 'training', valid_from: today, kcal: targetsDraft.training.kcal, protein: targetsDraft.training.p, carbs: targetsDraft.training.c, fat: targetsDraft.training.f }),
+      db.from('coach_targets').insert({ type: 'rest',     valid_from: today, kcal: targetsDraft.rest.kcal,     protein: targetsDraft.rest.p,     carbs: targetsDraft.rest.c,     fat: targetsDraft.rest.f }),
     ]);
     document.getElementById('targetsSaveBtn').disabled = false;
 
@@ -1346,7 +1481,281 @@
     coachTargets.rest     = { ...targetsDraft.rest };
     closeTargetsModal();
     renderTargetBlock();
-    showToast('Ziele gespeichert', 'success');
+    showToast('Ziele ab heute aktualisiert ✓', 'success');
+  }
+
+  /* ══════════════════════════════════════
+     STATISTICS
+  ══════════════════════════════════════ */
+  let statsPeriod   = 'week';
+  let statsLineChart = null;
+  let statsBarChart  = null;
+
+  function setStatsPeriod(p) {
+    statsPeriod = p;
+    document.querySelectorAll('.spt-btn').forEach((b,i) => {
+      b.classList.toggle('active', ['week','month','3months','custom'][i] === p);
+    });
+    document.getElementById('statsCustomRange').style.display = p === 'custom' ? 'flex' : 'none';
+    if (p !== 'custom') loadStats();
+  }
+
+  function getStatsDateRange() {
+    const today = new Date();
+    const fmt = d => d.toISOString().split('T')[0];
+    if (statsPeriod === 'week') {
+      const dow = today.getDay() || 7;
+      const mon = new Date(today); mon.setDate(today.getDate() - dow + 1);
+      return { from: fmt(mon), to: fmt(today) };
+    }
+    if (statsPeriod === 'month') {
+      return { from: fmt(new Date(today.getFullYear(), today.getMonth(), 1)), to: fmt(today) };
+    }
+    if (statsPeriod === '3months') {
+      const start = new Date(today); start.setMonth(today.getMonth() - 2); start.setDate(1);
+      return { from: fmt(start), to: fmt(today) };
+    }
+    // custom
+    return {
+      from: document.getElementById('statsFrom').value,
+      to:   document.getElementById('statsTo').value,
+    };
+  }
+
+  async function loadStats() {
+    const { from, to } = getStatsDateRange();
+    if (!from || !to || from > to) return;
+
+    document.getElementById('statsLoading').style.display  = 'flex';
+    document.getElementById('statsContent').style.display  = 'none';
+    document.getElementById('statsEmpty').style.display    = 'none';
+
+    // Fetch macro data and day types for range
+    const [macroRes, dayTypeRes, targetsRes] = await Promise.all([
+      db.from('daily_macros').select('date, kcal, protein, carbs, fat').gte('date', from).lte('date', to),
+      db.from('day_type').select('date, type').gte('date', from).lte('date', to),
+      db.from('coach_targets').select('*').lte('valid_from', to).order('valid_from', { ascending: false }),
+    ]);
+
+    document.getElementById('statsLoading').style.display = 'none';
+
+    const macros   = macroRes.data   || [];
+    const dayTypes = dayTypeRes.data || [];
+    const allTgts  = targetsRes.data || [];
+
+    if (!macros.length) {
+      document.getElementById('statsEmpty').style.display = 'block';
+      return;
+    }
+
+    // Group macros by date
+    const byDate = {};
+    macros.forEach(r => {
+      if (!byDate[r.date]) byDate[r.date] = { kcal:0, p:0, c:0, f:0 };
+      byDate[r.date].kcal += r.kcal || 0;
+      byDate[r.date].p    += parseFloat(r.protein) || 0;
+      byDate[r.date].c    += parseFloat(r.carbs)   || 0;
+      byDate[r.date].f    += parseFloat(r.fat)     || 0;
+    });
+
+    const dayTypeMap = Object.fromEntries(dayTypes.map(d => [d.date, d.type]));
+
+    // Helper: get target valid for a date
+    function getTarget(date, type) {
+      const match = allTgts.find(t => t.type === type && t.valid_from <= date);
+      return match ? { kcal: match.kcal, p: match.protein, c: match.carbs, f: match.fat } : null;
+    }
+
+    // Build per-day adherence
+    const dates = Object.keys(byDate).sort();
+    const dayData = dates.map(date => {
+      const d    = byDate[date];
+      const type = dayTypeMap[date] || 'training';
+      const tgt  = getTarget(date, type);
+      if (!tgt || (tgt.p === 0 && tgt.c === 0 && tgt.f === 0)) return { date, adh: null, p: null, c: null, f: null, devP: null, devC: null, devF: null };
+      const rawP = tgt.p > 0 ? Math.round((d.p / tgt.p) * 100) : null;
+      const rawC = tgt.c > 0 ? Math.round((d.c / tgt.c) * 100) : null;
+      const rawF = tgt.f > 0 ? Math.round((d.f / tgt.f) * 100) : null;
+      const pAdh = rawP !== null ? adherenceScore(rawP) : null;
+      const cAdh = rawC !== null ? adherenceScore(rawC) : null;
+      const fAdh = rawF !== null ? adherenceScore(rawF) : null;
+      const valid = [pAdh, cAdh, fAdh].filter(v => v !== null);
+      const adh  = valid.length ? Math.round(valid.reduce((a,b) => a+b, 0) / valid.length) : null;
+      // Raw deviation from 100%: positive = over, negative = under
+      const devP = rawP !== null ? rawP - 100 : null;
+      const devC = rawC !== null ? rawC - 100 : null;
+      const devF = rawF !== null ? rawF - 100 : null;
+      // Overall raw dev = avg of macro devs
+      const devs = [devP, devC, devF].filter(v => v !== null);
+      const devAvg = devs.length ? Math.round(devs.reduce((a,b) => a+b, 0) / devs.length) : null;
+      return { date, adh, p: pAdh, c: cAdh, f: fAdh, devP, devC, devF, devAvg };
+    });
+
+    const withAdh = dayData.filter(d => d.adh !== null);
+    const avgAdh  = withAdh.length ? Math.round(withAdh.reduce((s,d) => s+d.adh, 0) / withAdh.length) : null;
+    const avgDevP = withAdh.filter(d=>d.devP!==null).length ? Math.round(withAdh.filter(d=>d.devP!==null).reduce((s,d)=>s+d.devP,0)/withAdh.filter(d=>d.devP!==null).length) : null;
+    const avgDevC = withAdh.filter(d=>d.devC!==null).length ? Math.round(withAdh.filter(d=>d.devC!==null).reduce((s,d)=>s+d.devC,0)/withAdh.filter(d=>d.devC!==null).length) : null;
+    const avgDevF = withAdh.filter(d=>d.devF!==null).length ? Math.round(withAdh.filter(d=>d.devF!==null).reduce((s,d)=>s+d.devF,0)/withAdh.filter(d=>d.devF!==null).length) : null;
+
+    const trainingDays = dates.filter(d => (dayTypeMap[d] || 'training') === 'training').length;
+    const restDays     = dates.filter(d => dayTypeMap[d] === 'rest').length;
+
+    // ── Summary cards ──
+    const adhColor = avgAdh !== null ? adherenceColor(avgAdh) : 'var(--muted)';
+    document.getElementById('statsSummary').innerHTML = `
+      <div class="stats-summary-card" style="grid-column:1/-1">
+        <div class="stats-summary-label">Ø Gesamt-Adherence</div>
+        <div class="stats-summary-val" style="color:${adhColor}">${avgAdh !== null ? avgAdh + '%' : '–'}</div>
+        <div class="stats-summary-sub">${withAdh.length} von ${dates.length} Tagen mit Zieldaten</div>
+      </div>
+      <div class="stats-summary-card">
+        <div class="stats-summary-label">Trainingstage</div>
+        <div class="stats-summary-val" style="color:var(--orange)">${trainingDays}</div>
+      </div>
+      <div class="stats-summary-card">
+        <div class="stats-summary-label">Ruhetage</div>
+        <div class="stats-summary-val" style="color:#60a5fa">${restDays}</div>
+      </div>`;
+
+    // ── Line chart: filled area deviation, 0 = perfect, colour by magnitude ──
+    if (statsLineChart) { statsLineChart.destroy(); statsLineChart = null; }
+    document.getElementById('statsLineCard').querySelector('.stats-chart-title').innerHTML =
+      '<i class="fas fa-chart-line"></i> Tägliche Abweichung vom Ziel';
+    const lineCtx = document.getElementById('statsLineChart').getContext('2d');
+
+    function devToColor(dev, alpha) {
+      if (dev === null) return `rgba(90,90,90,${alpha})`;
+      const score = adherenceScore(100 + dev);
+      if (score >= 90) return `rgba(74,222,128,${alpha})`;
+      if (score >= 75) return `rgba(250,204,21,${alpha})`;
+      return `rgba(248,113,113,${alpha})`;
+    }
+
+    const devValues = dayData.map(d => d.devAvg);
+    const ptColors  = dayData.map(d => devToColor(d.devAvg, 1));
+
+    statsLineChart = new Chart(lineCtx, {
+      type: 'line',
+      data: {
+        labels: dayData.map(d => d.date.slice(5)),
+        datasets: [{
+          label: 'Abweichung',
+          data: devValues,
+          borderWidth: 2,
+          pointRadius: dayData.length > 30 ? 0 : 4,
+          pointBackgroundColor: ptColors,
+          pointBorderColor: 'transparent',
+          tension: .35,
+          fill: 'origin',
+          backgroundColor: 'rgba(90,90,90,.08)',
+          spanGaps: true,
+          segment: {
+            borderColor: ctx => {
+              const avg = (ctx.p0.parsed.y + ctx.p1.parsed.y) / 2;
+              return devToColor(avg, 1);
+            },
+            backgroundColor: ctx => {
+              const avg = (ctx.p0.parsed.y + ctx.p1.parsed.y) / 2;
+              return devToColor(avg, 0.12);
+            },
+          },
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => ctx.raw !== null
+                ? 'Abw: ' + (ctx.raw > 0 ? '+' : '') + ctx.raw + '%'
+                : 'k.A.',
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#5a5a5a', font: { size: 10 }, maxTicksLimit: 10 },
+            grid: { color: '#1e1e1e' },
+          },
+          y: {
+            min: -(Math.max(10, Math.ceil(Math.max(...devValues.filter(v=>v!==null).map(Math.abs), 5) / 5) * 5)),
+            max:   Math.max(10, Math.ceil(Math.max(...devValues.filter(v=>v!==null).map(Math.abs), 5) / 5) * 5),
+            ticks: {
+              color: '#5a5a5a', font: { size: 10 },
+              callback: v => (v > 0 ? '+' : '') + v + '%',
+            },
+            grid: {
+              color: ctx => ctx.tick.value === 0 ? 'rgba(255,255,255,.2)' : '#1e1e1e',
+              lineWidth: ctx => ctx.tick.value === 0 ? 2 : 1,
+            },
+          },
+        },
+      },
+    });
+
+    // ── Bar chart: diverging deviation per macro (0 = perfect, + = over, - = under) ──
+    if (statsBarChart) { statsBarChart.destroy(); statsBarChart = null; }
+    document.getElementById('statsBarCard').querySelector('.stats-chart-title').innerHTML =
+      '<i class="fas fa-chart-bar"></i> Ø Abweichung vom Ziel';
+    const barCtx = document.getElementById('statsBarChart').getContext('2d');
+    const devData  = [avgDevP, avgDevC, avgDevF];
+    const devColors = devData.map(v => {
+      if (v === null) return 'rgba(90,90,90,.5)';
+      const score = adherenceScore(100 + v); // convert back to score for color
+      if (score >= 90) return 'rgba(74,222,128,.75)';
+      if (score >= 75) return 'rgba(250,204,21,.75)';
+      return 'rgba(248,113,113,.75)';
+    });
+    statsBarChart = new Chart(barCtx, {
+      type: 'bar',
+      data: {
+        labels: ['Protein', 'Carbs', 'Fett'],
+        datasets: [{
+          data: devData,
+          backgroundColor: devColors,
+          borderColor: devColors.map(c => c.replace('.75)', '1)')),
+          borderWidth: 1,
+          borderRadius: 5,
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: ctx => ctx.raw !== null ? (ctx.raw > 0 ? '+' : '') + ctx.raw + '%' : 'k.A.' } },
+          annotation: {},
+        },
+        scales: {
+          x: { ticks: { color: '#5a5a5a', font: { size: 11 } }, grid: { display: false } },
+          y: {
+            min: -(Math.max(10, Math.ceil(Math.max(...devData.filter(v=>v!==null).map(Math.abs), 5) / 5) * 5)),
+            max:   Math.max(10, Math.ceil(Math.max(...devData.filter(v=>v!==null).map(Math.abs), 5) / 5) * 5),
+            ticks: { color: '#5a5a5a', font: { size: 10 }, callback: v => (v > 0 ? '+' : '') + v + '%' },
+            grid: { color: c => c.tick.value === 0 ? 'rgba(255,255,255,.15)' : '#1e1e1e' },
+          },
+        },
+      },
+    });
+
+    // ── Heatmap ──
+    const hm = document.getElementById('statsHeatmap');
+    hm.innerHTML = '';
+    dayData.forEach(d => {
+      const cell = document.createElement('div');
+      cell.className = 'heatmap-cell';
+      const a = d.adh;
+      let bg;
+      if (a === null)    bg = '#1e1e1e';
+      else if (a >= 90)  bg = `rgba(74,222,128,${0.3 + (a-90)*0.07})`;
+      else if (a >= 75)  bg = `rgba(250,204,21,${0.3 + (a-75)*0.046})`;
+      else               bg = `rgba(248,113,113,${0.3 + (75-a)*0.028})`;
+      cell.style.background = bg;
+      cell.setAttribute('data-tip', `${d.date}: ${a !== null ? a + '%' : 'k.A.'}`);
+      hm.appendChild(cell);
+    });
+
+    document.getElementById('statsContent').style.display = 'block';
   }
 
   /* ══════════════════════════════════════
