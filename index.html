@@ -14,20 +14,18 @@
 
   <style>
     :root {
-      --bg:          #0c0c0c;
-      --surface:     #141414;
-      --card:        #1c1c1c;
-      --border:      #282828;
-      --orange:      #ff6b00;
-      --orange-dim:  #b84d00;
-      --text:        #f0f0f0;
-      --muted:       #5a5a5a;
-      --safe-top:    env(safe-area-inset-top);
-      --safe-bot:    env(safe-area-inset-bottom);
+      --bg:         #0c0c0c;
+      --surface:    #141414;
+      --card:       #1c1c1c;
+      --border:     #282828;
+      --orange:     #ff6b00;
+      --orange-dim: #b84d00;
+      --text:       #f0f0f0;
+      --muted:      #5a5a5a;
+      --safe-top:   env(safe-area-inset-top);
+      --safe-bot:   env(safe-area-inset-bottom);
     }
-
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-
     body {
       background: var(--bg);
       color: var(--text);
@@ -36,279 +34,325 @@
       overflow-x: hidden;
     }
 
-    .page {
-      max-width: 1140px;
-      margin: 0 auto;
-      padding: calc(var(--safe-top) + 20px) 20px calc(var(--safe-bot) + 36px);
-    }
+    /* ── Pages ── */
+    .page { max-width: 680px; margin: 0 auto; padding: calc(var(--safe-top) + 20px) 16px calc(var(--safe-bot) + 36px); }
+    .view { display: none; }
+    .view.active { display: block; }
 
     /* ── Header ── */
     header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 22px;
+      margin-bottom: 20px;
     }
-    .logo {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 2.4rem;
-      letter-spacing: .06em;
-      color: var(--orange);
-      line-height: 1;
-    }
+    .logo { font-family: 'Bebas Neue', sans-serif; font-size: 2.2rem; letter-spacing: .06em; color: var(--orange); line-height: 1; }
     .logo span { color: var(--text); }
-    .logo-sub { font-size: .58rem; letter-spacing: .22em; color: var(--muted); text-transform: uppercase; }
+    .logo-sub { font-size: .56rem; letter-spacing: .22em; color: var(--muted); text-transform: uppercase; }
+    .header-actions { display: flex; align-items: center; gap: 10px; }
+
+    /* ── Icon buttons ── */
+    .icon-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 10px;
+      width: 40px; height: 40px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .85rem;
+      cursor: pointer;
+      transition: background .15s, border-color .15s;
+    }
+    .icon-btn:hover { border-color: var(--orange); color: var(--orange); }
+    .icon-btn.orange { background: var(--orange); border-color: var(--orange); color: #fff; }
+    .icon-btn.orange:hover { background: #ff7d1a; }
 
     /* ── Date bar ── */
-    .date-bar { display: flex; gap: 10px; margin-bottom: 22px; }
+    .date-bar { display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 20px; }
     .date-bar input[type="date"] {
-      flex: 1;
-      max-width: 240px;
-      background: var(--surface);
-      border: 1.5px solid var(--border);
-      border-radius: 12px;
-      color: var(--text);
-      font-family: 'DM Sans', sans-serif;
-      font-size: .92rem;
-      padding: 11px 14px;
-      outline: none;
-      -webkit-appearance: none;
-      appearance: none;
-      transition: border-color .2s;
+      background: var(--surface); border: 1.5px solid var(--border); border-radius: 12px;
+      color: var(--text); font-family: 'DM Sans', sans-serif; font-size: .92rem;
+      padding: 11px 14px; outline: none; -webkit-appearance: none; appearance: none;
+      transition: border-color .2s; width: 180px;
     }
     .date-bar input[type="date"]:focus { border-color: var(--orange); }
-    .date-bar input[type="date"]::-webkit-calendar-picker-indicator {
-      filter: invert(55%) sepia(90%) saturate(500%) hue-rotate(5deg);
-    }
+    .date-bar input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(55%) sepia(90%) saturate(500%) hue-rotate(5deg); }
     .btn-load {
-      background: var(--orange);
-      color: #fff;
-      border: none;
-      border-radius: 12px;
-      padding: 0 20px;
-      font-family: 'DM Sans', sans-serif;
-      font-size: .88rem;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      min-height: 46px;
+      background: var(--orange); color: #fff; border: none; border-radius: 12px;
+      padding: 0 18px; font-family: 'DM Sans', sans-serif; font-size: .88rem; font-weight: 600;
+      cursor: pointer; display: flex; align-items: center; gap: 7px; min-height: 46px;
       transition: background .15s, transform .1s;
     }
     .btn-load:hover  { background: #ff7d1a; }
     .btn-load:active { background: var(--orange-dim); transform: scale(.97); }
 
-    /* ── Stats row ── */
-    .stats-row {
-      display: none;
-      flex-direction: column;
-      gap: 12px;
-      margin-bottom: 24px;
-    }
+    /* ── Stats ── */
+    .stats-row { display: none; flex-direction: column; gap: 10px; margin-bottom: 20px; }
     .stats-row.visible { display: flex; }
-
-    .stat-block {
-      flex: 1;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 14px 12px;
-    }
-    .stat-block-title {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: .95rem;
-      letter-spacing: .12em;
-      color: var(--muted);
-      margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .stat-block-title i { color: var(--orange); font-size: .75rem; }
-
-    .stat-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 6px;
-    }
-    .stat-pill {
-      background: var(--card);
-      border-radius: 10px;
-      padding: 9px 4px;
-      text-align: center;
-    }
-    .stat-val {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 1.45rem;
-      line-height: 1;
-      letter-spacing: .02em;
-    }
-    .stat-lbl { font-size: .52rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-top: 3px; }
-    .c-kcal { color: var(--orange); }
-    .c-p    { color: #60a5fa; }
-    .c-c    { color: #facc15; }
-    .c-f    { color: #f87171; }
-
-    .checked-block .stat-val { opacity: .25; transition: opacity .25s; }
+    .stat-block { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 13px 12px; }
+    .stat-block-title { font-family: 'Bebas Neue', sans-serif; font-size: .9rem; letter-spacing: .12em; color: var(--muted); margin-bottom: 9px; display: flex; align-items: center; gap: 6px; }
+    .stat-block-title i { color: var(--orange); font-size: .72rem; }
+    .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .stat-pill { background: var(--card); border-radius: 10px; padding: 9px 4px; text-align: center; }
+    .stat-val { font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; line-height: 1; }
+    .stat-lbl { font-size: .5rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-top: 3px; }
+    .c-kcal { color: var(--orange); } .c-p { color: #60a5fa; } .c-c { color: #facc15; } .c-f { color: #f87171; }
+    .checked-block .stat-val { opacity: .2; transition: opacity .25s; }
     .checked-block.has-data .stat-val { opacity: 1; }
+    .progress-row { margin-top: 8px; display: flex; align-items: center; gap: 8px; }
+    .progress-track { flex: 1; height: 3px; background: var(--border); border-radius: 99px; overflow: hidden; }
+    .progress-fill { height: 100%; background: var(--orange); border-radius: 99px; width: 0%; transition: width .3s ease; }
+    .progress-label { font-size: .65rem; color: var(--muted); white-space: nowrap; }
 
-    .progress-row {
-      margin-top: 9px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .progress-track {
-      flex: 1;
-      height: 3px;
-      background: var(--border);
-      border-radius: 99px;
-      overflow: hidden;
-    }
-    .progress-fill {
-      height: 100%;
-      background: var(--orange);
-      border-radius: 99px;
-      width: 0%;
-      transition: width .3s ease;
-    }
-    .progress-label { font-size: .68rem; color: var(--muted); white-space: nowrap; }
-
-    /* ── Meal grid ── */
-    .meal-grid {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-
-    /* ── Meal card ── */
-    .meal-card {
-      background: var(--surface);
-      border-radius: 16px;
-      overflow: hidden;
-      border: 1px solid var(--border);
-      animation: slideUp .32s cubic-bezier(.22,.68,0,1.2) both;
-    }
-    @keyframes slideUp {
-      from { opacity:0; transform: translateY(12px); }
-      to   { opacity:1; transform: translateY(0); }
-    }
-
-    .meal-title {
-      display: flex;
-      align-items: center;
-      gap: 9px;
-      padding: 12px 15px;
-      background: linear-gradient(90deg, #1d1100 0%, #161616 100%);
-      border-bottom: 1px solid var(--border);
-    }
-    .meal-dot {
-      width: 7px; height: 7px;
-      border-radius: 50%;
-      background: var(--orange);
-      box-shadow: 0 0 6px var(--orange);
-      flex-shrink: 0;
-    }
-    .meal-name {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 1.1rem;
-      letter-spacing: .09em;
-      color: var(--orange);
-    }
-    .meal-kcal { margin-left: auto; font-size: .72rem; color: var(--muted); font-weight: 500; }
-
+    /* ── Meal list ── */
+    .meal-list { display: flex; flex-direction: column; gap: 12px; }
+    .meal-card { background: var(--surface); border-radius: 16px; overflow: hidden; border: 1px solid var(--border); animation: slideUp .32s cubic-bezier(.22,.68,0,1.2) both; }
+    @keyframes slideUp { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform: translateY(0); } }
+    .meal-title { display: flex; align-items: center; gap: 9px; padding: 12px 14px; background: linear-gradient(90deg, #1d1100 0%, #161616 100%); border-bottom: 1px solid var(--border); }
+    .meal-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--orange); box-shadow: 0 0 6px var(--orange); flex-shrink: 0; }
+    .meal-name { font-family: 'Bebas Neue', sans-serif; font-size: 1.08rem; letter-spacing: .09em; color: var(--orange); }
+    .meal-kcal { margin-left: auto; font-size: .7rem; color: var(--muted); font-weight: 500; }
     .items-list { padding: 7px; display: flex; flex-direction: column; gap: 5px; }
 
-    /* ── Food item ── */
-    .food-item {
-      display: flex;
-      align-items: center;
-      gap: 9px;
-      background: var(--card);
-      border-radius: 10px;
-      padding: 11px 11px;
-      min-height: 56px;
-      cursor: pointer;
-      user-select: none;
-      -webkit-user-select: none;
-      transition: background .12s, opacity .2s;
-    }
-    .food-item:hover  { background: #222; }
-    .food-item:active { background: #232323; }
-    .food-item.checked { opacity: .32; }
-
-    .cb-box {
-      width: 21px; height: 21px;
-      border-radius: 6px;
-      border: 2px solid var(--border);
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-      transition: background .15s, border-color .15s;
-      font-size: .7rem;
-      color: transparent;
-    }
-    .food-item.checked .cb-box {
-      background: var(--orange);
-      border-color: var(--orange);
-      color: #fff;
-    }
-
-    .food-item-body {
-      flex: 1;
-      min-width: 0;
-      display: flex;
-      align-items: center;
-      gap: 7px;
-    }
-    .food-name {
-      flex: 1;
-      font-size: .8rem;
-      font-weight: 500;
-      line-height: 1.3;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      min-width: 0;
-    }
-    .food-badge {
-      font-size: .57rem;
-      color: var(--orange);
-      border: 1px solid var(--orange-dim);
-      border-radius: 4px;
-      padding: 1px 5px;
-      flex-shrink: 0;
-    }
-
-    .macro-pills { display: flex; gap: 3px; flex-shrink: 0; }
-    .mp {
-      border-radius: 6px;
-      padding: 4px 6px;
-      text-align: center;
-      min-width: 40px;
-    }
-    .mp-val { font-family: 'Bebas Neue', sans-serif; font-size: .88rem; line-height: 1; }
-    .mp-lbl { font-size: .46rem; text-transform: uppercase; letter-spacing: .07em; margin-top: 2px; opacity: .6; }
-    .mp-kcal { background: rgba(255,107,0,.12);  color: var(--orange); }
-    .mp-p    { background: rgba(96,165,250,.12);  color: #60a5fa; }
-    .mp-c    { background: rgba(250,204,21,.12);  color: #facc15; }
+    /* ── Macro pills ── */
+    .macro-pills { display: flex; gap: 3px; }
+    .mp { border-radius: 6px; padding: 4px 7px; text-align: center; min-width: 44px; }
+    .mp-val { font-family: 'Bebas Neue', sans-serif; font-size: .9rem; line-height: 1; }
+    .mp-lbl { font-size: .46rem; text-transform: uppercase; letter-spacing: .06em; margin-top: 2px; opacity: .6; }
+    .mp-kcal { background: rgba(255,107,0,.12); color: var(--orange); }
+    .mp-p    { background: rgba(96,165,250,.12); color: #60a5fa; }
+    .mp-c    { background: rgba(250,204,21,.12); color: #facc15; }
     .mp-f    { background: rgba(248,113,113,.12); color: #f87171; }
 
-    /* ── Placeholder / Spinner ── */
-    .placeholder { text-align: center; padding: 60px 20px; color: var(--muted); font-size: .88rem; grid-column: 1/-1; }
-    .placeholder i { font-size: 2.6rem; color: var(--border); margin-bottom: 12px; display: block; }
-    .spinner-wrap  { display: flex; align-items: center; justify-content: center; padding: 70px 0; grid-column: 1/-1; }
-    .spinner {
-      width: 32px; height: 32px;
-      border: 3px solid var(--border);
-      border-top-color: var(--orange);
-      border-radius: 50%;
-      animation: spin .7s linear infinite;
+    /* ── Food item ── */
+    .food-item { display: flex; align-items: center; gap: 10px; background: var(--card); border-radius: 10px; padding: 10px 11px; cursor: pointer; user-select: none; -webkit-user-select: none; transition: background .12s, opacity .2s; }
+    .food-item:hover { background: #222; }
+    .food-item.checked { opacity: .32; }
+    .cb-box { width: 21px; height: 21px; border-radius: 6px; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; align-self: flex-start; margin-top: 2px; transition: background .15s, border-color .15s; font-size: .7rem; color: transparent; }
+    .food-item.checked .cb-box,
+    .recipe-row.checked .cb-box { background: var(--orange); border-color: var(--orange); color: #fff; }
+    .food-item-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+    .food-name { font-size: .82rem; font-weight: 500; line-height: 1.35; word-break: break-word; }
+
+    /* ── Recipe grouped row ── */
+    .recipe-row {
+      background: var(--card);
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid transparent;
+      transition: border-color .2s;
     }
+    .recipe-row.open { border-color: rgba(255,107,0,.2); }
+    .recipe-row-header {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 11px;
+      cursor: pointer; user-select: none; -webkit-user-select: none;
+      transition: opacity .2s;
+    }
+    .recipe-row.checked .recipe-row-header { opacity: .32; }
+    .recipe-row-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+    .recipe-row-title { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .recipe-row-name { font-size: .82rem; font-weight: 600; line-height: 1.35; }
+    .recipe-tag { font-size: .55rem; color: var(--orange); border: 1px solid var(--orange-dim); border-radius: 4px; padding: 1px 5px; flex-shrink: 0; }
+    .recipe-portion-tag { font-size: .55rem; color: #60a5fa; border: 1px solid rgba(96,165,250,.4); border-radius: 4px; padding: 1px 5px; flex-shrink: 0; }
+
+    /* category chips on manage page */
+    .cat-filter-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+    .cat-chip { background: var(--card); border: 1.5px solid var(--border); border-radius: 99px; padding: 5px 12px; font-size: .78rem; cursor: pointer; transition: all .15s; }
+    .cat-chip:hover { border-color: var(--orange); color: var(--orange); }
+    .cat-chip.active { background: var(--orange); border-color: var(--orange); color: #fff; font-weight: 600; }
+    .cat-chip.manage-cat { background: rgba(255,107,0,.08); border-color: var(--orange-dim); color: var(--orange); font-size: .72rem; padding: 3px 9px; }
+
+    /* category tags on manage cards */
+    .recipe-cat-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+    .recipe-cat-tag { font-size: .65rem; background: rgba(255,107,0,.1); color: var(--orange); border-radius: 5px; padding: 2px 7px; }
+    .recipe-chevron { flex-shrink: 0; width: 26px; height: 26px; border-radius: 6px; background: rgba(255,107,0,.1); border: none; color: var(--orange); font-size: .65rem; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform .25s; }
+    .recipe-row.open .recipe-chevron { transform: rotate(180deg); }
+    .recipe-ingredients { max-height: 0; overflow: hidden; transition: max-height .3s cubic-bezier(.4,0,.2,1); }
+    .recipe-row.open .recipe-ingredients { max-height: 800px; }
+    .ingredient-row { display: flex; align-items: center; gap: 8px; padding: 7px 11px 7px 42px; border-top: 1px solid var(--border); }
+    .ingredient-name { flex: 1; font-size: .75rem; color: #999; word-break: break-word; }
+    .ing-pills { display: flex; gap: 3px; }
+    .ip { border-radius: 5px; padding: 3px 5px; text-align: center; min-width: 36px; font-family: 'Bebas Neue', sans-serif; font-size: .78rem; line-height: 1; }
+    .ip-kcal { background: rgba(255,107,0,.10); color: var(--orange); }
+    .ip-p    { background: rgba(96,165,250,.10); color: #60a5fa; }
+    .ip-c    { background: rgba(250,204,21,.10); color: #facc15; }
+    .ip-f    { background: rgba(248,113,113,.10); color: #f87171; }
+
+    /* ── Placeholder / Spinner ── */
+    .placeholder { text-align: center; padding: 60px 20px; color: var(--muted); font-size: .88rem; }
+    .placeholder i { font-size: 2.6rem; color: var(--border); margin-bottom: 12px; display: block; }
+    .spinner-wrap { display: flex; align-items: center; justify-content: center; padding: 70px 0; }
+    .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--orange); border-radius: 50%; animation: spin .7s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ══════════════════════════════════════
+       RECIPE CREATOR MODAL
+    ══════════════════════════════════════ */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.75); backdrop-filter: blur(4px);
+      z-index: 100; align-items: flex-end; justify-content: center;
+      padding: 0;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--surface);
+      border-radius: 24px 24px 0 0;
+      border: 1px solid var(--border);
+      border-bottom: none;
+      width: 100%; max-width: 680px;
+      max-height: 92dvh;
+      display: flex; flex-direction: column;
+      animation: slideModal .3s cubic-bezier(.22,.68,0,1.2);
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    @keyframes slideModal { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    .modal-handle { width: 40px; height: 4px; background: var(--border); border-radius: 99px; margin: 12px auto 0; flex-shrink: 0; }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 12px; flex-shrink: 0; }
+    .modal-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; letter-spacing: .08em; color: var(--orange); }
+    .modal-close { background: none; border: none; color: var(--muted); font-size: 1.1rem; cursor: pointer; padding: 4px; }
+    .modal-close:hover { color: var(--text); }
+    .modal-body { flex: 1; overflow-y: auto; padding: 0 16px 16px; -webkit-overflow-scrolling: touch; }
+    .modal-footer { padding: 12px 16px; border-top: 1px solid var(--border); flex-shrink: 0; display: flex; gap: 10px; }
+
+    /* step indicators */
+    .steps { display: flex; gap: 8px; margin-bottom: 16px; }
+    .step { flex: 1; height: 3px; background: var(--border); border-radius: 99px; transition: background .3s; }
+    .step.done { background: var(--orange); }
+
+    /* step panels */
+    .step-panel { display: none; } .step-panel.active { display: block; }
+
+    /* meal selector chips */
+    .meal-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+    .chip {
+      background: var(--card); border: 1.5px solid var(--border);
+      border-radius: 99px; padding: 7px 14px; font-size: .82rem;
+      cursor: pointer; transition: background .15s, border-color .15s, color .15s;
+    }
+    .chip:hover { border-color: var(--orange); }
+    .chip.selected { background: var(--orange); border-color: var(--orange); color: #fff; font-weight: 600; }
+
+    /* selectable item rows */
+    .select-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 4px; border-bottom: 1px solid var(--border);
+      cursor: pointer; transition: background .12s;
+    }
+    .select-item:last-child { border-bottom: none; }
+    .select-item:hover { background: rgba(255,255,255,.03); border-radius: 8px; }
+    .sel-box { width: 20px; height: 20px; border-radius: 5px; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: .65rem; color: transparent; transition: background .15s, border-color .15s; }
+    .select-item.selected .sel-box { background: var(--orange); border-color: var(--orange); color: #fff; }
+    .sel-name { flex: 1; font-size: .82rem; word-break: break-word; }
+    .sel-kcal { font-size: .75rem; color: var(--muted); flex-shrink: 0; }
+
+    /* recipe name input */
+    .text-input {
+      width: 100%; background: var(--card); border: 1.5px solid var(--border);
+      border-radius: 12px; color: var(--text); font-family: 'DM Sans', sans-serif;
+      font-size: 1rem; padding: 13px 14px; outline: none; transition: border-color .2s;
+      margin-bottom: 12px;
+    }
+    .text-input:focus { border-color: var(--orange); }
+    .text-input::placeholder { color: var(--muted); }
+
+    /* selected summary */
+    .selected-summary { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+    .sel-tag { background: rgba(255,107,0,.12); color: var(--orange); border-radius: 8px; padding: 4px 10px; font-size: .78rem; }
+
+    /* action buttons */
+    .btn { flex: 1; border: none; border-radius: 12px; padding: 13px; font-family: 'DM Sans', sans-serif; font-size: .9rem; font-weight: 600; cursor: pointer; transition: background .15s, transform .1s; }
+    .btn:active { transform: scale(.97); }
+    .btn-primary { background: var(--orange); color: #fff; }
+    .btn-primary:hover { background: #ff7d1a; }
+    .btn-primary:disabled { background: #3a2400; color: #6a4a2a; cursor: default; }
+    .btn-secondary { background: var(--card); color: var(--muted); }
+    .btn-secondary:hover { color: var(--text); }
+
+    /* step label */
+    .step-label { font-size: .75rem; color: var(--muted); margin-bottom: 14px; letter-spacing: .05em; text-transform: uppercase; }
+
+    /* ══════════════════════════════════════
+       RECIPE MANAGEMENT VIEW
+    ══════════════════════════════════════ */
+    .back-btn {
+      display: flex; align-items: center; gap: 8px;
+      background: none; border: none; color: var(--muted);
+      font-family: 'DM Sans', sans-serif; font-size: .88rem;
+      cursor: pointer; padding: 0; margin-bottom: 20px;
+      transition: color .15s;
+    }
+    .back-btn:hover { color: var(--text); }
+
+    .manage-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.8rem; letter-spacing: .06em; color: var(--orange); margin-bottom: 20px; }
+
+    .recipe-manage-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; margin-bottom: 10px; overflow: hidden;
+    }
+    .recipe-manage-header {
+      display: flex; align-items: center; gap: 10px;
+      padding: 13px 14px; cursor: pointer;
+    }
+    .recipe-manage-name { flex: 1; font-weight: 600; font-size: .9rem; }
+    .recipe-manage-count { font-size: .75rem; color: var(--muted); }
+    .recipe-manage-actions { display: flex; gap: 8px; }
+    .btn-icon-sm {
+      width: 32px; height: 32px; border-radius: 8px; border: none;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .78rem; cursor: pointer; transition: background .15s;
+    }
+    .btn-delete { background: rgba(248,113,113,.12); color: #f87171; }
+    .btn-delete:hover { background: rgba(248,113,113,.25); }
+    .btn-edit { background: rgba(255,107,0,.12); color: var(--orange); }
+    .btn-edit:hover { background: rgba(255,107,0,.25); }
+    .btn-dupe { background: rgba(96,165,250,.12); color: #60a5fa; }
+    .btn-dupe:hover { background: rgba(96,165,250,.25); }
+
+    .recipe-manage-items { border-top: 1px solid var(--border); padding: 10px 14px; display: none; }
+    .recipe-manage-card.open .recipe-manage-items { display: block; }
+    .manage-ingredient { font-size: .8rem; color: var(--muted); padding: 4px 0; border-bottom: 1px solid var(--border); }
+    .manage-ingredient:last-child { border-bottom: none; }
+
+    .empty-recipes { text-align: center; padding: 50px 20px; color: var(--muted); }
+    .empty-recipes i { font-size: 2.5rem; color: var(--border); display: block; margin-bottom: 12px; }
+
+    /* toast */
+    .toast {
+      position: fixed; bottom: calc(env(safe-area-inset-bottom) + 20px); left: 50%; transform: translateX(-50%) translateY(80px);
+      background: #1e1e1e; border: 1px solid var(--border); color: var(--text);
+      padding: 10px 20px; border-radius: 99px; font-size: .85rem;
+      z-index: 200; transition: transform .3s cubic-bezier(.22,.68,0,1.2), opacity .3s;
+      opacity: 0; white-space: nowrap;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    .toast.success { border-color: var(--orange); color: var(--orange); }
+    .toast.error   { border-color: #f87171; color: #f87171; }
+
+    /* ── Edit modal sections ── */
+    .edit-section { margin-bottom: 20px; }
+    .edit-section-title { font-family: 'Bebas Neue', sans-serif; font-size: .9rem; letter-spacing: .12em; color: var(--muted); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+    .edit-section-title i { color: var(--orange); font-size: .72rem; }
+    .edit-ingredient-row { display: flex; align-items: center; gap: 8px; background: var(--card); border-radius: 8px; padding: 9px 10px; margin-bottom: 5px; }
+    .edit-ingredient-name { flex: 1; font-size: .82rem; }
+    .btn-remove { background: rgba(248,113,113,.12); color: #f87171; border: none; border-radius: 6px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: .72rem; cursor: pointer; flex-shrink: 0; transition: background .15s; }
+    .btn-remove:hover { background: rgba(248,113,113,.25); }
+    .edit-divider { height: 1px; background: var(--border); margin: 18px 0; }
+    .add-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+    .add-tab { flex: 1; padding: 8px; border-radius: 8px; border: 1.5px solid var(--border); background: var(--card); color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: .8rem; font-weight: 600; cursor: pointer; text-align: center; transition: border-color .15s, color .15s; }
+    .add-tab.active { border-color: var(--orange); color: var(--orange); background: rgba(255,107,0,.08); }
+    .add-tab-panel { display: none; } .add-tab-panel.active { display: block; }
+    .freitext-row { display: flex; gap: 8px; }
+    .freitext-row .text-input { margin-bottom: 0; }
+    .btn-add-item { background: var(--orange); color: #fff; border: none; border-radius: 10px; padding: 0 16px; font-size: .85rem; font-weight: 600; cursor: pointer; white-space: nowrap; min-height: 46px; transition: background .15s; }
+    .btn-add-item:hover { background: #ff7d1a; }
   </style>
 </head>
 <body>
+
+<!-- ════════════════════════ MAIN VIEW ════════════════════════ -->
+<div id="viewMain" class="view active">
 <div class="page">
 
   <header>
@@ -316,24 +360,29 @@
       <div class="logo">FDDB<span>·</span>Check</div>
       <div class="logo-sub">Tagesplanung</div>
     </div>
-    <i class="fas fa-fire" style="color:var(--orange);font-size:1.4rem;opacity:.7"></i>
+    <div class="header-actions">
+      <button class="icon-btn" title="Rezepte verwalten" onclick="showView('viewRecipes')">
+        <i class="fas fa-book-open"></i>
+      </button>
+      <button class="icon-btn orange" title="Rezept erstellen" onclick="openCreator()">
+        <i class="fas fa-plus"></i>
+      </button>
+      <i class="fas fa-fire" style="color:var(--orange);font-size:1.3rem;opacity:.7;margin-left:2px"></i>
+    </div>
   </header>
 
   <div class="date-bar">
     <input type="date" id="dateInput">
-    <button class="btn-load" onclick="loadDay()">
-      <i class="fas fa-bolt"></i> Laden
-    </button>
+    <button class="btn-load" onclick="loadDay()"><i class="fas fa-bolt"></i> Laden</button>
   </div>
 
-  <!-- Stats oben -->
   <div class="stats-row" id="statsRow">
     <div class="stat-block">
-      <div class="stat-block-title"><i class="fas fa-chart-bar"></i> Tagesbilanz</div>
+      <div class="stat-block-title"><i class="fas fa-chart-bar"></i> Geplant</div>
       <div class="stat-grid" id="totalPills"></div>
     </div>
     <div class="stat-block checked-block" id="checkedBlock">
-      <div class="stat-block-title"><i class="fas fa-circle-check"></i> Abgehakt</div>
+      <div class="stat-block-title"><i class="fas fa-circle-check"></i> Gegessen</div>
       <div class="stat-grid" id="checkedPills"></div>
       <div class="progress-row">
         <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
@@ -342,155 +391,741 @@
     </div>
   </div>
 
-  <!-- Meal cards -->
-  <div class="meal-grid" id="content"></div>
+  <div class="meal-list" id="content"></div>
 
 </div>
+</div>
+
+<!-- ════════════════════════ RECIPE MANAGEMENT VIEW ════════════════════════ -->
+<div id="viewRecipes" class="view">
+<div class="page">
+  <button class="back-btn" onclick="showView('viewMain')">
+    <i class="fas fa-arrow-left"></i> Zurück
+  </button>
+  <div class="manage-title">Meine Rezepte</div>
+  <div style="position:relative;margin-bottom:12px;">
+    <i class="fas fa-search" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.8rem;pointer-events:none"></i>
+    <input class="text-input" id="recipeSearch" placeholder="Suchen…" autocomplete="off"
+      style="margin-bottom:0;padding-left:38px;"
+      oninput="renderRecipeManage()">
+  </div>
+  <div class="cat-filter-row" id="catFilterRow"></div>
+  <div id="recipeManageList"></div>
+</div>
+</div>
+
+<!-- ════════════════════════ RECIPE CREATOR MODAL ════════════════════════ -->
+<div class="modal-overlay" id="creatorOverlay">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title" id="creatorTitle">Rezept erstellen</div>
+      <button class="modal-close" onclick="closeCreator()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="steps">
+        <div class="step done" id="step-ind-0"></div>
+        <div class="step" id="step-ind-1"></div>
+        <div class="step" id="step-ind-2"></div>
+      </div>
+
+      <!-- Step 0: Pick meal -->
+      <div class="step-panel active" id="step-panel-0">
+        <div class="step-label">Schritt 1 · Mahlzeit wählen</div>
+        <div class="meal-chips" id="mealChips"></div>
+      </div>
+
+      <!-- Step 1: Pick items -->
+      <div class="step-panel" id="step-panel-1">
+        <div class="step-label">Schritt 2 · Zutaten auswählen</div>
+        <div id="itemSelectList"></div>
+      </div>
+
+      <!-- Step 2: Name -->
+      <div class="step-panel" id="step-panel-2">
+        <div class="step-label">Schritt 3 · Rezept benennen</div>
+        <div class="selected-summary" id="selectedSummary"></div>
+        <input class="text-input" id="recipeNameInput" type="text" placeholder="z.B. Whey Shake, Overnight Oats …" autocomplete="off">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="btnBack" onclick="creatorBack()">Zurück</button>
+      <button class="btn btn-primary" id="btnNext" onclick="creatorNext()" disabled>Weiter</button>
+    </div>
+  </div>
+</div>
+
+<!-- edit recipe modal -->
+<div class="modal-overlay" id="editOverlay">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title" id="editModalTitle">Rezept bearbeiten</div>
+      <button class="modal-close" onclick="closeEditModal()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body" id="editModalBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeEditModal()">Abbrechen</button>
+      <button class="btn btn-primary" id="editSaveBtn" onclick="saveEdit()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- toast -->
+<div class="toast" id="toast"></div>
+
 <script>
+  /* ── DB ── */
   const SUPABASE_URL = 'https://lzhkbbwcjfsvpkpmcwdu.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6aGtiYndjamZzdnBrcG1jd2R1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4NTUzNDUsImV4cCI6MjA5MTQzMTM0NX0.GhbRy4qhwHbcLgPcp0v5JEtC_oS95O7sh0yl7VXxgDI';
   const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   const ORDER  = ['frühstück','zwischenmahlzeit 1','mittagessen','zwischenmahlzeit 2','abendbrot','abendessen'];
-  const LABELS = {
-    'frühstück':          'Frühstück',
-    'zwischenmahlzeit 1': 'Zwischenmahlzeit 1',
-    'mittagessen':        'Mittagessen',
-    'zwischenmahlzeit 2': 'Zwischenmahlzeit 2',
-    'abendbrot':          'Abendessen',
-    'abendessen':         'Abendessen',
-  };
+  const LABELS = { 'frühstück':'Frühstück','zwischenmahlzeit 1':'Zwischenmahlzeit 1','mittagessen':'Mittagessen','zwischenmahlzeit 2':'Zwischenmahlzeit 2','abendbrot':'Abendessen','abendessen':'Abendessen' };
 
-  let allRows = [];
-  let totals  = { kcal: 0, p: 0, c: 0, f: 0 };
+  let checkables = [];
+  let totals = { kcal:0, p:0, c:0, f:0 };
+  let allRecipes = [];
+  let allCategories = [];
+  let activeFilterCat = null; // category id filter on manage page
+  let currentDayEntries = [];
 
+  /* ── Init ── */
   document.getElementById('dateInput').value = new Date().toISOString().split('T')[0];
-  loadDay();
+  loadRecipes().then(() => loadDay());
 
+  /* ══════════════════════════════════════
+     VIEW SWITCHING
+  ══════════════════════════════════════ */
+  function showView(id) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    if (id === 'viewRecipes') renderRecipeManage();
+  }
+
+  /* ══════════════════════════════════════
+     LOAD RECIPES FROM DB
+  ══════════════════════════════════════ */
+  async function loadRecipes() {
+    const { data: recipes } = await db.from('recipes').select('id, name, servings').order('name');
+    if (!recipes) return;
+    const { data: items }   = await db.from('recipe_items').select('recipe_id, item_name');
+    const { data: rcats }   = await db.from('recipe_categories').select('recipe_id, category_id');
+    const { data: cats }    = await db.from('categories').select('id, name').order('name');
+    allCategories = (cats || []);
+    allRecipes = (recipes || []).map(r => ({
+      id:       r.id,
+      name:     r.name,
+      servings: r.servings || 1,
+      items:    (items  || []).filter(i => i.recipe_id === r.id).map(i => i.item_name),
+      catIds:   (rcats  || []).filter(c => c.recipe_id === r.id).map(c => c.category_id),
+    }));
+  }
+
+  /* ══════════════════════════════════════
+     MAIN DAY LOAD
+  ══════════════════════════════════════ */
   async function loadDay() {
     const dateVal = document.getElementById('dateInput').value;
     if (!dateVal) return alert('Bitte Datum auswählen');
-
     document.getElementById('content').innerHTML = '<div class="spinner-wrap"><div class="spinner"></div></div>';
     document.getElementById('statsRow').classList.remove('visible');
-    allRows = [];
+    checkables = [];
 
-    const { data, error } = await db
-      .from('daily_macros')
-      .select('*')
-      .eq('date', dateVal)
-      .order('meal', { ascending: true });
-
+    const { data, error } = await db.from('daily_macros').select('*').eq('date', dateVal).order('meal');
     if (error) {
-      document.getElementById('content').innerHTML =
-        `<div class="placeholder"><i class="fas fa-exclamation-triangle"></i>Fehler: ${error.message}</div>`;
+      document.getElementById('content').innerHTML = `<div class="placeholder"><i class="fas fa-exclamation-triangle"></i>Fehler: ${error.message}</div>`;
       return;
     }
-    renderDashboard(data || []);
+    currentDayEntries = data || [];
+    renderDashboard(currentDayEntries);
+  }
+
+  /* ══════════════════════════════════════
+     RENDER DASHBOARD
+  ══════════════════════════════════════ */
+  function macroSum(items) {
+    return items.reduce((a,e) => ({ kcal: a.kcal+(e.kcal||0), p: a.p+(parseFloat(e.protein)||0), c: a.c+(parseFloat(e.carbs)||0), f: a.f+(parseFloat(e.fat)||0) }), {kcal:0,p:0,c:0,f:0});
+  }
+  function pillsHTML(m) {
+    return `<div class="mp mp-kcal"><div class="mp-val">${Math.round(m.kcal)}</div><div class="mp-lbl">kcal</div></div><div class="mp mp-p"><div class="mp-val">${m.p.toFixed(1)}</div><div class="mp-lbl">P</div></div><div class="mp mp-c"><div class="mp-val">${m.c.toFixed(1)}</div><div class="mp-lbl">C</div></div><div class="mp mp-f"><div class="mp-val">${m.f.toFixed(1)}</div><div class="mp-lbl">F</div></div>`;
+  }
+  function statPillsHTML(m) {
+    return `<div class="stat-pill"><div class="stat-val c-kcal">${Math.round(m.kcal)}</div><div class="stat-lbl">Kcal</div></div><div class="stat-pill"><div class="stat-val c-p">${m.p.toFixed(1)}</div><div class="stat-lbl">Protein</div></div><div class="stat-pill"><div class="stat-val c-c">${m.c.toFixed(1)}</div><div class="stat-lbl">Carbs</div></div><div class="stat-pill"><div class="stat-val c-f">${m.f.toFixed(1)}</div><div class="stat-lbl">Fett</div></div>`;
   }
 
   function renderDashboard(entries) {
     const content = document.getElementById('content');
     content.innerHTML = '';
-
     if (!entries.length) {
       content.innerHTML = '<div class="placeholder"><i class="fas fa-bowl-food"></i>Keine Einträge für dieses Datum</div>';
       return;
     }
 
+    // Group by meal
     const grouped = {};
-    totals = { kcal: 0, p: 0, c: 0, f: 0 };
-
+    totals = {kcal:0,p:0,c:0,f:0};
     entries.forEach(e => {
-      (grouped[e.meal] = grouped[e.meal] || []).push(e);
-      totals.kcal += e.kcal || 0;
-      totals.p    += parseFloat(e.protein) || 0;
-      totals.c    += parseFloat(e.carbs)   || 0;
-      totals.f    += parseFloat(e.fat)     || 0;
+      (grouped[e.meal] = grouped[e.meal]||[]).push(e);
+      totals.kcal += e.kcal||0; totals.p += parseFloat(e.protein)||0;
+      totals.c += parseFloat(e.carbs)||0; totals.f += parseFloat(e.fat)||0;
     });
 
-    const sorted = Object.keys(grouped).sort((a, b) => {
-      const ai = ORDER.indexOf(a), bi = ORDER.indexOf(b);
-      return (ai < 0 ? 99 : ai) - (bi < 0 ? 99 : bi);
-    });
+    const sorted = Object.keys(grouped).sort((a,b) => (ORDER.indexOf(a)<0?99:ORDER.indexOf(a))-(ORDER.indexOf(b)<0?99:ORDER.indexOf(b)));
 
     sorted.forEach((meal, mi) => {
-      const items    = grouped[meal];
-      const mealKcal = items.reduce((s, i) => s + (i.kcal || 0), 0);
+      const items = grouped[meal];
+      const mealKcal = items.reduce((s,i) => s+(i.kcal||0), 0);
 
       const card = document.createElement('div');
       card.className = 'meal-card';
-      card.style.animationDelay = `${mi * 0.06}s`;
-
-      card.innerHTML = `
-        <div class="meal-title">
-          <div class="meal-dot"></div>
-          <div class="meal-name">${LABELS[meal] || meal}</div>
-          <div class="meal-kcal">${Math.round(mealKcal)} kcal</div>
-        </div>`;
+      card.style.animationDelay = `${mi*0.06}s`;
+      card.innerHTML = `<div class="meal-title"><div class="meal-dot"></div><div class="meal-name">${LABELS[meal]||meal}</div><div class="meal-kcal">${Math.round(mealKcal)} kcal</div></div>`;
 
       const list = document.createElement('div');
       list.className = 'items-list';
 
-      items.forEach(item => {
-        const row = document.createElement('div');
-        row.className = 'food-item';
-        row.innerHTML = `
-          <div class="cb-box"><i class="fas fa-check"></i></div>
-          <div class="food-item-body">
-            <div class="food-name">${item.item_name}${item.type === 'recipe' ? ' <span class="food-badge">Rezept</span>' : ''}</div>
-            <div class="macro-pills">
-              <div class="mp mp-kcal"><div class="mp-val">${Math.round(item.kcal||0)}</div><div class="mp-lbl">kcal</div></div>
-              <div class="mp mp-p"><div class="mp-val">${parseFloat(item.protein||0).toFixed(1)}</div><div class="mp-lbl">P</div></div>
-              <div class="mp mp-c"><div class="mp-val">${parseFloat(item.carbs||0).toFixed(1)}</div><div class="mp-lbl">C</div></div>
-              <div class="mp mp-f"><div class="mp-val">${parseFloat(item.fat||0).toFixed(1)}</div><div class="mp-lbl">F</div></div>
-            </div>
-          </div>`;
+      // Match recipes: for each recipe, check if ALL its items appear in this meal
+      const itemNames = items.map(i => i.item_name);
+      const usedIndices = new Set();
+      const renderBlocks = []; // {type:'recipe'|'item', ...}
 
-        row._m = {
-          kcal: item.kcal || 0,
-          p: parseFloat(item.protein) || 0,
-          c: parseFloat(item.carbs)   || 0,
-          f: parseFloat(item.fat)     || 0,
-        };
-        row.addEventListener('click', () => { row.classList.toggle('checked'); updateChecked(); });
-        allRows.push(row);
-        list.appendChild(row);
+      // Try to match recipes (greedy, first match wins)
+      // Build a working copy of items with used tracking
+      const remaining = items.map((item, idx) => ({ item, idx, used: false }));
+
+      // Sort recipes longest-first so specific variants win over base recipes
+      const recipesByLength = [...allRecipes].sort((a,b) => b.items.length - a.items.length);
+
+      recipesByLength.forEach(recipe => {
+        if (recipe.items.length === 0) return;
+        // Find all recipe item_names in this meal's items
+        const matchIndices = [];
+        const workingPool = remaining.filter(r => !r.used);
+        let allFound = true;
+        for (const rName of recipe.items) {
+          const found = workingPool.find(r => !matchIndices.includes(r.idx) && stripAmount(r.item.item_name) === rName);
+          if (found) matchIndices.push(found.idx);
+          else { allFound = false; break; }
+        }
+        if (allFound && matchIndices.length > 0) {
+          matchIndices.forEach(idx => { remaining[idx].used = true; });
+          const recipeEntries = matchIndices.map(idx => items[idx]);
+          renderBlocks.push({ type: 'recipe', recipe, entries: recipeEntries, firstIdx: Math.min(...matchIndices) });
+        }
+      });
+
+      // Remaining unmatched items
+      remaining.filter(r => !r.used).forEach(r => {
+        renderBlocks.push({ type: 'item', entry: r.item, firstIdx: r.idx });
+      });
+
+      // Sort blocks by first index to preserve original order
+      renderBlocks.sort((a,b) => a.firstIdx - b.firstIdx);
+
+      renderBlocks.forEach(block => {
+        if (block.type === 'item') {
+          const e = block.entry;
+          const m = { kcal: e.kcal||0, p: parseFloat(e.protein)||0, c: parseFloat(e.carbs)||0, f: parseFloat(e.fat)||0 };
+          const row = document.createElement('div');
+          row.className = 'food-item';
+          row.innerHTML = `<div class="cb-box"><i class="fas fa-check"></i></div><div class="food-item-body"><div class="food-name">${e.item_name}</div><div class="macro-pills">${pillsHTML(m)}</div></div>`;
+          row.addEventListener('click', () => { row.classList.toggle('checked'); updateChecked(); });
+          checkables.push({ get checked() { return row.classList.contains('checked'); }, macros: m });
+          list.appendChild(row);
+
+        } else {
+          // Recipe accordion — render one row per serving
+          const { recipe, entries: recEntries } = block;
+          const totalM  = macroSum(recEntries);
+          const servings = recipe.servings || 1;
+          const portionM = {
+            kcal: totalM.kcal / servings,
+            p:    totalM.p    / servings,
+            c:    totalM.c    / servings,
+            f:    totalM.f    / servings,
+          };
+
+          for (let s = 0; s < servings; s++) {
+            const rb = document.createElement('div');
+            rb.className = 'recipe-row';
+
+            const portionLabel = servings > 1 ? ` <span class="recipe-portion-tag">${s+1}/${servings}</span>` : '';
+
+            const hdr = document.createElement('div');
+            hdr.className = 'recipe-row-header';
+            hdr.innerHTML = `
+              <div class="cb-box"><i class="fas fa-check"></i></div>
+              <div class="recipe-row-body">
+                <div class="recipe-row-title">
+                  <span class="recipe-row-name">${recipe.name}</span>
+                  <span class="recipe-tag">Rezept</span>
+                  ${portionLabel}
+                </div>
+                <div class="macro-pills">${pillsHTML(portionM)}</div>
+              </div>
+              <button class="recipe-chevron"><i class="fas fa-chevron-down"></i></button>`;
+
+            const cbBox   = hdr.querySelector('.cb-box');
+            const body    = hdr.querySelector('.recipe-row-body');
+            const chevron = hdr.querySelector('.recipe-chevron');
+
+            cbBox.addEventListener('click',  e => { e.stopPropagation(); rb.classList.toggle('checked'); updateChecked(); });
+            body.addEventListener('click',   ()  => { rb.classList.toggle('checked'); updateChecked(); });
+            chevron.addEventListener('click', e  => { e.stopPropagation(); rb.classList.toggle('open'); });
+
+            rb.appendChild(hdr);
+
+            // Ingredient sub-list (same for all portions, but macros divided)
+            const ingList = document.createElement('div');
+            ingList.className = 'recipe-ingredients';
+            recEntries.forEach(ing => {
+              const ingRow = document.createElement('div');
+              ingRow.className = 'ingredient-row';
+              ingRow.innerHTML = `<span class="ingredient-name">${ing.item_name}</span><div class="ing-pills"><div class="ip ip-kcal">${Math.round((ing.kcal||0)/servings)}</div><div class="ip ip-p">${(parseFloat(ing.protein||0)/servings).toFixed(1)}</div><div class="ip ip-c">${(parseFloat(ing.carbs||0)/servings).toFixed(1)}</div><div class="ip ip-f">${(parseFloat(ing.fat||0)/servings).toFixed(1)}</div></div>`;
+              ingList.appendChild(ingRow);
+            });
+            rb.appendChild(ingList);
+
+            checkables.push({ get checked() { return rb.classList.contains('checked'); }, macros: portionM });
+            list.appendChild(rb);
+          }
+        }
       });
 
       card.appendChild(list);
       content.appendChild(card);
     });
 
-    // render stats
-    document.getElementById('totalPills').innerHTML = pillsHTML(
-      Math.round(totals.kcal), totals.p.toFixed(1), totals.c.toFixed(1), totals.f.toFixed(1)
-    );
+    document.getElementById('totalPills').innerHTML = statPillsHTML(totals);
     updateChecked();
     document.getElementById('statsRow').classList.add('visible');
   }
 
   function updateChecked() {
-    const checked = allRows.filter(r => r.classList.contains('checked'));
-    const ck = checked.reduce((a, r) => ({
-      kcal: a.kcal + r._m.kcal, p: a.p + r._m.p, c: a.c + r._m.c, f: a.f + r._m.f
-    }), { kcal:0, p:0, c:0, f:0 });
-
-    document.getElementById('checkedPills').innerHTML = pillsHTML(
-      Math.round(ck.kcal), ck.p.toFixed(1), ck.c.toFixed(1), ck.f.toFixed(1)
-    );
-    const pct = allRows.length > 0 ? (checked.length / allRows.length) * 100 : 0;
-    document.getElementById('progressFill').style.width = pct + '%';
-    document.getElementById('progressLabel').textContent = `${checked.length} / ${allRows.length}`;
-    document.getElementById('checkedBlock').classList.toggle('has-data', checked.length > 0);
+    const ch = checkables.filter(c => c.checked);
+    const ck = ch.reduce((a,c) => ({ kcal:a.kcal+c.macros.kcal, p:a.p+c.macros.p, c:a.c+c.macros.c, f:a.f+c.macros.f }), {kcal:0,p:0,c:0,f:0});
+    document.getElementById('checkedPills').innerHTML = statPillsHTML(ck);
+    const pct = checkables.length > 0 ? (ch.length/checkables.length)*100 : 0;
+    document.getElementById('progressFill').style.width = pct+'%';
+    document.getElementById('progressLabel').textContent = `${ch.length} / ${checkables.length}`;
+    document.getElementById('checkedBlock').classList.toggle('has-data', ch.length > 0);
   }
 
-  function pillsHTML(kcal, p, c, f) {
-    return `
-      <div class="stat-pill"><div class="stat-val c-kcal">${kcal}</div><div class="stat-lbl">Kcal</div></div>
-      <div class="stat-pill"><div class="stat-val c-p">${p}</div><div class="stat-lbl">Protein</div></div>
-      <div class="stat-pill"><div class="stat-val c-c">${c}</div><div class="stat-lbl">Carbs</div></div>
-      <div class="stat-pill"><div class="stat-val c-f">${f}</div><div class="stat-lbl">Fett</div></div>`;
+  /* ══════════════════════════════════════
+     RECIPE CREATOR
+  ══════════════════════════════════════ */
+  let creatorStep = 0;
+  let creatorMeal = null;
+  let creatorSelected = []; // item_name strings
+
+  function openCreator() {
+    creatorStep = 0; creatorMeal = null; creatorSelected = [];
+    document.getElementById('recipeNameInput').value = '';
+    renderCreatorStep();
+    document.getElementById('creatorOverlay').classList.add('open');
+  }
+  function closeCreator() {
+    document.getElementById('creatorOverlay').classList.remove('open');
+  }
+
+  function renderCreatorStep() {
+    // Update step indicators
+    [0,1,2].forEach(i => {
+      document.getElementById(`step-ind-${i}`).classList.toggle('done', i <= creatorStep);
+      document.getElementById(`step-panel-${i}`).classList.toggle('active', i === creatorStep);
+    });
+
+    const btnBack = document.getElementById('btnBack');
+    const btnNext = document.getElementById('btnNext');
+    btnBack.style.display = creatorStep === 0 ? 'none' : '';
+    btnNext.textContent = creatorStep === 2 ? 'Speichern' : 'Weiter';
+
+    if (creatorStep === 0) {
+      // Meal chips: only meals present in current day
+      const meals = [...new Set(currentDayEntries.map(e => e.meal))].sort((a,b) => (ORDER.indexOf(a)<0?99:ORDER.indexOf(a))-(ORDER.indexOf(b)<0?99:ORDER.indexOf(b)));
+      document.getElementById('mealChips').innerHTML = meals.map(m =>
+        `<div class="chip${creatorMeal===m?' selected':''}" onclick="selectMeal('${m}')">${LABELS[m]||m}</div>`
+      ).join('');
+      btnNext.disabled = !creatorMeal;
+
+    } else if (creatorStep === 1) {
+      // Items in selected meal
+      const items = currentDayEntries.filter(e => e.meal === creatorMeal);
+      const ul = document.getElementById('itemSelectList');
+      ul.innerHTML = '';
+      items.forEach(item => {
+        const el = document.createElement('div');
+        el.className = 'select-item' + (creatorSelected.includes(item.item_name) ? ' selected' : '');
+        el.innerHTML = `<div class="sel-box"><i class="fas fa-check"></i></div><div class="sel-name">${item.item_name}</div><div class="sel-kcal">${Math.round(item.kcal||0)} kcal</div>`;
+        el.addEventListener('click', () => {
+          if (creatorSelected.includes(item.item_name)) creatorSelected = creatorSelected.filter(n => n !== item.item_name);
+          else creatorSelected.push(item.item_name);
+          renderCreatorStep();
+        });
+        ul.appendChild(el);
+      });
+      btnNext.disabled = creatorSelected.length < 2;
+
+    } else if (creatorStep === 2) {
+      // Summary + name input
+      document.getElementById('selectedSummary').innerHTML = creatorSelected.map(n => `<span class="sel-tag">${n}</span>`).join('');
+      btnNext.disabled = document.getElementById('recipeNameInput').value.trim().length === 0;
+      document.getElementById('recipeNameInput').oninput = () => {
+        btnNext.disabled = document.getElementById('recipeNameInput').value.trim().length === 0;
+      };
+    }
+  }
+
+  function selectMeal(meal) {
+    creatorMeal = meal;
+    creatorSelected = [];
+    renderCreatorStep();
+  }
+
+  function creatorBack() {
+    if (creatorStep > 0) { creatorStep--; renderCreatorStep(); }
+  }
+
+  async function creatorNext() {
+    if (creatorStep < 2) { creatorStep++; renderCreatorStep(); return; }
+    // Save
+    const name = document.getElementById('recipeNameInput').value.trim();
+    document.getElementById('btnNext').disabled = true;
+    document.getElementById('btnNext').textContent = '…';
+
+    const { data: recipe, error: recErr } = await db.from('recipes').insert({ name }).select().single();
+    if (recErr) { showToast('Fehler: ' + recErr.message, 'error'); document.getElementById('btnNext').disabled = false; document.getElementById('btnNext').textContent = 'Speichern'; return; }
+
+    const itemRows = creatorSelected.map(item_name => ({ recipe_id: recipe.id, item_name: stripAmount(item_name) }));
+    const { error: itemErr } = await db.from('recipe_items').insert(itemRows);
+    if (itemErr) { showToast('Fehler: ' + itemErr.message, 'error'); return; }
+
+    await loadRecipes();
+    closeCreator();
+    renderDashboard(currentDayEntries); // re-render with new recipe applied
+    showToast(`Rezept "${name}" gespeichert`, 'success');
+  }
+
+  /* ══════════════════════════════════════
+     RECIPE MANAGEMENT
+  ══════════════════════════════════════ */
+  function renderRecipeManage() {
+    const el = document.getElementById('recipeManageList');
+    const query = (document.getElementById('recipeSearch')?.value || '').toLowerCase().trim();
+
+    // Render category filter chips
+    const filterRow = document.getElementById('catFilterRow');
+    if (filterRow) {
+      filterRow.innerHTML = [
+        `<div class="cat-chip${activeFilterCat===null?' active':''}" onclick="setFilterCat(null)">Alle</div>`,
+        ...allCategories.map(c =>
+          `<div class="cat-chip${activeFilterCat===c.id?' active':''}" onclick="setFilterCat('${c.id}')">${c.name}</div>`
+        ),
+        `<div class="cat-chip" style="background:rgba(96,165,250,.08);border-color:rgba(96,165,250,.3);color:#60a5fa;font-size:.72rem;padding:5px 10px" onclick="manageCategoriesPrompt()" title="Kategorien verwalten"><i class="fas fa-tags"></i> Kategorien</div>`
+      ].join('');
+    }
+
+    const filtered = [...allRecipes]
+      .sort((a, b) => a.name.localeCompare(b.name, 'de'))
+      .filter(r => {
+        if (activeFilterCat && !r.catIds.includes(activeFilterCat)) return false;
+        if (!query) return true;
+        return r.name.toLowerCase().includes(query) || r.items.some(i => i.toLowerCase().includes(query));
+      });
+
+    if (!allRecipes.length) {
+      el.innerHTML = '<div class="empty-recipes"><i class="fas fa-book-open"></i>Noch keine Rezepte erstellt</div>';
+      return;
+    }
+    if (!filtered.length) {
+      el.innerHTML = '<div class="empty-recipes"><i class="fas fa-search"></i>Keine Rezepte gefunden</div>';
+      return;
+    }
+    el.innerHTML = '';
+    filtered.forEach(recipe => {
+      const catNames = recipe.catIds.map(id => allCategories.find(c => c.id === id)?.name).filter(Boolean);
+      const card = document.createElement('div');
+      card.className = 'recipe-manage-card';
+      card.innerHTML = `
+        <div class="recipe-manage-header" onclick="this.closest('.recipe-manage-card').classList.toggle('open')">
+          <div style="flex:1;min-width:0">
+            <div class="recipe-manage-name">${recipe.name}</div>
+            ${catNames.length ? `<div class="recipe-cat-tags">${catNames.map(n=>`<span class="recipe-cat-tag">${n}</span>`).join('')}</div>` : ''}
+          </div>
+          <div class="recipe-manage-count">${recipe.items.length} Zut. · ${recipe.servings} Port.</div>
+          <div class="recipe-manage-actions">
+            <button class="btn-icon-sm btn-dupe" onclick="event.stopPropagation(); duplicateRecipe('${recipe.id}')"><i class="fas fa-copy"></i></button>
+            <button class="btn-icon-sm btn-edit" onclick="event.stopPropagation(); openEditModal('${recipe.id}')"><i class="fas fa-pen"></i></button>
+            <button class="btn-icon-sm btn-delete" onclick="event.stopPropagation(); deleteRecipe('${recipe.id}', '${recipe.name.replace(/'/g,"\\'")}')"><i class="fas fa-trash"></i></button>
+          </div>
+        </div>
+        <div class="recipe-manage-items">
+          ${recipe.items.map(n => `<div class="manage-ingredient"><i class="fas fa-circle" style="font-size:.4rem;color:var(--orange);margin-right:7px;vertical-align:middle"></i>${n}</div>`).join('')}
+        </div>`;
+      el.appendChild(card);
+    });
+  }
+
+  function setFilterCat(id) {
+    activeFilterCat = id;
+    renderRecipeManage();
+  }
+
+  async function duplicateRecipe(id) {
+    const recipe = allRecipes.find(r => r.id === id);
+    if (!recipe) return;
+    const newName = recipe.name + ' (Kopie)';
+    const { data: newRecipe, error: recErr } = await db.from('recipes').insert({ name: newName }).select().single();
+    if (recErr) { showToast('Fehler: ' + recErr.message, 'error'); return; }
+    if (recipe.items.length > 0) {
+      const rows = recipe.items.map(item_name => ({ recipe_id: newRecipe.id, item_name }));
+      await db.from('recipe_items').insert(rows);
+    }
+    if (recipe.catIds?.length > 0) {
+      await db.from('recipe_categories').insert(recipe.catIds.map(category_id => ({ recipe_id: newRecipe.id, category_id })));
+    }
+    await loadRecipes();
+    renderRecipeManage();
+    showToast(`"${newName}" erstellt`, 'success');
+    // auto-open edit modal so user can rename + adjust immediately
+    openEditModal(newRecipe.id);
+  }
+
+  async function deleteRecipe(id, name) {
+    if (!confirm(`Rezept "${name}" löschen?`)) return;
+    await db.from('recipes').delete().eq('id', id);
+    await loadRecipes();
+    renderRecipeManage();
+    renderDashboard(currentDayEntries);
+    showToast(`"${name}" gelöscht`);
+  }
+
+  /* ── Strip leading amount: "150 g Hähnchen" → "Hähnchen", "10g Whey" → "Whey" ── */
+  function stripAmount(name) {
+    // Matches optional number + optional unit (g, kg, ml, l, kcal, stk, pc, el, tl) + whitespace at start
+    return name.replace(/^\d+[\.,]?\d*\s*(g|kg|ml|l|kcal|stk|pc|el|tl|tbsp|tsp)?\s*/i, '').trim();
+  }
+
+  /* ══════════════════════════════════════
+     EDIT RECIPE MODAL
+  ══════════════════════════════════════ */
+  let editTargetId   = null;
+  let editName       = '';
+  let editItems      = [];
+  let editServings   = 1;
+  let editCatIds     = [];
+  let editAddTab     = 'day';
+
+  function openEditModal(id) {
+    const recipe = allRecipes.find(r => r.id === id);
+    if (!recipe) return;
+    editTargetId = id;
+    editName     = recipe.name;
+    editItems    = [...recipe.items];
+    editServings = recipe.servings || 1;
+    editCatIds   = [...(recipe.catIds || [])];
+    editAddTab   = 'day';
+    document.getElementById('editOverlay').classList.add('open');
+    renderEditModal();
+  }
+
+  function closeEditModal() {
+    document.getElementById('editOverlay').classList.remove('open');
+  }
+
+  function renderEditModal() {
+    document.getElementById('editModalTitle').textContent = editName;
+
+    // Build day items not already in recipe
+    const dayNames = [...new Set(currentDayEntries.map(e => stripAmount(e.item_name)))];
+    const available = dayNames.filter(n => !editItems.includes(n));
+
+    const body = document.getElementById('editModalBody');
+    body.innerHTML = `
+      <!-- Name -->
+      <div class="edit-section">
+        <div class="edit-section-title"><i class="fas fa-pen"></i> Name</div>
+        <input class="text-input" id="editNameInput" value="${editName.replace(/"/g,'&quot;')}" placeholder="Rezeptname…" autocomplete="off">
+      </div>
+
+      <!-- Portionen -->
+      <div class="edit-section">
+        <div class="edit-section-title"><i class="fas fa-utensils"></i> Portionen</div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <button onclick="changeServings(-1)" style="width:36px;height:36px;border-radius:8px;border:1.5px solid var(--border);background:var(--card);color:var(--text);font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
+          <span id="servingsDisplay" style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;color:var(--orange);min-width:24px;text-align:center">${editServings}</span>
+          <button onclick="changeServings(1)"  style="width:36px;height:36px;border-radius:8px;border:1.5px solid var(--border);background:var(--card);color:var(--text);font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
+          <span style="font-size:.8rem;color:var(--muted)">Portion${editServings!==1?'en':''} → je ${editServings>1?'1/'+editServings:'1×'} der Makros im Dashboard</span>
+        </div>
+      </div>
+
+      <!-- Kategorien -->
+      <div class="edit-section">
+        <div class="edit-section-title" style="justify-content:space-between">
+          <span><i class="fas fa-tags"></i> Kategorien</span>
+          <button onclick="promptNewCategory()" style="background:none;border:none;color:var(--orange);font-size:.75rem;cursor:pointer;font-family:'DM Sans',sans-serif">+ Neue Kategorie</button>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;" id="editCatChips">
+          ${allCategories.length === 0
+            ? `<span style="font-size:.8rem;color:var(--muted)">Noch keine Kategorien. Erstelle eine mit "+ Neue Kategorie".</span>`
+            : allCategories.map(c => `
+              <div class="cat-chip${editCatIds.includes(c.id)?' active':''}" onclick="toggleEditCat('${c.id}')">${c.name}</div>
+            `).join('')}
+        </div>
+      </div>
+
+      <div class="edit-divider"></div>
+
+      <!-- Current ingredients -->
+      <div class="edit-section">
+        <div class="edit-section-title"><i class="fas fa-list"></i> Zutaten (${editItems.length})</div>
+        <div id="editIngredientList">
+          ${editItems.length === 0
+            ? `<div style="font-size:.8rem;color:var(--muted);padding:8px 0">Keine Zutaten – Rezept wird beim Speichern gelöscht.</div>`
+            : editItems.map((item, i) => `
+              <div class="edit-ingredient-row">
+                <span class="edit-ingredient-name">${item}</span>
+                <button class="btn-remove" onclick="editRemoveItem(${i})"><i class="fas fa-times"></i></button>
+              </div>`).join('')}
+        </div>
+      </div>
+
+      <div class="edit-divider"></div>
+
+      <!-- Add ingredients -->
+      <div class="edit-section">
+        <div class="edit-section-title"><i class="fas fa-plus"></i> Zutat hinzufügen</div>
+        <div class="add-tabs">
+          <div class="add-tab ${editAddTab==='day'?'active':''}" onclick="editSwitchTab('day')">Aus aktuellem Tag</div>
+          <div class="add-tab ${editAddTab==='text'?'active':''}" onclick="editSwitchTab('text')">Freitext</div>
+        </div>
+        <div class="add-tab-panel ${editAddTab==='day'?'active':''}">
+          ${available.length === 0
+            ? `<div style="font-size:.8rem;color:var(--muted);padding:8px 0">Alle Items des aktuellen Tages sind bereits enthalten.</div>`
+            : available.map(n => `
+              <div class="select-item" onclick="editAddItem('${n.replace(/'/g,"\\'")}')">
+                <div class="sel-box"><i class="fas fa-plus" style="font-size:.6rem"></i></div>
+                <div class="sel-name">${n}</div>
+              </div>`).join('')}
+        </div>
+        <div class="add-tab-panel ${editAddTab==='text'?'active':''}">
+          <div class="freitext-row">
+            <input class="text-input" id="editFreitext" placeholder="z.B. Haferflocken…" autocomplete="off"
+              onkeydown="if(event.key==='Enter') editAddFreitext()">
+            <button class="btn-add-item" onclick="editAddFreitext()"><i class="fas fa-plus"></i></button>
+          </div>
+        </div>
+      </div>`;
+
+    document.getElementById('editNameInput').oninput = e => { editName = e.target.value; };
+  }
+
+  function editRemoveItem(idx) {
+    editItems.splice(idx, 1);
+    renderEditModal();
+  }
+
+  function editAddItem(name) {
+    if (!editItems.includes(name)) editItems.push(name);
+    renderEditModal();
+  }
+
+  function editAddFreitext() {
+    const val = (document.getElementById('editFreitext')?.value || '').trim();
+    const stripped = stripAmount(val);
+    if (!stripped) return;
+    if (!editItems.includes(stripped)) editItems.push(stripped);
+    renderEditModal();
+  }
+
+  function editSwitchTab(tab) {
+    editAddTab = tab;
+    renderEditModal();
+  }
+
+  function changeServings(delta) {
+    editServings = Math.max(1, editServings + delta);
+    document.getElementById('servingsDisplay').textContent = editServings;
+    // update hint text
+    const hint = document.querySelector('#editModalBody .edit-section span[style*="color:var(--muted)"]');
+    if (hint) hint.textContent = `Portion${editServings!==1?'en':''} → je ${editServings>1?'1/'+editServings:'1×'} der Makros im Dashboard`;
+  }
+
+  function toggleEditCat(id) {
+    if (editCatIds.includes(id)) editCatIds = editCatIds.filter(c => c !== id);
+    else editCatIds.push(id);
+    // re-render just the chips
+    const chips = document.getElementById('editCatChips');
+    if (chips) chips.innerHTML = allCategories.map(c =>
+      `<div class="cat-chip${editCatIds.includes(c.id)?' active':''}" onclick="toggleEditCat('${c.id}')">${c.name}</div>`
+    ).join('');
+  }
+
+  async function promptNewCategory() {
+    const name = prompt('Kategoriename:');
+    if (!name?.trim()) return;
+    const { data, error } = await db.from('categories').insert({ name: name.trim() }).select().single();
+    if (error) { showToast('Fehler: ' + error.message, 'error'); return; }
+    allCategories.push({ id: data.id, name: data.name });
+    allCategories.sort((a,b) => a.name.localeCompare(b.name,'de'));
+    editCatIds.push(data.id);
+    renderEditModal(); // re-render to show new category
+  }
+
+  async function manageCategoriesPrompt() {
+    const name = prompt('Neue Kategorie erstellen:');
+    if (!name?.trim()) return;
+    const { error } = await db.from('categories').insert({ name: name.trim() });
+    if (error) { showToast('Fehler: ' + error.message, 'error'); return; }
+    await loadRecipes();
+    renderRecipeManage();
+    showToast(`Kategorie "${name.trim()}" erstellt`, 'success');
+  }
+
+  async function saveEdit() {
+    const name = (document.getElementById('editNameInput')?.value || '').trim();
+    if (!name) { showToast('Bitte einen Namen eingeben', 'error'); return; }
+    if (!editTargetId) return;
+
+    document.getElementById('editSaveBtn').disabled = true;
+
+    // Update name + servings
+    const { error: nameErr } = await db.from('recipes').update({ name, servings: editServings }).eq('id', editTargetId);
+    if (nameErr) { showToast('Fehler: ' + nameErr.message, 'error'); document.getElementById('editSaveBtn').disabled = false; return; }
+
+    // Replace items
+    await db.from('recipe_items').delete().eq('recipe_id', editTargetId);
+    if (editItems.length > 0) {
+      const { error: itemErr } = await db.from('recipe_items').insert(editItems.map(item_name => ({ recipe_id: editTargetId, item_name })));
+      if (itemErr) { showToast('Fehler: ' + itemErr.message, 'error'); document.getElementById('editSaveBtn').disabled = false; return; }
+    }
+
+    // Replace categories
+    await db.from('recipe_categories').delete().eq('recipe_id', editTargetId);
+    if (editCatIds.length > 0) {
+      await db.from('recipe_categories').insert(editCatIds.map(category_id => ({ recipe_id: editTargetId, category_id })));
+    }
+
+    document.getElementById('editSaveBtn').disabled = false;
+    closeEditModal();
+    await loadRecipes();
+    renderRecipeManage();
+    renderDashboard(currentDayEntries);
+    showToast(`"${name}" gespeichert`, 'success');
+  }
+
+  /* ══════════════════════════════════════
+     TOAST
+  ══════════════════════════════════════ */
+  let toastTimer;
+  function showToast(msg, type='') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast' + (type ? ' '+type : '');
+    clearTimeout(toastTimer);
+    requestAnimationFrame(() => { t.classList.add('show'); });
+    toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
   }
 </script>
 </body>
