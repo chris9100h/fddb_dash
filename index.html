@@ -482,10 +482,17 @@
     <button class="spt-btn" onclick="setStatsPeriod('custom')">Custom</button>
   </div>
 
+  <!-- Global colour scale -->
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:12px">
+    <span style="font-size:.6rem;color:#f87171">0%</span>
+    <div style="flex:1;height:6px;border-radius:3px;background:linear-gradient(90deg,#f87171,#facc15,#4ade80)"></div>
+    <span style="font-size:.6rem;color:#4ade80">100%</span>
+  </div>
+
   <!-- Custom date range -->
   <div id="statsCustomRange" style="display:none;gap:8px;margin-bottom:16px;align-items:center;flex-wrap:wrap">
     <input type="date" id="statsFrom" class="text-input" style="width:150px;margin-bottom:0;padding:10px 12px;font-size:.85rem">
-    <span style="color:var(--muted);font-size:.85rem">bis</span>
+    <span style="color:var(--muted);font-size:.85rem">to</span>
     <input type="date" id="statsTo"   class="text-input" style="width:150px;margin-bottom:0;padding:10px 12px;font-size:.85rem">
     <button class="btn-load" style="min-height:40px;padding:0 16px;font-size:.85rem" onclick="loadStats()"><i class="fas fa-bolt"></i></button>
   </div>
@@ -502,12 +509,7 @@
     <!-- Heatmap -->
     <div class="stats-chart-card">
       <div class="stats-chart-title"><i class="fas fa-th"></i> Adherence Heatmap</div>
-      <div id="statsHeatmap" style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px"></div>
-      <div style="display:flex;align-items:center;gap:6px;margin-top:10px">
-        <span style="font-size:.6rem;color:var(--muted)">0%</span>
-        <div style="flex:1;height:4px;border-radius:2px;background:linear-gradient(90deg,#f87171,#facc15,#4ade80)"></div>
-        <span style="font-size:.6rem;color:var(--muted)">100%</span>
-      </div>
+      <div id="statsHeatmap"></div>
     </div>
 
     <!-- Adherence line chart -->
@@ -747,12 +749,12 @@
       });
 
       if (res.status === 204) {
-        showToast('Sync started — reloading in 40s…', 'success');
+        showToast('Sync started — reloading in 25s…', 'success');
         setTimeout(() => {
           btn.classList.remove('syncing');
           btn.disabled = false;
           loadDay();
-        }, 40000);
+        }, 25000);
       } else {
         const msg = await res.text();
         showToast('GitHub error: ' + res.status, 'error');
@@ -832,14 +834,21 @@
   }
 
   function adherenceScore(pct) {
-    // 100% = perfect, both over and under reduce the score, min 0
     return Math.max(0, 100 - Math.abs(100 - pct));
   }
 
+  // Interpolates color from the gradient bar: red(0%) → yellow(50%) → green(100%)
   function adherenceColor(score) {
-    if (score >= 90) return '#4ade80'; // green
-    if (score >= 75) return '#facc15'; // yellow
-    return '#f87171';                  // red
+    const t = Math.max(0, Math.min(100, score)) / 100;
+    let r, g, b;
+    if (t < 0.5) {
+      const s = t / 0.5;
+      r = Math.round(248 + (250-248)*s); g = Math.round(113 + (204-113)*s); b = Math.round(113 + (21-113)*s);
+    } else {
+      const s = (t - 0.5) / 0.5;
+      r = Math.round(250 + (74-250)*s); g = Math.round(204 + (222-204)*s); b = Math.round(21 + (128-21)*s);
+    }
+    return `rgb(${r},${g},${b})`;
   }
 
   function renderTargetBlock() {
@@ -1792,9 +1801,9 @@
     function devToColor(dev, alpha) {
       if (dev === null) return `rgba(90,90,90,${alpha})`;
       const score = adherenceScore(100 + dev);
-      if (score >= 90) return `rgba(74,222,128,${alpha})`;
-      if (score >= 75) return `rgba(250,204,21,${alpha})`;
-      return `rgba(248,113,113,${alpha})`;
+      const base = adherenceColor(score); // e.g. "rgb(r,g,b)"
+      // inject alpha
+      return base.replace('rgb(', 'rgba(').replace(')', `,${alpha})`);
     }
 
     const devValues = dayData.map(d => d.devAvg);
@@ -1868,10 +1877,8 @@
     const devData  = [avgDevP, avgDevC, avgDevF];
     const devColors = devData.map(v => {
       if (v === null) return 'rgba(90,90,90,.5)';
-      const score = adherenceScore(100 + v); // convert back to score for color
-      if (score >= 90) return 'rgba(74,222,128,.75)';
-      if (score >= 75) return 'rgba(250,204,21,.75)';
-      return 'rgba(248,113,113,.75)';
+      const score = adherenceScore(100 + v);
+      return adherenceColor(score).replace('rgb(', 'rgba(').replace(')', ',.75)');
     });
     statsBarChart = new Chart(barCtx, {
       type: 'bar',
@@ -1907,21 +1914,108 @@
     // ── Heatmap ──
     const hm = document.getElementById('statsHeatmap');
     hm.innerHTML = '';
-    dayData.forEach(d => {
-      const cell = document.createElement('div');
-      cell.className = 'heatmap-cell';
-      const a = d.adh;
-      let bg;
-      if (a === null)    bg = '#1e1e1e';
-      else if (a >= 90)  bg = `rgba(74,222,128,${0.3 + (a-90)*0.07})`;
-      else if (a >= 75)  bg = `rgba(250,204,21,${0.3 + (a-75)*0.046})`;
-      else               bg = `rgba(248,113,113,${0.3 + (75-a)*0.028})`;
-      cell.style.background = bg;
-      cell.setAttribute('data-tip', `${d.date}: ${a !== null ? a + '%' : 'N/A'}`);
-      hm.appendChild(cell);
-    });
+
+    const DAY_LABELS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+
+    function cellBg(a) {
+      if (a === null) return '#1e1e1e';
+      const t = a / 100;
+      let r, g, b;
+      if (t < 0.5) {
+        const s = t / 0.5;
+        r = Math.round(248 + (250-248)*s); g = Math.round(113 + (204-113)*s); b = Math.round(113 + (21-113)*s);
+      } else {
+        const s = (t - 0.5) / 0.5;
+        r = Math.round(250 + (74-250)*s); g = Math.round(204 + (222-204)*s); b = Math.round(21 + (128-21)*s);
+      }
+      return `rgba(${r},${g},${b},0.75)`;
+    }
+
+    if (statsPeriod === 'week') {
+      // ── CW: header labels above, 7 stretched cells ──
+      hm.style.display = 'block';
+
+      // Day-of-week header
+      const cwHeader = document.createElement('div');
+      cwHeader.style.cssText = 'display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:3px';
+      dayData.forEach(d => {
+        const dow = new Date(d.date).getDay();
+        const label = DAY_LABELS[dow === 0 ? 6 : dow - 1];
+        const lbl = document.createElement('div');
+        lbl.style.cssText = 'font-size:.5rem;color:var(--muted);text-align:center;text-transform:uppercase;letter-spacing:.05em';
+        lbl.textContent = label;
+        cwHeader.appendChild(lbl);
+      });
+      hm.appendChild(cwHeader);
+
+      const cwGrid = document.createElement('div');
+      cwGrid.style.cssText = 'display:grid;grid-template-columns:repeat(7,1fr);gap:4px';
+      dayData.forEach(d => {
+        const a = d.adh;
+        const cell = document.createElement('div');
+        cell.style.cssText = `background:${cellBg(a)};border-radius:6px;padding:10px 4px;text-align:center;width:100%;display:flex;align-items:center;justify-content:center`;
+        cell.innerHTML = `<div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;color:${a!==null?'#fff':'#444'}">${a !== null ? a+'%' : '–'}</div>`;
+        cell.setAttribute('data-tip', `${d.date}: ${a !== null ? a + '%' : 'N/A'}`);
+        cwGrid.appendChild(cell);
+      });
+      hm.appendChild(cwGrid);
+
+    } else {
+      // ── Month / 3 Months / Custom: 7 per row, aligned to weekday ──
+      hm.style.display = 'block';
+
+      // Day-of-week header
+      const header = document.createElement('div');
+      header.style.cssText = 'display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:3px';
+      DAY_LABELS.forEach(l => {
+        const lbl = document.createElement('div');
+        lbl.style.cssText = 'font-size:.5rem;color:var(--muted);text-align:center;text-transform:uppercase;letter-spacing:.05em';
+        lbl.textContent = l;
+        header.appendChild(lbl);
+      });
+      hm.appendChild(header);
+
+      // Grid wrapper
+      const grid = document.createElement('div');
+      grid.style.cssText = 'display:grid;grid-template-columns:repeat(7,1fr);gap:2px';
+
+      // Use grid-column-start on first cell to offset correctly
+      const firstDow = new Date(dayData[0].date).getDay();
+      const offset = firstDow === 0 ? 6 : firstDow - 1; // Mon=0 ... Sun=6
+
+      dayData.forEach((d, i) => {
+        const a = d.adh;
+        const cell = document.createElement('div');
+        cell.style.cssText = `border-radius:4px;background:${cellBg(a)};aspect-ratio:1;width:100%`;
+        if (i === 0 && offset > 0) cell.style.gridColumnStart = offset + 1 + '';
+        cell.setAttribute('data-tip', `${d.date}: ${a !== null ? a + '%' : 'N/A'}`);
+        cell.className = 'heatmap-cell';
+        grid.appendChild(cell);
+      });
+
+      hm.appendChild(grid);
+    }
 
     document.getElementById('statsContent').style.display = 'block';
+
+    // Update heatmap title with avg adherence
+    const hmTitle = document.querySelector('#statsHeatmap').previousElementSibling;
+    if (avgAdh !== null) {
+      // Interpolate color from the gradient: red(0%) → yellow(50%) → green(100%)
+      const t = avgAdh / 100;
+      let r, g, b;
+      if (t < 0.5) {
+        const s = t / 0.5;
+        r = Math.round(248 + (250-248)*s); g = Math.round(113 + (204-113)*s); b = Math.round(113 + (21-113)*s);
+      } else {
+        const s = (t - 0.5) / 0.5;
+        r = Math.round(250 + (74-250)*s); g = Math.round(204 + (222-204)*s); b = Math.round(21 + (128-21)*s);
+      }
+      const titleColor = `rgb(${r},${g},${b})`;
+      hmTitle.innerHTML = `<i class="fas fa-th"></i> Adherence Heatmap <span style="color:${titleColor};margin-left:6px">— Ø ${avgAdh}%</span>`;
+    } else {
+      hmTitle.innerHTML = '<i class="fas fa-th"></i> Adherence Heatmap';
+    }
   }
 
   /* ══════════════════════════════════════
