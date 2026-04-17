@@ -1313,7 +1313,8 @@
   function buildStripRegex() {
     if (!allUnits.length) return;
     const units = allUnits.map(u => u.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
-    stripRegex = new RegExp(`^\\d+[\\.,]?\\d*\\s*(${units})?\\s*`, 'i');
+    // Number is optional — also strips standalone units at the start e.g. "packung magertopfen"
+    stripRegex = new RegExp(`^(?:\\d+[\\.,]?\\d*\\s*)?(${units})\\s*`, 'i');
   }
 
   function stripAmount(name) {
