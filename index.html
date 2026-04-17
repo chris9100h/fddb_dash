@@ -1308,13 +1308,18 @@
   }
 
   /* ── Strip leading amount: built dynamically from fddb_units table ── */
-  let stripRegex = /^\d+[\.,]?\d*\s*(g|kg|ml|l|kcal|stk|pc|el|tl|tbsp|tsp)?\s*/i;
+  let stripRegex = /^(?:\d+[.,]?\d*\s*(?:g|kg|ml|l|kcal|stk|pc|el|tl|tbsp|tsp)?|(?:g|kg|ml|l|kcal|stk|pc|el|tl|tbsp|tsp))\s*/i;
 
   function buildStripRegex() {
     if (!allUnits.length) return;
     const units = allUnits.map(u => u.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
-    // Number is optional — also strips standalone units at the start e.g. "packung magertopfen"
-    stripRegex = new RegExp(`^(?:\\d+[\\.,]?\\d*\\s*)?(${units})\\s*`, 'i');
+    // Matches:
+    // "150g Haferflocken"     → "Haferflocken"
+    // "150 g Haferflocken"    → "Haferflocken"
+    // "150 Haferflocken"      → "Haferflocken" (number, no unit)
+    // "packung Magertopfen"   → "Magertopfen"  (unit, no number)
+    // "1 packung Magertopfen" → "Magertopfen"  (both)
+    stripRegex = new RegExp(`^(?:\\d+[\\.,]?\\d*\\s*(?:${units})?|(?:${units}))\\s*`, 'i');
   }
 
   function stripAmount(name) {
