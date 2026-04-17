@@ -396,6 +396,9 @@
       <button class="icon-btn" title="Statistics" onclick="showView('viewStats')">
         <i class="fas fa-chart-line"></i>
       </button>
+      <button class="icon-btn" title="Merge Servings" id="mergeBtn" onclick="toggleMergeServings()">
+        <i class="fas fa-object-group"></i>
+      </button>
       <button class="icon-btn" title="Manage Recipes" onclick="showView('viewRecipes')">
         <i class="fas fa-book-open"></i>
       </button>
@@ -679,13 +682,22 @@
   let currentCheckedMap = {};
   let currentDate = '';
   let coachTargets = { training: {kcal:0,p:0,c:0,f:0}, rest: {kcal:0,p:0,c:0,f:0} };
-  let currentDayType = 'training'; // 'training' | 'rest'
+  let currentDayType = 'training';
+  let mergeServings = false; // 'training' | 'rest'
 
   /* ── Init ── */
   document.getElementById('dateInput').value = new Date().toISOString().split('T')[0];
   // Ensure all modals are closed on load
   document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('open'));
   loadRecipes().then(() => loadDay());
+
+  function toggleMergeServings() {
+    mergeServings = !mergeServings;
+    const btn = document.getElementById('mergeBtn');
+    btn.classList.toggle('orange', mergeServings);
+    btn.title = mergeServings ? 'Split Servings' : 'Merge Servings';
+    renderDashboard(currentDayEntries);
+  }
 
   /* ══════════════════════════════════════
      VIEW SWITCHING
@@ -907,6 +919,7 @@
   function renderDashboard(entries) {
     const content = document.getElementById('content');
     content.innerHTML = '';
+    checkables = [];
     if (!entries.length) {
       content.innerHTML = '<div class="placeholder"><i class="fas fa-bowl-food"></i>No entries for this date</div>';
       return;
@@ -990,23 +1003,24 @@
           list.appendChild(row);
 
         } else {
-          // Recipe accordion — render one row per serving
+          // Recipe accordion — render one row per serving (or merged if toggle active)
           const { recipe, entries: recEntries } = block;
-          const totalM  = macroSum(recEntries);
+          const totalM   = macroSum(recEntries);
           const servings = recipe.servings || 1;
-          const portionM = {
+          const effectiveServings = mergeServings ? 1 : servings;
+          const portionM = mergeServings ? totalM : {
             kcal: totalM.kcal / servings,
             p:    totalM.p    / servings,
             c:    totalM.c    / servings,
             f:    totalM.f    / servings,
           };
 
-          for (let s = 0; s < servings; s++) {
-            const itemKey = `${meal}::${recipe.name}::${s}`;
+          for (let s = 0; s < effectiveServings; s++) {
+            const itemKey = mergeServings ? `${meal}::${recipe.name}::0` : `${meal}::${recipe.name}::${s}`;
             const rb = document.createElement('div');
             rb.className = 'recipe-row' + (currentCheckedMap[itemKey] ? ' checked' : '');
 
-            const portionLabel = servings > 1 ? ` <span class="recipe-portion-tag">${s+1}/${servings}</span>` : '';
+            const portionLabel = (!mergeServings && servings > 1) ? ` <span class="recipe-portion-tag">${s+1}/${servings}</span>` : (mergeServings && servings > 1 ? ` <span class="recipe-portion-tag">${servings}×</span>` : '');
 
             const hdr = document.createElement('div');
             hdr.className = 'recipe-row-header';
@@ -1043,7 +1057,7 @@
             [...recEntries].sort((a, b) => stripAmount(a.item_name).localeCompare(stripAmount(b.item_name))).forEach(ing => {
               const ingRow = document.createElement('div');
               ingRow.className = 'ingredient-row';
-              ingRow.innerHTML = `<span class="ingredient-name">${ing.item_name}</span><div class="ing-pills"><div class="ip ip-kcal">${Math.round((ing.kcal||0)/servings)}</div><div class="ip ip-p">${(parseFloat(ing.protein||0)/servings).toFixed(1)}</div><div class="ip ip-c">${(parseFloat(ing.carbs||0)/servings).toFixed(1)}</div><div class="ip ip-f">${(parseFloat(ing.fat||0)/servings).toFixed(1)}</div></div>`;
+              ingRow.innerHTML = `<span class="ingredient-name">${ing.item_name}</span><div class="ing-pills"><div class="ip ip-kcal">${Math.round((ing.kcal||0)/(mergeServings?1:servings))}</div><div class="ip ip-p">${(parseFloat(ing.protein||0)/(mergeServings?1:servings)).toFixed(1)}</div><div class="ip ip-c">${(parseFloat(ing.carbs||0)/(mergeServings?1:servings)).toFixed(1)}</div><div class="ip ip-f">${(parseFloat(ing.fat||0)/(mergeServings?1:servings)).toFixed(1)}</div></div>`;
               ingList.appendChild(ingRow);
             });
             rb.appendChild(ingList);
