@@ -747,12 +747,12 @@
       });
 
       if (res.status === 204) {
-        showToast('Sync started — reloading in 25s…', 'success');
+        showToast('Sync started — reloading in 40s…', 'success');
         setTimeout(() => {
           btn.classList.remove('syncing');
           btn.disabled = false;
           loadDay();
-        }, 25000);
+        }, 40000);
       } else {
         const msg = await res.text();
         showToast('GitHub error: ' + res.status, 'error');
