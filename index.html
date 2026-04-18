@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -380,10 +381,12 @@
     .btn-load.syncing { background: var(--orange-dim); }
     .btn-load.syncing i { animation: spin .7s linear infinite; }
   </style>
+
 </head>
 <body>
 
 <!-- ════════════════════════ MAIN VIEW ════════════════════════ -->
+
 <div id="viewMain" class="view active">
 <div class="page">
 
@@ -419,30 +422,32 @@
 
   <div class="stats-row" id="statsRow">
 
-    <!-- Geplant vs Ziel -->
-    <div class="stat-block" id="targetBlock">
-      <div class="stat-block-title" style="justify-content:space-between">
-        <span><i class="fas fa-bullseye"></i> Planned</span>
-        <div style="display:flex;align-items:center;gap:8px">
-          <div class="day-type-toggle" id="dayTypeToggle">
-            <button class="dtt-btn" id="dttTraining" onclick="setDayType('training')"><i class="fas fa-dumbbell"></i></button>
-            <button class="dtt-btn" id="dttRest"     onclick="setDayType('rest')"><i class="fas fa-bed"></i></button>
-          </div>
-          <button class="icon-btn" style="width:28px;height:28px;font-size:.7rem" onclick="openTargetsModal()" title="Edit Goals"><i class="fas fa-pen"></i></button>
-        </div>
+```
+<!-- Geplant vs Ziel -->
+<div class="stat-block" id="targetBlock">
+  <div class="stat-block-title" style="justify-content:space-between">
+    <span><i class="fas fa-bullseye"></i> Planned / Target</span>
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="day-type-toggle" id="dayTypeToggle">
+        <button class="dtt-btn" id="dttTraining" onclick="setDayType('training')"><i class="fas fa-dumbbell"></i></button>
+        <button class="dtt-btn" id="dttRest"     onclick="setDayType('rest')"><i class="fas fa-bed"></i></button>
       </div>
-      <div id="targetMacroRows"></div>
+      <button class="icon-btn" style="width:28px;height:28px;font-size:.7rem" onclick="openTargetsModal()" title="Edit Goals"><i class="fas fa-pen"></i></button>
     </div>
+  </div>
+  <div id="targetMacroRows"></div>
+</div>
 
-    <!-- Gegessen -->
-    <div class="stat-block checked-block" id="checkedBlock">
-      <div class="stat-block-title"><i class="fas fa-circle-check"></i> Eaten</div>
-      <div class="stat-grid" id="checkedPills"></div>
-      <div class="progress-row">
-        <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
-        <div class="progress-label" id="progressLabel">0 / 0</div>
-      </div>
-    </div>
+<!-- Gegessen -->
+<div class="stat-block checked-block" id="checkedBlock">
+  <div class="stat-block-title"><i class="fas fa-circle-check"></i> Eaten</div>
+  <div class="stat-grid" id="checkedPills"></div>
+  <div class="progress-row">
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="progress-label" id="progressLabel">0 / 0</div>
+  </div>
+</div>
+```
 
   </div>
 
@@ -452,6 +457,7 @@
 </div>
 
 <!-- ════════════════════════ RECIPE MANAGEMENT VIEW ════════════════════════ -->
+
 <div id="viewRecipes" class="view">
 <div class="page">
   <button class="back-btn" onclick="showView('viewMain')">
@@ -470,6 +476,7 @@
 </div>
 
 <!-- ════════════════════════ STATS VIEW ════════════════════════ -->
+
 <div id="viewStats" class="view">
 <div class="page">
   <button class="back-btn" onclick="showView('viewMain')">
@@ -478,6 +485,7 @@
   <div class="manage-title">Statistics</div>
 
   <!-- Period tabs -->
+
   <div class="stats-period-tabs" id="statsPeriodTabs">
     <button class="spt-btn active" onclick="setStatsPeriod('week')">CW</button>
     <button class="spt-btn" onclick="setStatsPeriod('month')">Month</button>
@@ -486,6 +494,7 @@
   </div>
 
   <!-- Global colour scale -->
+
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:12px">
     <span style="font-size:.6rem;color:#f87171">0%</span>
     <div style="flex:1;height:6px;border-radius:3px;background:linear-gradient(90deg,#f87171,#facc15,#4ade80)"></div>
@@ -493,6 +502,7 @@
   </div>
 
   <!-- Custom date range -->
+
   <div id="statsCustomRange" style="display:none;gap:8px;margin-bottom:16px;align-items:center;flex-wrap:wrap">
     <input type="date" id="statsFrom" class="text-input" style="width:150px;margin-bottom:0;padding:10px 12px;font-size:.85rem">
     <span style="color:var(--muted);font-size:.85rem">to</span>
@@ -501,31 +511,35 @@
   </div>
 
   <!-- Loading -->
+
   <div id="statsLoading" class="spinner-wrap" style="display:none"><div class="spinner"></div></div>
 
   <!-- Content -->
+
   <div id="statsContent" style="display:none">
 
-    <!-- Summary cards -->
-    <div id="statsSummary" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px"></div>
+```
+<!-- Summary cards -->
+<div id="statsSummary" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px"></div>
 
-    <!-- Heatmap -->
-    <div class="stats-chart-card">
-      <div class="stats-chart-title"><i class="fas fa-th"></i> Adherence Heatmap</div>
-      <div id="statsHeatmap"></div>
-    </div>
+<!-- Heatmap -->
+<div class="stats-chart-card">
+  <div class="stats-chart-title"><i class="fas fa-th"></i> Adherence Heatmap</div>
+  <div id="statsHeatmap"></div>
+</div>
 
-    <!-- Adherence line chart -->
-    <div class="stats-chart-card" id="statsLineCard">
-      <div class="stats-chart-title"><i class="fas fa-chart-line"></i> Daily Deviation from Target</div>
-      <div style="position:relative;height:180px"><canvas id="statsLineChart"></canvas></div>
-    </div>
+<!-- Adherence line chart -->
+<div class="stats-chart-card" id="statsLineCard">
+  <div class="stats-chart-title"><i class="fas fa-chart-line"></i> Daily Deviation from Target</div>
+  <div style="position:relative;height:180px"><canvas id="statsLineChart"></canvas></div>
+</div>
 
-    <!-- Adherence bar chart -->
-    <div class="stats-chart-card" id="statsBarCard">
-      <div class="stats-chart-title"><i class="fas fa-chart-bar"></i> Avg. Deviation from Target</div>
-      <div style="position:relative;height:160px"><canvas id="statsBarChart"></canvas></div>
-    </div>
+<!-- Adherence bar chart -->
+<div class="stats-chart-card" id="statsBarCard">
+  <div class="stats-chart-title"><i class="fas fa-chart-bar"></i> Avg. Deviation from Target</div>
+  <div style="position:relative;height:160px"><canvas id="statsBarChart"></canvas></div>
+</div>
+```
 
   </div>
 
@@ -535,8 +549,8 @@
 </div>
 </div>
 
-
 <!-- action chooser modal -->
+
 <div class="modal-overlay" id="actionChooserOverlay">
   <div class="modal" style="max-height:auto">
     <div class="modal-handle"></div>
@@ -568,6 +582,7 @@
 </div>
 
 <!-- add unit modal -->
+
 <div class="modal-overlay" id="addUnitOverlay">
   <div class="modal" style="max-height:auto">
     <div class="modal-handle"></div>
@@ -602,33 +617,37 @@
         <div class="step" id="step-ind-2"></div>
       </div>
 
-      <!-- Step 0: Pick meal -->
-      <div class="step-panel active" id="step-panel-0">
-        <div class="step-label">Step 1 · Select Meal</div>
-        <div class="meal-chips" id="mealChips"></div>
-      </div>
+```
+  <!-- Step 0: Pick meal -->
+  <div class="step-panel active" id="step-panel-0">
+    <div class="step-label">Step 1 · Select Meal</div>
+    <div class="meal-chips" id="mealChips"></div>
+  </div>
 
-      <!-- Step 1: Pick items -->
-      <div class="step-panel" id="step-panel-1">
-        <div class="step-label">Step 2 · Select Ingredients</div>
-        <div id="itemSelectList"></div>
-      </div>
+  <!-- Step 1: Pick items -->
+  <div class="step-panel" id="step-panel-1">
+    <div class="step-label">Step 2 · Select Ingredients</div>
+    <div id="itemSelectList"></div>
+  </div>
 
-      <!-- Step 2: Name -->
-      <div class="step-panel" id="step-panel-2">
-        <div class="step-label">Step 3 · Name Recipe</div>
-        <div class="selected-summary" id="selectedSummary"></div>
-        <input class="text-input" id="recipeNameInput" type="text" placeholder="e.g. Whey Shake, Overnight Oats …" autocomplete="off">
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" id="btnBack" onclick="creatorBack()">Back</button>
-      <button class="btn btn-primary" id="btnNext" onclick="creatorNext()" disabled>Next</button>
-    </div>
+  <!-- Step 2: Name -->
+  <div class="step-panel" id="step-panel-2">
+    <div class="step-label">Step 3 · Name Recipe</div>
+    <div class="selected-summary" id="selectedSummary"></div>
+    <input class="text-input" id="recipeNameInput" type="text" placeholder="e.g. Whey Shake, Overnight Oats …" autocomplete="off">
+  </div>
+</div>
+<div class="modal-footer">
+  <button class="btn btn-secondary" id="btnBack" onclick="creatorBack()">Back</button>
+  <button class="btn btn-primary" id="btnNext" onclick="creatorNext()" disabled>Next</button>
+</div>
+```
+
   </div>
 </div>
 
 <!-- edit recipe modal -->
+
 <div class="modal-overlay" id="editOverlay">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -645,6 +664,7 @@
 </div>
 
 <!-- coach targets modal -->
+
 <div class="modal-overlay" id="targetsOverlay">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -660,7 +680,16 @@
   </div>
 </div>
 
+<!-- sync countdown overlay -->
+
+<div id="syncCountdown" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(6px);z-index:300;flex-direction:column;align-items:center;justify-content:center;gap:16px">
+  <i class="fas fa-rotate" style="color:var(--orange);font-size:2rem;animation:spin .7s linear infinite"></i>
+  <div style="font-family:'Bebas Neue',sans-serif;font-size:6rem;color:var(--orange);line-height:1" id="syncCountdownNum">30</div>
+  <div style="font-size:.8rem;color:var(--muted);letter-spacing:.15em;text-transform:uppercase">Syncing FDDB…</div>
+</div>
+
 <!-- toast -->
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -696,6 +725,8 @@
     const btn = document.getElementById('mergeBtn');
     btn.classList.toggle('orange', mergeServings);
     btn.title = mergeServings ? 'Split Servings' : 'Merge Servings';
+    // Hide eaten card in merge/screenshot mode
+    document.getElementById('checkedBlock').style.display = mergeServings ? 'none' : '';
     renderDashboard(currentDayEntries);
   }
 
@@ -761,12 +792,23 @@
       });
 
       if (res.status === 204) {
-        showToast('Sync started — reloading in 25s…', 'success');
-        setTimeout(() => {
-          btn.classList.remove('syncing');
-          btn.disabled = false;
-          loadDay();
-        }, 25000);
+        // Show countdown overlay
+        const overlay = document.getElementById('syncCountdown');
+        const countEl = document.getElementById('syncCountdownNum');
+        overlay.style.display = 'flex';
+        let remaining = 30;
+        countEl.textContent = remaining;
+        const interval = setInterval(() => {
+          remaining--;
+          countEl.textContent = remaining;
+          if (remaining <= 0) {
+            clearInterval(interval);
+            overlay.style.display = 'none';
+            btn.classList.remove('syncing');
+            btn.disabled = false;
+            loadDay();
+          }
+        }, 1000);
       } else {
         const msg = await res.text();
         showToast('GitHub error: ' + res.status, 'error');
@@ -881,23 +923,30 @@
 
     document.getElementById('targetMacroRows').innerHTML = macros.map(m => {
       const rawPct  = m.goal > 0 ? Math.round((parseFloat(m.val) / m.goal) * 100) : 0;
+      const dev     = rawPct - 100;
       const score   = adherenceScore(rawPct);
-      const barPct  = m.goal > 0 ? Math.min((parseFloat(m.val) / m.goal) * 100, 120) : 0;
-      const pctDisplay = m.goal > 0 ? score + '%' : '–';
       const color   = m.goal > 0 ? adherenceColor(score) : 'var(--muted)';
+      const devDisplay = m.goal > 0 ? (dev > 0 ? '+' : '') + dev + '%' : '–';
+      const maxDev  = 50;
+      const barW    = m.goal > 0 ? Math.min(Math.abs(dev), maxDev) / maxDev * 50 : 0;
+      const barLeft = dev >= 0;
       return `
         <div class="macro-prog-row">
           <div class="macro-prog-lbl" style="color:${m.color}">${m.label}</div>
           <div style="flex:1;min-width:0">
-            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
-              <span class="macro-prog-vals" style="color:${m.color}">${m.val}</span>
-              <span class="macro-prog-target">/ ${m.goal}</span>
+            <div style="display:flex;align-items:baseline;margin-bottom:4px">
+              <span style="font-family:'Bebas Neue',sans-serif;font-size:.95rem;line-height:1;color:${m.color};flex:1;text-align:right;padding-right:6px">${m.val}</span>
+              <span style="font-family:'Bebas Neue',sans-serif;font-size:.95rem;line-height:1;color:rgba(255,255,255,.15)">/</span>
+              <span style="font-family:'Bebas Neue',sans-serif;font-size:.95rem;line-height:1;color:${m.color};opacity:.4;flex:1;padding-left:6px">${m.goal}</span>
             </div>
-            <div class="macro-prog-track">
-              <div class="macro-prog-fill" style="width:${barPct}%;background:${m.color}"></div>
+            <div style="position:relative;height:5px;background:var(--border);border-radius:99px;overflow:visible">
+              <div style="position:absolute;top:-2px;bottom:-2px;left:50%;width:2px;transform:translateX(-50%);background:rgba(255,255,255,.4);border-radius:1px"></div>
+              <div style="position:absolute;top:0;bottom:0;overflow:hidden;${barLeft?'left:50%;right:0':'right:50%;left:0'};border-radius:99px">
+                <div style="position:absolute;top:0;bottom:0;${barLeft?'left:0':'right:0'};width:${barW*2}%;background:${m.color};border-radius:99px"></div>
+              </div>
             </div>
           </div>
-          <div class="macro-prog-pct" style="color:${color}">${pctDisplay}</div>
+          <div class="macro-prog-pct" style="color:${color};align-self:end;margin-bottom:2px">${devDisplay}</div>
         </div>`;
     }).join('') + (overallAdh !== null ? `
       <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-top:10px;padding-top:8px;border-top:1px solid var(--border)">
@@ -2045,5 +2094,6 @@
     toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
   }
 </script>
+
 </body>
 </html>
