@@ -423,6 +423,7 @@
 
   <div class="stats-row" id="statsRow">
 
+```
 <!-- Geplant vs Ziel -->
 <div class="stat-block" id="targetBlock">
   <div class="stat-block-title" style="justify-content:space-between">
@@ -447,6 +448,7 @@
     <div class="progress-label" id="progressLabel">0 / 0</div>
   </div>
 </div>
+```
 
   </div>
 
@@ -517,6 +519,7 @@
 
   <div id="statsContent" style="display:none">
 
+```
 <!-- Summary cards -->
 <div id="statsSummary" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px"></div>
 
@@ -537,6 +540,7 @@
   <div class="stats-chart-title"><i class="fas fa-chart-bar"></i> Avg. Deviation from Target</div>
   <div style="position:relative;height:160px"><canvas id="statsBarChart"></canvas></div>
 </div>
+```
 
   </div>
 
@@ -614,6 +618,7 @@
         <div class="step" id="step-ind-2"></div>
       </div>
 
+```
   <!-- Step 0: Pick meal -->
   <div class="step-panel active" id="step-panel-0">
     <div class="step-label">Step 1 · Select Meal</div>
@@ -637,6 +642,7 @@
   <button class="btn btn-secondary" id="btnBack" onclick="creatorBack()">Back</button>
   <button class="btn btn-primary" id="btnNext" onclick="creatorNext()" disabled>Next</button>
 </div>
+```
 
   </div>
 </div>
@@ -2009,9 +2015,15 @@
       cwGrid.style.cssText = 'display:grid;grid-template-columns:repeat(7,1fr);gap:4px';
       dayData.forEach(d => {
         const a = d.adh;
+        const dtype = dayTypeMap[d.date];
+        const typeIcon = dtype === 'training'
+          ? `<i class="fas fa-dumbbell" style="font-size:.55rem;color:rgba(255,255,255,.5);margin-left:5px"></i>`
+          : dtype === 'rest'
+          ? `<i class="fas fa-bed" style="font-size:.55rem;color:rgba(255,255,255,.5);margin-left:5px"></i>`
+          : '';
         const cell = document.createElement('div');
         cell.style.cssText = `background:${cellBg(a)};border-radius:6px;padding:10px 4px;text-align:center;width:100%;display:flex;align-items:center;justify-content:center`;
-        cell.innerHTML = `<div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;color:${a!==null?'#fff':'#444'}">${a !== null ? a+'%' : '–'}</div>`;
+        cell.innerHTML = `<div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;color:${a!==null?'#fff':'#444'}">${a !== null ? a+'%' : '–'}</div>${typeIcon}`;
         cell.setAttribute('data-tip', `${d.date}: ${a !== null ? a + '%' : 'N/A'}`);
         cwGrid.appendChild(cell);
       });
@@ -2042,9 +2054,16 @@
 
       dayData.forEach((d, i) => {
         const a = d.adh;
+        const dtype = dayTypeMap[d.date];
+        const barColor = dtype === 'training' ? 'var(--orange)' : dtype === 'rest' ? '#60a5fa' : null;
         const cell = document.createElement('div');
-        cell.style.cssText = `border-radius:4px;background:${cellBg(a)};aspect-ratio:1;width:100%`;
+        cell.style.cssText = `border-radius:4px;background:${cellBg(a)};aspect-ratio:1;width:100%;position:relative;overflow:hidden`;
         if (i === 0 && offset > 0) cell.style.gridColumnStart = offset + 1 + '';
+        if (barColor) {
+          const bar = document.createElement('div');
+          bar.style.cssText = `position:absolute;bottom:0;left:0;right:0;height:3px;background:${barColor};opacity:.8`;
+          cell.appendChild(bar);
+        }
         cell.setAttribute('data-tip', `${d.date}: ${a !== null ? a + '%' : 'N/A'}`);
         cell.className = 'heatmap-cell';
         grid.appendChild(cell);
