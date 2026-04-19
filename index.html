@@ -856,8 +856,11 @@
       if (match) coachTargets[type] = { kcal: match.kcal, p: match.protein, c: match.carbs, f: match.fat };
     });
 
-    // Day type — default training if not set
+    // Day type — default training if not set, persist to DB
     currentDayType = dayTypeRes.data?.type || 'training';
+    if (!dayTypeRes.data) {
+      db.from('fddb_day_type').upsert({ date: dateVal, type: 'training' }, { onConflict: 'date' });
+    }
     renderDayTypeToggle();
     renderDashboard(currentDayEntries);
   }
@@ -2056,17 +2059,24 @@
         const a = d.adh;
         const dtype = dayTypeMap[d.date];
         const barColor = dtype === 'training' ? 'var(--orange)' : dtype === 'rest' ? '#60a5fa' : null;
+
+        const wrapper = document.createElement('div');
+        wrapper.style.cssText = 'display:flex;flex-direction:column;gap:2px;width:100%';
+        if (i === 0 && offset > 0) wrapper.style.gridColumnStart = offset + 1 + '';
+
         const cell = document.createElement('div');
-        cell.style.cssText = `border-radius:4px;background:${cellBg(a)};aspect-ratio:1;width:100%;position:relative;overflow:hidden`;
-        if (i === 0 && offset > 0) cell.style.gridColumnStart = offset + 1 + '';
-        if (barColor) {
-          const bar = document.createElement('div');
-          bar.style.cssText = `position:absolute;bottom:0;left:0;right:0;height:3px;background:${barColor};opacity:.8`;
-          cell.appendChild(bar);
-        }
+        cell.style.cssText = `border-radius:4px;background:${cellBg(a)};aspect-ratio:1;width:100%`;
         cell.setAttribute('data-tip', `${d.date}: ${a !== null ? a + '%' : 'N/A'}`);
         cell.className = 'heatmap-cell';
-        grid.appendChild(cell);
+        wrapper.appendChild(cell);
+
+        if (barColor) {
+          const bar = document.createElement('div');
+          bar.style.cssText = `height:3px;border-radius:99px;background:${barColor};width:100%`;
+          wrapper.appendChild(bar);
+        }
+
+        grid.appendChild(wrapper);
       });
 
       hm.appendChild(grid);
