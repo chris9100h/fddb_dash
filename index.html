@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -382,12 +381,10 @@
     .btn-load.syncing { background: var(--orange-dim); }
     .btn-load.syncing i { animation: spin .7s linear infinite; }
   </style>
-
 </head>
 <body>
 
 <!-- ════════════════════════ MAIN VIEW ════════════════════════ -->
-
 <div id="viewMain" class="view active">
 <div class="page">
 
@@ -423,32 +420,30 @@
 
   <div class="stats-row" id="statsRow">
 
-
-<!-- Geplant vs Ziel -->
-<div class="stat-block" id="targetBlock">
-  <div class="stat-block-title" style="justify-content:space-between">
-    <span><i class="fas fa-bullseye"></i> Planned / Target</span>
-    <div style="display:flex;align-items:center;gap:8px">
-      <div class="day-type-toggle" id="dayTypeToggle">
-        <button class="dtt-btn" id="dttTraining" onclick="setDayType('training')"><i class="fas fa-dumbbell"></i></button>
-        <button class="dtt-btn" id="dttRest"     onclick="setDayType('rest')"><i class="fas fa-bed"></i></button>
+    <!-- Geplant vs Ziel -->
+    <div class="stat-block" id="targetBlock">
+      <div class="stat-block-title" style="justify-content:space-between">
+        <span><i class="fas fa-bullseye"></i> Planned / Target</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="day-type-toggle" id="dayTypeToggle">
+            <button class="dtt-btn" id="dttTraining" onclick="setDayType('training')"><i class="fas fa-dumbbell"></i></button>
+            <button class="dtt-btn" id="dttRest"     onclick="setDayType('rest')"><i class="fas fa-bed"></i></button>
+          </div>
+          <button class="icon-btn" style="width:28px;height:28px;font-size:.7rem" onclick="openTargetsModal()" title="Edit Goals"><i class="fas fa-pen"></i></button>
+        </div>
       </div>
-      <button class="icon-btn" style="width:28px;height:28px;font-size:.7rem" onclick="openTargetsModal()" title="Edit Goals"><i class="fas fa-pen"></i></button>
+      <div id="targetMacroRows"></div>
     </div>
-  </div>
-  <div id="targetMacroRows"></div>
-</div>
 
-<!-- Gegessen -->
-<div class="stat-block checked-block" id="checkedBlock">
-  <div class="stat-block-title"><i class="fas fa-circle-check"></i> Eaten</div>
-  <div class="stat-grid" id="checkedPills"></div>
-  <div class="progress-row">
-    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
-    <div class="progress-label" id="progressLabel">0 / 0</div>
-  </div>
-</div>
-
+    <!-- Gegessen -->
+    <div class="stat-block checked-block" id="checkedBlock">
+      <div class="stat-block-title"><i class="fas fa-circle-check"></i> Eaten</div>
+      <div class="stat-grid" id="checkedPills"></div>
+      <div class="progress-row">
+        <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="progress-label" id="progressLabel">0 / 0</div>
+      </div>
+    </div>
 
   </div>
 
@@ -458,7 +453,6 @@
 </div>
 
 <!-- ════════════════════════ RECIPE MANAGEMENT VIEW ════════════════════════ -->
-
 <div id="viewRecipes" class="view">
 <div class="page">
   <button class="back-btn" onclick="showView('viewMain')">
@@ -477,7 +471,6 @@
 </div>
 
 <!-- ════════════════════════ STATS VIEW ════════════════════════ -->
-
 <div id="viewStats" class="view">
 <div class="page">
   <button class="back-btn" onclick="showView('viewMain')">
@@ -486,7 +479,6 @@
   <div class="manage-title">Statistics</div>
 
   <!-- Period tabs -->
-
   <div class="stats-period-tabs" id="statsPeriodTabs">
     <button class="spt-btn active" onclick="setStatsPeriod('week')">CW</button>
     <button class="spt-btn" onclick="setStatsPeriod('month')">Month</button>
@@ -495,7 +487,6 @@
   </div>
 
   <!-- Global colour scale -->
-
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:12px">
     <span style="font-size:.6rem;color:#f87171">0%</span>
     <div style="flex:1;height:6px;border-radius:3px;background:linear-gradient(90deg,#f87171,#facc15,#4ade80)"></div>
@@ -503,7 +494,6 @@
   </div>
 
   <!-- Custom date range -->
-
   <div id="statsCustomRange" style="display:none;gap:8px;margin-bottom:16px;align-items:center;flex-wrap:wrap">
     <input type="date" id="statsFrom" class="text-input" style="width:150px;margin-bottom:0;padding:10px 12px;font-size:.85rem">
     <span style="color:var(--muted);font-size:.85rem">to</span>
@@ -512,35 +502,31 @@
   </div>
 
   <!-- Loading -->
-
   <div id="statsLoading" class="spinner-wrap" style="display:none"><div class="spinner"></div></div>
 
   <!-- Content -->
-
   <div id="statsContent" style="display:none">
 
+    <!-- Summary cards -->
+    <div id="statsSummary" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px"></div>
 
-<!-- Summary cards -->
-<div id="statsSummary" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px"></div>
+    <!-- Heatmap -->
+    <div class="stats-chart-card">
+      <div class="stats-chart-title"><i class="fas fa-th"></i> Adherence Heatmap</div>
+      <div id="statsHeatmap"></div>
+    </div>
 
-<!-- Heatmap -->
-<div class="stats-chart-card">
-  <div class="stats-chart-title"><i class="fas fa-th"></i> Adherence Heatmap</div>
-  <div id="statsHeatmap"></div>
-</div>
+    <!-- Adherence line chart -->
+    <div class="stats-chart-card" id="statsLineCard">
+      <div class="stats-chart-title"><i class="fas fa-chart-line"></i> Daily Deviation from Target</div>
+      <div style="position:relative;height:180px"><canvas id="statsLineChart"></canvas></div>
+    </div>
 
-<!-- Adherence line chart -->
-<div class="stats-chart-card" id="statsLineCard">
-  <div class="stats-chart-title"><i class="fas fa-chart-line"></i> Daily Deviation from Target</div>
-  <div style="position:relative;height:180px"><canvas id="statsLineChart"></canvas></div>
-</div>
-
-<!-- Adherence bar chart -->
-<div class="stats-chart-card" id="statsBarCard">
-  <div class="stats-chart-title"><i class="fas fa-chart-bar"></i> Avg. Deviation from Target</div>
-  <div style="position:relative;height:160px"><canvas id="statsBarChart"></canvas></div>
-</div>
-
+    <!-- Adherence bar chart -->
+    <div class="stats-chart-card" id="statsBarCard">
+      <div class="stats-chart-title"><i class="fas fa-chart-bar"></i> Avg. Deviation from Target</div>
+      <div style="position:relative;height:160px"><canvas id="statsBarChart"></canvas></div>
+    </div>
 
   </div>
 
@@ -550,8 +536,8 @@
 </div>
 </div>
 
-<!-- action chooser modal -->
 
+<!-- action chooser modal -->
 <div class="modal-overlay" id="actionChooserOverlay">
   <div class="modal" style="max-height:auto">
     <div class="modal-handle"></div>
@@ -583,7 +569,6 @@
 </div>
 
 <!-- add unit modal -->
-
 <div class="modal-overlay" id="addUnitOverlay">
   <div class="modal" style="max-height:auto">
     <div class="modal-handle"></div>
@@ -618,37 +603,33 @@
         <div class="step" id="step-ind-2"></div>
       </div>
 
+      <!-- Step 0: Pick meal -->
+      <div class="step-panel active" id="step-panel-0">
+        <div class="step-label">Step 1 · Select Meal</div>
+        <div class="meal-chips" id="mealChips"></div>
+      </div>
 
-  <!-- Step 0: Pick meal -->
-  <div class="step-panel active" id="step-panel-0">
-    <div class="step-label">Step 1 · Select Meal</div>
-    <div class="meal-chips" id="mealChips"></div>
-  </div>
+      <!-- Step 1: Pick items -->
+      <div class="step-panel" id="step-panel-1">
+        <div class="step-label">Step 2 · Select Ingredients</div>
+        <div id="itemSelectList"></div>
+      </div>
 
-  <!-- Step 1: Pick items -->
-  <div class="step-panel" id="step-panel-1">
-    <div class="step-label">Step 2 · Select Ingredients</div>
-    <div id="itemSelectList"></div>
-  </div>
-
-  <!-- Step 2: Name -->
-  <div class="step-panel" id="step-panel-2">
-    <div class="step-label">Step 3 · Name Recipe</div>
-    <div class="selected-summary" id="selectedSummary"></div>
-    <input class="text-input" id="recipeNameInput" type="text" placeholder="e.g. Whey Shake, Overnight Oats …" autocomplete="off">
-  </div>
-</div>
-<div class="modal-footer">
-  <button class="btn btn-secondary" id="btnBack" onclick="creatorBack()">Back</button>
-  <button class="btn btn-primary" id="btnNext" onclick="creatorNext()" disabled>Next</button>
-</div>
-
-
+      <!-- Step 2: Name -->
+      <div class="step-panel" id="step-panel-2">
+        <div class="step-label">Step 3 · Name Recipe</div>
+        <div class="selected-summary" id="selectedSummary"></div>
+        <input class="text-input" id="recipeNameInput" type="text" placeholder="e.g. Whey Shake, Overnight Oats …" autocomplete="off">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="btnBack" onclick="creatorBack()">Back</button>
+      <button class="btn btn-primary" id="btnNext" onclick="creatorNext()" disabled>Next</button>
+    </div>
   </div>
 </div>
 
 <!-- edit recipe modal -->
-
 <div class="modal-overlay" id="editOverlay">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -665,7 +646,6 @@
 </div>
 
 <!-- coach targets modal -->
-
 <div class="modal-overlay" id="targetsOverlay">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -682,7 +662,6 @@
 </div>
 
 <!-- sync countdown overlay -->
-
 <div id="syncCountdown" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(6px);z-index:300;flex-direction:column;align-items:center;justify-content:center;gap:16px">
   <i class="fas fa-rotate" style="color:var(--orange);font-size:2rem;animation:spin .7s linear infinite"></i>
   <div style="font-family:'Bebas Neue',sans-serif;font-size:6rem;color:var(--orange);line-height:1" id="syncCountdownNum">30</div>
@@ -690,7 +669,6 @@
 </div>
 
 <!-- toast -->
-
 <div class="toast" id="toast"></div>
 
 <script>
@@ -698,6 +676,11 @@
   const SUPABASE_URL = 'https://lzhkbbwcjfsvpkpmcwdu.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6aGtiYndjamZzdnBrcG1jd2R1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4NTUzNDUsImV4cCI6MjA5MTQzMTM0NX0.GhbRy4qhwHbcLgPcp0v5JEtC_oS95O7sh0yl7VXxgDI';
   const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  // Water tracker — separate Supabase project
+  const WATER_URL = 'https://ebbuvdzgstrhrcsbrlez.supabase.co';
+  const WATER_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImViYnV2ZHpnc3RyaHJjc2JybGV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwMjc4ODAsImV4cCI6MjA5MTYwMzg4MH0.RyTzHiqV1TPSZtM7lgenBJbUCTjj5fCUhoWauifjlIE';
+  const dbWater = supabase.createClient(WATER_URL, WATER_KEY);
 
   const ORDER  = ['frühstück','zwischenmahlzeit 1','mittagessen','zwischenmahlzeit 2','abendbrot','abendessen'];
   const LABELS = { 'frühstück':'Breakfast','zwischenmahlzeit 1':'Snack 1','mittagessen':'Lunch','zwischenmahlzeit 2':'Snack 2','abendbrot':'Dinner','abendessen':'Dinner' };
@@ -713,7 +696,8 @@
   let currentDate = '';
   let coachTargets = { training: {kcal:0,p:0,c:0,f:0}, rest: {kcal:0,p:0,c:0,f:0} };
   let currentDayType = 'training';
-  let mergeServings = false; // 'training' | 'rest'
+  let mergeServings = false;
+  let waterData = { drunk: null, goal: null }; // ml // 'training' | 'rest'
 
   /* ── Init ── */
   document.getElementById('dateInput').value = new Date().toISOString().split('T')[0];
@@ -833,11 +817,13 @@
     document.getElementById('statsRow').classList.remove('visible');
     checkables = [];
 
-    const [macroRes, statusRes, targetsRes, dayTypeRes] = await Promise.all([
+    const [macroRes, statusRes, targetsRes, dayTypeRes, waterLogsRes, waterSettingsRes] = await Promise.all([
       db.from('fddb_daily_macros').select('*').eq('date', dateVal).order('meal'),
       db.from('fddb_checklist_status').select('item_key, checked').eq('date', dateVal),
       db.from('fddb_coach_targets').select('*').lte('valid_from', dateVal).order('valid_from', { ascending: false }),
       db.from('fddb_day_type').select('type').eq('date', dateVal).maybeSingle(),
+      dbWater.from('water_logs').select('amount').eq('date', dateVal),
+      dbWater.from('water_settings').select('goal').eq('id', 1).maybeSingle(),
     ]);
 
     if (macroRes.error) {
@@ -855,6 +841,11 @@
       const match = rows.find(r => r.type === type);
       if (match) coachTargets[type] = { kcal: match.kcal, p: match.protein, c: match.carbs, f: match.fat };
     });
+
+    // Water data
+    const waterDrunk = (waterLogsRes.data || []).reduce((s, r) => s + (r.amount || 0), 0);
+    const waterGoal  = waterSettingsRes.data?.goal || null;
+    waterData = { drunk: waterDrunk, goal: waterGoal };
 
     // Day type — default training if not set, persist to DB
     currentDayType = dayTypeRes.data?.type || 'training';
@@ -916,10 +907,11 @@
       { key: 'p',    label: 'Protein', val: totals.p.toFixed(1),     goal: tgt.p,    color: '#60a5fa' },
       { key: 'c',    label: 'Carbs',   val: totals.c.toFixed(1),     goal: tgt.c,    color: '#facc15' },
       { key: 'f',    label: 'Fat',    val: totals.f.toFixed(1),     goal: tgt.f,    color: '#f87171' },
+      ...(waterData.goal ? [{ key: 'w', label: 'Water', val: String(waterData.drunk || 0), goal: waterData.goal, color: '#22d3ee' }] : []),
     ];
 
-    // Overall adherence = average score of P/C/F
-    const adherenceMacros = macros.slice(1);
+    // Overall adherence = average score of P/C/F (not water)
+    const adherenceMacros = macros.filter(m => m.key !== 'kcal' && m.key !== 'w');
     const validAdh = adherenceMacros.filter(m => m.goal > 0);
     const overallAdh = validAdh.length > 0
       ? Math.round(validAdh.reduce((s, m) => s + adherenceScore(Math.round((parseFloat(m.val) / m.goal) * 100)), 0) / validAdh.length)
@@ -2117,6 +2109,5 @@
     toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
   }
 </script>
-
 </body>
 </html>
