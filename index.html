@@ -988,7 +988,17 @@
       const card = document.createElement('div');
       card.className = 'meal-card';
       card.style.animationDelay = `${mi*0.06}s`;
-      card.innerHTML = `<div class="meal-title"><div class="meal-dot"></div><div class="meal-name">${LABELS[meal]||meal}</div><div class="meal-kcal">${Math.round(mealKcal)} kcal</div></div>`;
+
+      if (mergeServings) {
+        const mealM = macroSum(items);
+        card.innerHTML = `<div class="meal-title" style="flex-wrap:nowrap;gap:6px;align-items:center">
+          <div class="meal-dot"></div>
+          <div class="meal-name">${LABELS[meal]||meal}</div>
+          <div class="macro-pills" style="margin-left:auto;flex-shrink:0">${pillsHTML(mealM)}</div>
+        </div>`;
+      } else {
+        card.innerHTML = `<div class="meal-title"><div class="meal-dot"></div><div class="meal-name">${LABELS[meal]||meal}</div><div class="meal-kcal">${Math.round(mealKcal)} kcal</div></div>`;
+      }
 
       const list = document.createElement('div');
       list.className = 'items-list';
@@ -1037,8 +1047,16 @@
           const m = { kcal: e.kcal||0, p: parseFloat(e.protein)||0, c: parseFloat(e.carbs)||0, f: parseFloat(e.fat)||0 };
           const itemKey = `${meal}::${e.item_name}`;
           const row = document.createElement('div');
-          row.className = 'food-item' + (currentCheckedMap[itemKey] ? ' checked' : '');
-          row.innerHTML = `<div class="cb-box"><i class="fas fa-check"></i></div><div class="food-item-body"><div class="food-name">${e.item_name}</div><div class="macro-pills">${pillsHTML(m)}</div></div>`;
+
+          if (mergeServings) {
+            row.className = 'food-item' + (currentCheckedMap[itemKey] ? ' checked' : '');
+            row.style.cssText = 'padding:6px 10px;gap:8px';
+            row.innerHTML = `<div class="cb-box"><i class="fas fa-check"></i></div><div class="food-name" style="font-size:.8rem">${e.item_name}</div>`;
+          } else {
+            row.className = 'food-item' + (currentCheckedMap[itemKey] ? ' checked' : '');
+            row.innerHTML = `<div class="cb-box"><i class="fas fa-check"></i></div><div class="food-item-body"><div class="food-name">${e.item_name}</div><div class="macro-pills">${pillsHTML(m)}</div></div>`;
+          }
+
           row.addEventListener('click', () => {
             row.classList.toggle('checked');
             persistChecked(itemKey, row.classList.contains('checked'));
@@ -1069,17 +1087,28 @@
 
             const hdr = document.createElement('div');
             hdr.className = 'recipe-row-header';
-            hdr.innerHTML = `
-              <div class="cb-box"><i class="fas fa-check"></i></div>
-              <div class="recipe-row-body">
-                <div class="recipe-row-title">
-                  <span class="recipe-row-name">${recipe.name}</span>
+            if (mergeServings) {
+              hdr.style.cssText = 'padding:6px 10px;gap:8px';
+              hdr.innerHTML = `
+                <div class="cb-box"><i class="fas fa-check"></i></div>
+                <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0">
+                  <span class="recipe-row-name" style="font-size:.8rem">${recipe.name}</span>
                   <span class="recipe-tag">Recipe</span>
                   ${portionLabel}
+                </div>`;
+            } else {
+              hdr.innerHTML = `
+                <div class="cb-box"><i class="fas fa-check"></i></div>
+                <div class="recipe-row-body">
+                  <div class="recipe-row-title">
+                    <span class="recipe-row-name">${recipe.name}</span>
+                    <span class="recipe-tag">Recipe</span>
+                    ${portionLabel}
+                  </div>
+                  <div class="macro-pills">${pillsHTML(portionM)}</div>
                 </div>
-                <div class="macro-pills">${pillsHTML(portionM)}</div>
-              </div>
-              <button class="recipe-chevron"><i class="fas fa-chevron-down"></i></button>`;
+                <button class="recipe-chevron"><i class="fas fa-chevron-down"></i></button>`;
+            }
 
             const cbBox   = hdr.querySelector('.cb-box');
             const body    = hdr.querySelector('.recipe-row-body');
@@ -1090,9 +1119,10 @@
               persistChecked(itemKey, rb.classList.contains('checked'));
               updateChecked();
             };
-            cbBox.addEventListener('click',   e => { e.stopPropagation(); toggleChecked(); });
-            body.addEventListener('click',    ()  => toggleChecked());
-            chevron.addEventListener('click', e  => { e.stopPropagation(); rb.classList.toggle('open'); });
+            cbBox.addEventListener('click', e => { e.stopPropagation(); toggleChecked(); });
+            if (body) body.addEventListener('click', () => toggleChecked());
+            if (chevron) chevron.addEventListener('click', e => { e.stopPropagation(); rb.classList.toggle('open'); });
+            if (mergeServings) hdr.addEventListener('click', toggleChecked);
 
             rb.appendChild(hdr);
 
