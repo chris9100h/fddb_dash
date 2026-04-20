@@ -131,6 +131,16 @@
     .meal-kcal { margin-left: auto; font-size: .7rem; color: var(--muted); font-weight: 500; }
     .items-list { padding: 7px; display: flex; flex-direction: column; gap: 5px; }
 
+    /* ── Merge mode: B + D ── */
+    .merge-active .meal-title { padding: 8px 12px; }
+    .merge-active .meal-name { font-size: .78rem; }
+    .merge-active .items-list { padding: 4px 6px; gap: 2px; }
+    .merge-active .food-item { padding: 4px 8px; }
+    .merge-active .recipe-row-header { padding: 4px 8px; }
+    .merge-active .mp { padding: 3px 5px; min-width: 36px; }
+    .merge-active .mp-val { font-size: .75rem; }
+    .merge-active .mp-lbl { font-size: .38rem; }
+
     /* ── Macro pills ── */
     .macro-pills { display: flex; gap: 3px; }
     .mp { border-radius: 6px; padding: 4px 7px; text-align: center; min-width: 44px; }
@@ -710,8 +720,8 @@
     const btn = document.getElementById('mergeBtn');
     btn.classList.toggle('orange', mergeServings);
     btn.title = mergeServings ? 'Split Servings' : 'Merge Servings';
-    // Hide eaten card in merge/screenshot mode
     document.getElementById('checkedBlock').style.display = mergeServings ? 'none' : '';
+    document.getElementById('content').classList.toggle('merge-active', mergeServings);
     renderDashboard(currentDayEntries);
   }
 
