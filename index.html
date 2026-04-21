@@ -2741,6 +2741,16 @@ async function takeFullScreenshot() {
   // onto <img> replacements before cloning.
   // ───────────────────────────────────────────────────────────
 
+  // 0) If we're capturing the Today view and merge-mode is off,
+  //    turn it on so the screenshot always shows the consolidated
+  //    (merged) servings layout. Restore after capture in `finally`.
+  const wasMergeOff = (activeView.id === 'viewToday') && !mergeServings;
+  if (wasMergeOff) {
+    toggleMergeServings();
+    // renderDashboard inside the toggle is synchronous for already-
+    // loaded data, so the clone below will pick up the merged DOM.
+  }
+
   // 1) Snapshot all live <canvas> elements in the active view as
   //    data URLs, keyed by source canvas id.
   const liveCanvases = activeView.querySelectorAll('canvas');
@@ -2879,6 +2889,12 @@ async function takeFullScreenshot() {
     #__screenshotStage .ring-fg {
       filter: none !important;
     }
+    #__screenshotStage .hero-ring {
+      /* The live rule uses transform: rotate(-90deg) so the ring
+         starts at 12 o'clock. Our override blanket-resets transforms;
+         restore it here. */
+      transform: rotate(-90deg) !important;
+    }
     /* Preserve collapsed recipe state */
     #__screenshotStage .recipe-ingredients {
       max-height: 0 !important;
@@ -2951,6 +2967,8 @@ async function takeFullScreenshot() {
     overrideStyle.remove();
     liveCanvases.forEach(c => c.removeAttribute('data-cx-key'));
     overlay.remove();
+    // Restore merge-mode if we flipped it on for the capture
+    if (wasMergeOff && mergeServings) toggleMergeServings();
   }
 }
 
