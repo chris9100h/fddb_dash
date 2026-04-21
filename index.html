@@ -1028,17 +1028,15 @@ input[type="range"]::-webkit-slider-thumb {
   .large-title { font-size: 2.4rem; }
   .page-content { padding: 22px 8px calc(var(--safe-bot) + 40px); gap: 18px; }
 
-  /* Today: sticky hero + eaten column, meals scroll right */
+  /* Today: single-column, centered on desktop */
   #viewMain .page-content {
-    display: grid;
-    grid-template-columns: 380px 1fr;
-    grid-template-rows: auto auto 1fr;
+    display: flex;
+    flex-direction: column;
     gap: 18px;
-    align-items: start;
+    max-width: 720px;
+    margin: 0 auto;
+    width: 100%;
   }
-  #viewMain .page-content > .hero-card { grid-column: 1; grid-row: 1; position: sticky; top: 130px; }
-  #viewMain .page-content > .eaten-card { grid-column: 1; grid-row: 2; position: sticky; top: 540px; }
-  #viewMain .page-content > .meal-list { grid-column: 2; grid-row: 1 / span 3; }
 
   /* Stats view: 2-col for summary + charts */
   #viewStats .page-content { max-width: 980px; margin: 0 auto; width: 100%; }
@@ -1058,8 +1056,7 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 @media (min-width: 1100px) {
-  #viewMain .page-content { grid-template-columns: 420px 1fr; gap: 22px; }
-  #viewMain .page-content > .eaten-card { top: 560px; }
+  #viewMain .page-content { max-width: 760px; gap: 20px; }
 }
 
 /* Density variants */
