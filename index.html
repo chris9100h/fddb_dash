@@ -94,10 +94,33 @@ body {
 /* ── Large Title Header (iOS) ── */
 .large-header {
   padding: calc(var(--safe-top) + 14px) 18px 14px;
-  background: linear-gradient(180deg, var(--bg) 0%, rgba(10,10,11,.85) 100%);
   position: sticky; top: 0; z-index: 10;
-  backdrop-filter: blur(var(--blur)) saturate(180%);
-  -webkit-backdrop-filter: blur(var(--blur)) saturate(180%);
+  /* Liquid Glass: layered blur + saturation + subtle tint,
+     with top highlight edge and bottom shadow. */
+  background:
+    linear-gradient(180deg,
+      rgba(255,255,255,.04) 0%,
+      rgba(255,255,255,.015) 50%,
+      rgba(10,10,11,.35) 100%),
+    rgba(18,18,22,.55);
+  backdrop-filter: blur(28px) saturate(180%) brightness(1.05);
+  -webkit-backdrop-filter: blur(28px) saturate(180%) brightness(1.05);
+  /* Hairline highlight on top (light refraction) + faint shadow
+     along the bottom so the glass edge reads as a surface. */
+  box-shadow:
+    inset 0 1px 0 0 rgba(255,255,255,.08),
+    0 1px 0 0 rgba(0,0,0,.35);
+  border-bottom: 1px solid rgba(255,255,255,.04);
+}
+.large-header::after {
+  /* Soft bottom fade so content scrolling beneath dissolves
+     rather than hard-clips under the glass edge. */
+  content: '';
+  position: absolute;
+  left: 0; right: 0; bottom: -12px;
+  height: 12px;
+  background: linear-gradient(180deg, rgba(10,10,11,.6) 0%, transparent 100%);
+  pointer-events: none;
 }
 .large-header-row {
   display: flex; align-items: flex-end; justify-content: space-between;
@@ -882,10 +905,24 @@ body {
   z-index: 50;
   display: flex; justify-content: space-around; align-items: stretch;
   padding: 6px 8px calc(var(--safe-bot) + 6px);
-  background: rgba(12,12,14,.78);
-  backdrop-filter: blur(var(--blur)) saturate(180%);
-  -webkit-backdrop-filter: blur(var(--blur)) saturate(180%);
-  border-top: 1px solid var(--border);
+  /* Liquid Glass: heavy blur + saturated brightness so colors
+     beneath shine through without washing out. Tint is a faint
+     translucent surface layer. */
+  background:
+    linear-gradient(180deg,
+      rgba(255,255,255,.06) 0%,
+      rgba(255,255,255,.02) 40%,
+      rgba(10,10,11,.35) 100%),
+    rgba(18,18,22,.55);
+  backdrop-filter: blur(32px) saturate(200%) brightness(1.08);
+  -webkit-backdrop-filter: blur(32px) saturate(200%) brightness(1.08);
+  /* Glass edges: bright hairline on top (specular highlight),
+     subtle dark line on bottom (refraction shadow). */
+  box-shadow:
+    inset 0 1px 0 0 rgba(255,255,255,.10),
+    inset 0 -1px 0 0 rgba(0,0,0,.25),
+    0 -6px 30px rgba(0,0,0,.25);
+  border-top: 1px solid rgba(255,255,255,.06);
   max-width: 720px;
   margin: 0 auto;
 }
@@ -893,11 +930,16 @@ body {
   .tabbar {
     left: 50%; right: auto; transform: translateX(-50%);
     bottom: 14px;
-    border-radius: 22px;
-    border: 1px solid var(--border);
+    border-radius: 26px;
+    border: 1px solid rgba(255,255,255,.08);
     padding: 6px 8px;
     min-width: 440px;
-    box-shadow: 0 20px 60px -10px rgba(0,0,0,.7);
+    /* Floating glass pebble: stronger highlight ring, ambient shadow */
+    box-shadow:
+      inset 0 1px 0 0 rgba(255,255,255,.18),
+      inset 0 -1px 0 0 rgba(0,0,0,.35),
+      0 24px 60px -12px rgba(0,0,0,.7),
+      0 4px 14px -2px rgba(0,0,0,.4);
   }
   body { padding-bottom: calc(var(--tabbar-h) + var(--safe-bot) + 20px); }
 }
@@ -1027,7 +1069,7 @@ input[type="range"]::-webkit-slider-thumb {
   /* General desktop polish */
   .app-shell { max-width: 1180px; padding: 0 24px; }
 
-  .large-header { padding: 28px 8px 18px; background: var(--bg); backdrop-filter: none; -webkit-backdrop-filter: none; border-bottom: 1px solid var(--border); }
+  .large-header { padding: 28px 8px 18px; }
   .large-title { font-size: 2.4rem; }
   .page-content { padding: 22px 8px calc(var(--safe-bot) + 40px); gap: 18px; }
 
