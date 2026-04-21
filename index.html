@@ -2744,7 +2744,7 @@ async function takeFullScreenshot() {
   // 0) If we're capturing the Today view and merge-mode is off,
   //    turn it on so the screenshot always shows the consolidated
   //    (merged) servings layout. Restore after capture in `finally`.
-  const wasMergeOff = (activeView.id === 'viewToday') && !mergeServings;
+  const wasMergeOff = (activeView.id === 'viewMain') && !mergeServings;
   if (wasMergeOff) {
     toggleMergeServings();
     // renderDashboard inside the toggle is synchronous for already-
@@ -2791,6 +2791,60 @@ async function takeFullScreenshot() {
   // Remove header action buttons from the clone — they have accent
   // glows (box-shadow) that render as odd orange blobs in capture.
   clone.querySelectorAll('.header-actions, .date-picker-btn').forEach(el => el.remove());
+
+  // Fix the adherence ring for html2canvas capture.
+  // Replace each .ring-fg <circle> with a <path> that starts at
+  // 12 o'clock and sweeps clockwise, with stroke-dasharray sized
+  // to the current progress fraction. No rotation needed at all —
+  // html2canvas can't mis-render what isn't there.
+  clone.querySelectorAll('.hero-ring').forEach(svg => {
+    const liveFg = document.getElementById('heroRingFg'); // still on live DOM
+    const bg = svg.querySelector('.ring-bg');
+    const fg = svg.querySelector('.ring-fg');
+    if (!fg) return;
+    const r = parseFloat(fg.getAttribute('r')) || 52;
+    const cx = parseFloat(fg.getAttribute('cx')) || 60;
+    const cy = parseFloat(fg.getAttribute('cy')) || 60;
+    const circ = 2 * Math.PI * r;
+
+    // Read progress from the live element's computed style (clone may
+    // have lost the inline style during cloneNode in some setups).
+    const srcForProgress = liveFg || fg;
+    const cs = getComputedStyle(srcForProgress);
+    const liveOffset = parseFloat(cs.strokeDashoffset) || 0;
+    const progress = Math.max(0, Math.min(1, 1 - (liveOffset / circ)));
+    const strokeColor = cs.stroke || 'currentColor';
+
+    // Path that starts at (cx, cy-r) = 12 o'clock, sweeps clockwise full loop.
+    const d = `M ${cx} ${cy - r} A ${r} ${r} 0 0 1 ${cx} ${cy + r} A ${r} ${r} 0 0 1 ${cx} ${cy - r}`;
+
+    // Replace bg
+    if (bg) {
+      const bgPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      bgPath.setAttribute('d', d);
+      bgPath.setAttribute('fill', 'none');
+      bgPath.setAttribute('stroke', 'rgba(255,255,255,.06)');
+      bgPath.setAttribute('stroke-width', '10');
+      bg.replaceWith(bgPath);
+    }
+
+    // Replace fg with a progress arc
+    const fgPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    fgPath.setAttribute('d', d);
+    fgPath.setAttribute('fill', 'none');
+    fgPath.setAttribute('stroke', strokeColor);
+    fgPath.setAttribute('stroke-width', '10');
+    fgPath.setAttribute('stroke-linecap', 'round');
+    fgPath.setAttribute('stroke-dasharray', `${circ * progress} ${circ}`);
+    fgPath.setAttribute('stroke-dashoffset', '0');
+    fg.replaceWith(fgPath);
+
+    // The path starts at 12 o'clock and sweeps clockwise, but html2canvas
+    // seems to render the SVG with a y-axis flip, so the gap appears at
+    // 6 o'clock instead of its intended position. A 180° rotation on the
+    // SVG root brings it back in line without any y-axis weirdness.
+    svg.style.transform = 'rotate(180deg)';
+  });
 
   // Replace the date strip with a big, readable date headline for the
   // currently-active date. Much cleaner in a screenshot than a row
@@ -2890,10 +2944,9 @@ async function takeFullScreenshot() {
       filter: none !important;
     }
     #__screenshotStage .hero-ring {
-      /* The live rule uses transform: rotate(-90deg) so the ring
-         starts at 12 o'clock. Our override blanket-resets transforms;
-         restore it here. */
-      transform: rotate(-90deg) !important;
+      /* Inline-set rotation above needs to win over the blanket
+         'transform: none !important' from '#__screenshotStage *'. */
+      transform: rotate(180deg) !important;
     }
     /* Preserve collapsed recipe state */
     #__screenshotStage .recipe-ingredients {
