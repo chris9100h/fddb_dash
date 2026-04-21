@@ -225,6 +225,9 @@ body {
   font-family: 'Bebas Neue', sans-serif;
   font-size: 2.2rem; line-height: 1; color: var(--accent);
   letter-spacing: .02em;
+  /* Compensate for letter-spacing adding trailing space on '%'
+     which would push text visually left-of-center. */
+  padding-left: .02em;
 }
 .hero-ring-lbl { font-size: .58rem; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
 
