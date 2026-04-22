@@ -1094,9 +1094,9 @@ input[type="range"]::-webkit-slider-thumb {
   #viewStats .page-content { max-width: 980px; margin: 0 auto; width: 100%; }
   #viewStats .stats-summary-grid { grid-template-columns: repeat(4, 1fr); }
 
-  /* Recipes + More: centered column on desktop */
+  /* Recipes + Settings: centered column on desktop */
   #viewRecipes .page-content,
-  #viewMore .page-content { max-width: 760px; margin: 0 auto; width: 100%; }
+  #viewSettings .page-content { max-width: 760px; margin: 0 auto; width: 100%; }
 
   /* Hero card breathes more */
   .hero-card { padding: 22px; }
@@ -1128,6 +1128,82 @@ body[data-density="2"] .eaten-card { padding: 11px 12px; }
 /* Hero bars variant */
 body[data-hero="bars"] .hero-ring-wrap { display: none; }
 body[data-hero="bars"] .hero-card-inner { grid-template-columns: 1fr; }
+
+/* ════════════════════════════════════════════════════════
+   SETTINGS
+   ════════════════════════════════════════════════════════ */
+.settings-section { display: flex; flex-direction: column; gap: 10px; }
+.settings-section-title {
+  font-size: .68rem; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--muted); font-weight: 600;
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 0 4px;
+}
+.settings-section-title i { color: var(--accent); font-size: .72rem; }
+
+.settings-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.settings-row:last-child { border-bottom: none; }
+.settings-row-text { flex: 1; min-width: 0; }
+.settings-row-label { font-weight: 600; font-size: .92rem; color: var(--text); }
+.settings-row-sub { font-size: .76rem; color: var(--text-dim); margin-top: 2px; }
+.settings-row-control {
+  display: inline-flex; align-items: center; gap: 4px;
+  flex-shrink: 0;
+}
+.settings-num,
+.settings-time {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 10px; color: var(--text); font-family: inherit;
+  font-size: .95rem; padding: 8px 10px; outline: none;
+  text-align: right; color-scheme: dark;
+  transition: border-color .15s;
+  -moz-appearance: textfield;
+}
+.settings-num::-webkit-outer-spin-button,
+.settings-num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.settings-num { width: 68px; }
+.settings-time { width: 110px; }
+.settings-num:focus, .settings-time:focus { border-color: var(--accent); }
+.settings-suffix { font-size: .88rem; color: var(--text-dim); font-weight: 500; }
+
+/* Toggle switch (iOS style) */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 46px; height: 28px;
+  flex-shrink: 0;
+}
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.toggle-slider {
+  position: absolute; cursor: pointer;
+  inset: 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  transition: background .2s, border-color .2s;
+}
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  width: 22px; height: 22px;
+  left: 2px; top: 50%; transform: translateY(-50%);
+  background: var(--text-dim);
+  border-radius: 50%;
+  transition: transform .2s, background .2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,.4);
+}
+.toggle-switch input:checked + .toggle-slider {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.toggle-switch input:checked + .toggle-slider::before {
+  transform: translate(18px, -50%);
+  background: #fff;
+}
 
 </style>
 </head>
@@ -1183,9 +1259,6 @@ body[data-hero="bars"] .hero-card-inner { grid-template-columns: 1fr; }
               <i class="fas fa-bed"></i><span>Rest</span>
             </button>
           </div>
-          <button class="icon-ghost" onclick="openTargetsModal()" title="Edit Goals">
-            <i class="fas fa-sliders"></i>
-          </button>
         </div>
         <div class="hero-card-inner">
           <div class="hero-ring-wrap">
@@ -1298,60 +1371,79 @@ body[data-hero="bars"] .hero-card-inner { grid-template-columns: 1fr; }
     </div>
   </section>
 
-  <!-- ═══════════════════════════ MORE ═══════════════════════════ -->
-  <section class="view" id="viewMore" data-screen-label="More">
+  <!-- ═══════════════════════════ SETTINGS ═══════════════════════════ -->
+  <section class="view" id="viewSettings" data-screen-label="Settings">
     <header class="large-header">
       <div class="large-header-row">
         <div>
-          <div class="eyebrow">Settings</div>
-          <h1 class="large-title">More</h1>
+          <div class="eyebrow">Configuration</div>
+          <h1 class="large-title">Settings</h1>
         </div>
       </div>
     </header>
     <div class="page-content">
-      <div class="list-group">
-        <button class="list-row" onclick="openTargetsModal()">
-          <div class="list-icon bg-orange"><i class="fas fa-bullseye"></i></div>
-          <div class="list-text">
-            <div class="list-label">Coach Goals</div>
-            <div class="list-sub">Training & Rest macros</div>
+
+      <!-- ── Adherence ── -->
+      <div class="settings-section">
+        <div class="settings-section-title"><i class="fas fa-bullseye"></i> Adherence</div>
+        <div class="list-group">
+          <div class="settings-row">
+            <div class="settings-row-text">
+              <div class="settings-row-label">Daily goal</div>
+              <div class="settings-row-sub">Minimum adherence % that counts a day</div>
+            </div>
+            <div class="settings-row-control">
+              <input type="number" id="setAdherenceGoal" class="settings-num" min="50" max="100" step="1">
+              <span class="settings-suffix">%</span>
+            </div>
           </div>
-          <i class="fas fa-chevron-right list-chev"></i>
-        </button>
-        <button class="list-row" onclick="openCreator()">
-          <div class="list-icon bg-blue"><i class="fas fa-book-open"></i></div>
-          <div class="list-text">
-            <div class="list-label">Create Recipe</div>
-            <div class="list-sub">Group today's items</div>
+          <div class="settings-row">
+            <div class="settings-row-text">
+              <div class="settings-row-label">Day cutoff</div>
+              <div class="settings-row-sub">Time the day is auto-finalized</div>
+            </div>
+            <div class="settings-row-control">
+              <input type="time" id="setAdherenceCutoff" class="settings-time">
+            </div>
           </div>
-          <i class="fas fa-chevron-right list-chev"></i>
-        </button>
-        <button class="list-row" onclick="openAddUnit()">
-          <div class="list-icon bg-green"><i class="fas fa-ruler"></i></div>
-          <div class="list-text">
-            <div class="list-label">Units</div>
-            <div class="list-sub">Add strip keyword</div>
-          </div>
-          <i class="fas fa-chevron-right list-chev"></i>
-        </button>
-        <button class="list-row" onclick="takeFullScreenshot()">
-          <div class="list-icon bg-blue"><i class="fas fa-camera"></i></div>
-          <div class="list-text">
-            <div class="list-label">Screenshot</div>
-            <div class="list-sub">Capture full page as PNG</div>
-          </div>
-          <i class="fas fa-chevron-right list-chev"></i>
-        </button>
-        <button class="list-row" onclick="triggerScraper()">
-          <div class="list-icon bg-orange"><i class="fas fa-cloud-arrow-down"></i></div>
-          <div class="list-text">
-            <div class="list-label">Sync with fddb.info</div>
-            <div class="list-sub">Trigger GitHub Action</div>
-          </div>
-          <i class="fas fa-chevron-right list-chev"></i>
-        </button>
+        </div>
       </div>
-      <div class="version-footer">FDDB · Check · v2.0</div>
+
+      <!-- ── Coach Targets ── -->
+      <div class="settings-section">
+        <div class="settings-section-title"><i class="fas fa-dumbbell"></i> Coach Targets</div>
+        <div class="list-group">
+          <button class="list-row" onclick="openTargetsModal()">
+            <div class="list-icon bg-orange"><i class="fas fa-sliders"></i></div>
+            <div class="list-text">
+              <div class="list-label">Training & Rest goals</div>
+              <div class="list-sub">Macro targets per day type</div>
+            </div>
+            <i class="fas fa-chevron-right list-chev"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- ── Haptics ── -->
+      <div class="settings-section">
+        <div class="settings-section-title"><i class="fas fa-wave-square"></i> Haptics</div>
+        <div class="list-group">
+          <div class="settings-row">
+            <div class="settings-row-text">
+              <div class="settings-row-label">Vibration feedback</div>
+              <div class="settings-row-sub">On check, goal reached, streak & errors</div>
+            </div>
+            <div class="settings-row-control">
+              <label class="toggle-switch">
+                <input type="checkbox" id="setHaptics">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="version-footer">FDDB · Check · v2.1</div>
     </div>
   </section>
 
@@ -1371,8 +1463,8 @@ body[data-hero="bars"] .hero-card-inner { grid-template-columns: 1fr; }
   <button class="tab" data-view="viewRecipes" onclick="showView('viewRecipes')">
     <i class="fas fa-book"></i><span>Recipes</span>
   </button>
-  <button class="tab" data-view="viewMore" onclick="showView('viewMore')">
-    <i class="fas fa-ellipsis"></i><span>More</span>
+  <button class="tab" data-view="viewSettings" onclick="showView('viewSettings')">
+    <i class="fas fa-gear"></i><span>Settings</span>
   </button>
 </nav>
 
@@ -1395,7 +1487,7 @@ body[data-hero="bars"] .hero-card-inner { grid-template-columns: 1fr; }
       <button class="action-tile" onclick="closeActionChooser(); openCreator()">
         <div class="action-tile-icon bg-orange"><i class="fas fa-book-open"></i></div>
         <div class="action-tile-text">
-          <div class="action-tile-label">New Recipe</div>
+          <div class="action-tile-label">Create Recipe</div>
           <div class="action-tile-sub">Group today's items</div>
         </div>
         <i class="fas fa-chevron-right"></i>
@@ -1416,11 +1508,11 @@ body[data-hero="bars"] .hero-card-inner { grid-template-columns: 1fr; }
         </div>
         <i class="fas fa-chevron-right"></i>
       </button>
-      <button class="action-tile" onclick="closeActionChooser(); openTargetsModal()">
-        <div class="action-tile-icon bg-blue"><i class="fas fa-bullseye"></i></div>
+      <button class="action-tile" onclick="closeActionChooser(); triggerScraper()">
+        <div class="action-tile-icon bg-orange"><i class="fas fa-cloud-arrow-down"></i></div>
         <div class="action-tile-text">
-          <div class="action-tile-label">Edit Goals</div>
-          <div class="action-tile-sub">Macros per day type</div>
+          <div class="action-tile-label">Sync with FDDB</div>
+          <div class="action-tile-sub">Trigger GitHub Action</div>
         </div>
         <i class="fas fa-chevron-right"></i>
       </button>
@@ -1590,6 +1682,140 @@ document.getElementById('dateInput').value = todayStr;
 currentDate = todayStr;
 renderDateStrip(todayStr);
 document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('open'));
+
+/* ══════════════════════════════════════
+   SETTINGS (Supabase-backed, localStorage cache)
+   ══════════════════════════════════════ */
+const SETTINGS_CACHE_KEY = 'fddb.settings.cache.v1';
+const SETTINGS_DEFAULTS = {
+  adherenceGoal: 80,        // % — threshold for a day to count
+  adherenceCutoff: '22:00', // HH:MM — auto-finalize time
+  haptics: true,            // vibration feedback on/off
+};
+let settings = { ...SETTINGS_DEFAULTS };
+
+// Hydrate from cache immediately so UI doesn't flash defaults.
+try {
+  const raw = localStorage.getItem(SETTINGS_CACHE_KEY);
+  if (raw) settings = { ...SETTINGS_DEFAULTS, ...JSON.parse(raw) };
+} catch (e) { /* ignore */ }
+
+function cacheSettings() {
+  try { localStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify(settings)); } catch (e) {}
+}
+
+// Map camelCase setting key ⇆ Supabase row key.
+// Using snake_case in DB matches the convention of other fddb_ tables.
+const SETTING_DB_KEYS = {
+  adherenceGoal:    'adherence_goal',
+  adherenceCutoff:  'adherence_cutoff',
+  haptics:          'haptics',
+};
+
+async function writeSettingToDb(key, value) {
+  const dbKey = SETTING_DB_KEYS[key];
+  if (!dbKey) return;
+  try {
+    await db.from('fddb_settings').upsert(
+      { key: dbKey, value: JSON.stringify(value) },
+      { onConflict: 'key' }
+    );
+  } catch (e) { /* silent — cache still holds value */ }
+}
+
+async function loadSettingsFromDb() {
+  try {
+    const { data, error } = await db.from('fddb_settings').select('key, value');
+    if (error || !data) return;
+    const map = {};
+    for (const row of data) {
+      let v = row.value;
+      // value is stored as JSON — may arrive as object or JSON string.
+      if (typeof v === 'string') { try { v = JSON.parse(v); } catch {} }
+      map[row.key] = v;
+    }
+    let changed = false;
+    for (const [camelKey, dbKey] of Object.entries(SETTING_DB_KEYS)) {
+      if (map[dbKey] !== undefined && map[dbKey] !== settings[camelKey]) {
+        settings[camelKey] = map[dbKey];
+        changed = true;
+      }
+    }
+    if (changed) {
+      cacheSettings();
+      applySettingsToUI();
+    }
+  } catch (e) { /* offline — keep cached values */ }
+}
+
+function applySettingsToUI() {
+  const goalEl = document.getElementById('setAdherenceGoal');
+  const cutoffEl = document.getElementById('setAdherenceCutoff');
+  const hapticsEl = document.getElementById('setHaptics');
+  if (!goalEl) return;
+  goalEl.value = settings.adherenceGoal;
+  cutoffEl.value = settings.adherenceCutoff;
+  hapticsEl.checked = !!settings.haptics;
+}
+
+function initSettingsUI() {
+  const goalEl = document.getElementById('setAdherenceGoal');
+  const cutoffEl = document.getElementById('setAdherenceCutoff');
+  const hapticsEl = document.getElementById('setHaptics');
+  if (!goalEl) return;
+
+  applySettingsToUI();
+
+  goalEl.addEventListener('change', () => {
+    let v = parseInt(goalEl.value, 10);
+    if (!Number.isFinite(v)) v = SETTINGS_DEFAULTS.adherenceGoal;
+    v = Math.max(50, Math.min(100, v));
+    goalEl.value = v;
+    settings.adherenceGoal = v;
+    cacheSettings();
+    writeSettingToDb('adherenceGoal', v);
+  });
+  cutoffEl.addEventListener('change', () => {
+    const v = cutoffEl.value || SETTINGS_DEFAULTS.adherenceCutoff;
+    settings.adherenceCutoff = v;
+    cacheSettings();
+    writeSettingToDb('adherenceCutoff', v);
+  });
+  hapticsEl.addEventListener('change', () => {
+    settings.haptics = hapticsEl.checked;
+    cacheSettings();
+    writeSettingToDb('haptics', settings.haptics);
+    if (settings.haptics) haptic('check');
+  });
+
+  // Background refresh from server — overrides cache if newer values exist.
+  loadSettingsFromDb();
+}
+
+/* ══════════════════════════════════════
+   HAPTICS
+   Central helper — all vibration goes
+   through haptic(type). Respects user
+   setting + browser support.
+   ══════════════════════════════════════ */
+const HAPTIC_PATTERNS = {
+  check:        10,
+  uncheck:      5,
+  goalReached:  [20, 50, 20, 50, 80],
+  streakUp:     [10, 40, 10, 40, 10, 40, 100],
+  error:        [100, 50, 100],
+};
+function haptic(type) {
+  if (!settings.haptics) return;
+  const pattern = HAPTIC_PATTERNS[type];
+  if (pattern == null) return;
+  try {
+    if (navigator.vibrate) navigator.vibrate(pattern);
+  } catch (e) { /* ignore */ }
+}
+
+// Initialise settings UI on next tick (after DOM is settled).
+setTimeout(initSettingsUI, 0);
 
 /* ── Date Strip ── */
 // Window-offset: 0 means today is the rightmost pill, 4 means 4 days back, etc.
@@ -2071,6 +2297,7 @@ function renderDashboard(entries) {
 const pendingWrites = {};
 function persistChecked(itemKey, checked) {
   currentCheckedMap[itemKey] = checked;
+  haptic(checked ? 'check' : 'uncheck');
   clearTimeout(pendingWrites[itemKey]);
   pendingWrites[itemKey] = setTimeout(async () => {
     await db.from('fddb_checklist_status').upsert({ date: currentDate, item_key: itemKey, checked }, { onConflict: 'date,item_key' });
@@ -2733,6 +2960,7 @@ function showToast(msg, type='') {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.className = 'toast' + (type ? ' '+type : '');
+  if (type === 'error') haptic('error');
   clearTimeout(toastTimer);
   requestAnimationFrame(() => { t.classList.add('show'); });
   toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
