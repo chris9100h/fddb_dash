@@ -2132,11 +2132,14 @@ function renderDateStrip(selected) {
         longFired = true;
         openDateMenu(iso, t.clientX, t.clientY);
       }, 450);
-    }, { passive: true });
+    }, { passive: false });
     const cancelPress = () => clearTimeout(pressTimer);
     pill.addEventListener('touchend', (e) => {
       cancelPress();
-      if (longFired) { e.preventDefault(); } // swallow click after long-press
+      if (longFired) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
     });
     pill.addEventListener('touchmove', cancelPress);
     pill.addEventListener('touchcancel', cancelPress);
@@ -3257,6 +3260,7 @@ let _dateMenuEl = null;
 function closeDateMenu() {
   if (_dateMenuEl) { _dateMenuEl.remove(); _dateMenuEl = null; }
   document.removeEventListener('click', _dateMenuOutside, true);
+  document.removeEventListener('touchstart', _dateMenuOutside, true);
   document.removeEventListener('keydown', _dateMenuKey, true);
 }
 function _dateMenuOutside(e) {
@@ -3372,10 +3376,18 @@ async function openDateMenu(date, x, y) {
   menu.style.left = left + 'px';
   menu.style.top = top + 'px';
   _dateMenuEl = menu;
+  // Ignore any synthesized click from the same tap that triggered the menu.
+  const swallow = (e) => {
+    if (_dateMenuEl && _dateMenuEl.contains(e.target)) return;
+    e.preventDefault();
+    e.stopPropagation();
+  };
+  window.addEventListener('click', swallow, { capture: true, once: true });
   setTimeout(() => {
     document.addEventListener('click', _dateMenuOutside, true);
+    document.addEventListener('touchstart', _dateMenuOutside, true);
     document.addEventListener('keydown', _dateMenuKey, true);
-  }, 0);
+  }, 350);
 }
 
 async function loadStats() {
