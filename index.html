@@ -186,7 +186,15 @@ body {
 .dp-mo  { font-size: .55rem; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
 
 /* Status icons on date-pill */
-.date-pill { position: relative; }
+.date-pill {
+  position: relative;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
 .dp-status {
   position: absolute;
   top: -6px; right: -6px;
