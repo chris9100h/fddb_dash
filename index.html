@@ -185,6 +185,74 @@ body {
 .dp-num { font-size: 1.1rem; font-weight: 700; line-height: 1; letter-spacing: -.02em; color: var(--accent); }
 .dp-mo  { font-size: .55rem; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
 
+/* Status icons on date-pill */
+.date-pill { position: relative; }
+.dp-status {
+  position: absolute;
+  top: -6px; right: -6px;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 2px solid var(--bg);
+  display: grid; place-items: center;
+  font-size: .66rem;
+  box-shadow: 0 2px 6px rgba(0,0,0,.35);
+  line-height: 1;
+}
+.date-pill.active .dp-status { border-color: var(--accent); }
+.dp-status.counted { background: #22c55e; color: #fff; }
+.dp-status.failed  { background: #6b7280; color: #fff; }
+.dp-status.freeze  { background: #7dd3fc; color: #0c4a6e; }
+.dp-status.sick    { background: #fb923c; color: #431407; }
+
+/* Context menu for date-pill */
+.date-menu {
+  position: fixed;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 6px;
+  min-width: 240px;
+  box-shadow: 0 16px 40px -8px rgba(0,0,0,.6), 0 4px 12px rgba(0,0,0,.35);
+  z-index: 9999;
+  display: flex; flex-direction: column; gap: 2px;
+  animation: dmFade .12s ease-out;
+}
+@keyframes dmFade {
+  from { opacity: 0; transform: translateY(-4px) scale(.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.date-menu-header {
+  padding: 8px 10px 8px;
+  font-size: .68rem; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--muted); font-weight: 600;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+.date-menu-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px;
+  background: transparent; border: none; border-radius: 10px;
+  color: var(--text); font-size: .9rem; font-family: inherit;
+  text-align: left; cursor: pointer;
+  transition: background .12s;
+}
+.date-menu-item:hover:not(:disabled) { background: var(--card); }
+.date-menu-item:disabled { opacity: .4; cursor: not-allowed; }
+.date-menu-item .dmi-icon {
+  width: 24px; height: 24px; border-radius: 7px;
+  display: grid; place-items: center;
+  font-size: .78rem; flex-shrink: 0;
+}
+.dmi-icon.counted { background: rgba(34,197,94,.18); color: #4ade80; }
+.dmi-icon.failed  { background: rgba(107,114,128,.2); color: #d1d5db; }
+.dmi-icon.freeze  { background: rgba(125,211,252,.18); color: #7dd3fc; }
+.dmi-icon.sick    { background: rgba(251,146,60,.18); color: #fb923c; }
+.dmi-icon.reset   { background: rgba(248,113,113,.15); color: #f87171; }
+.dmi-label { flex: 1; }
+.dmi-hint { font-size: .72rem; color: var(--text-dim); }
+.date-menu-divider { height: 1px; background: var(--border); margin: 4px 0; }
+
 .date-picker-btn {
   width: 44px; height: 44px; border-radius: 14px;
   background: var(--surface); border: 1px solid var(--border);
@@ -222,14 +290,44 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 18px;
-  position: relative; overflow: hidden;
-}
+  position: relative; overflow: hidden;}
 .hero-card::before {
   content: ''; position: absolute; top: -40px; right: -40px;
   width: 160px; height: 160px;
   background: radial-gradient(circle, var(--accent-soft) 0%, transparent 70%);
   pointer-events: none;
 }
+
+/* Sick mode overlay */
+.sick-overlay {
+  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: linear-gradient(145deg, rgba(237, 137, 54, 0.18) 0%, rgba(237, 137, 54, 0.08) 100%);
+  color: #ffb070;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  border-radius: var(--radius-lg);
+  pointer-events: none;
+  text-shadow: 0 1px 3px rgba(0,0,0,.4);
+}
+.sick-overlay i { font-size: 1.35rem; }
+.hero-card.sick-mode .sick-overlay { display: flex; }
+.hero-card.sick-mode .hero-card-inner,
+.hero-card.sick-mode .hero-top-bar,
+.hero-card.sick-mode > :not(.sick-overlay) {
+  opacity: .35;
+  filter: grayscale(.4);
+  transition: opacity .2s, filter .2s;
+}
+
 .hero-card-inner {
   display: grid; grid-template-columns: auto 1fr; gap: 18px;
   align-items: center; position: relative;
@@ -1130,6 +1228,45 @@ body[data-hero="bars"] .hero-ring-wrap { display: none; }
 body[data-hero="bars"] .hero-card-inner { grid-template-columns: 1fr; }
 
 /* ════════════════════════════════════════════════════════
+   STREAK CARD
+   ════════════════════════════════════════════════════════ */
+.streak-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  display: flex; align-items: center; gap: 20px;
+  flex-wrap: wrap;
+}
+.streak-main { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0; }
+.streak-icon {
+  width: 52px; height: 52px; flex-shrink: 0;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(255,138,64,.18), rgba(255,92,64,.10));
+  border: 1px solid rgba(255,138,64,.35);
+  display: grid; place-items: center;
+  color: var(--accent); font-size: 1.25rem;
+}
+.streak-nums { min-width: 0; }
+.streak-current {
+  font-family: 'Bebas Neue', sans-serif; letter-spacing: .01em;
+  font-size: 2.4rem; line-height: 1; color: var(--text);
+  display: inline-flex; align-items: baseline; gap: 8px;
+}
+.streak-unit { font-size: .85rem; color: var(--text-dim); font-family: 'DM Sans', sans-serif; font-weight: 500; letter-spacing: 0; }
+.streak-label {
+  font-size: .7rem; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--muted); font-weight: 600; margin-top: 2px;
+}
+.streak-meta { display: flex; gap: 22px; }
+.streak-meta-item { text-align: center; }
+.streak-meta-val { font-size: 1.1rem; font-weight: 700; color: var(--text); }
+.streak-meta-lbl {
+  font-size: .62rem; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--muted); font-weight: 600; margin-top: 2px;
+}
+
+/* ════════════════════════════════════════════════════════
    SETTINGS
    ════════════════════════════════════════════════════════ */
 .settings-section { display: flex; flex-direction: column; gap: 10px; }
@@ -1248,7 +1385,11 @@ body[data-hero="bars"] .hero-card-inner { grid-template-columns: 1fr; }
 
     <div class="page-content">
       <!-- Hero Ring Card -->
-      <div class="hero-card">
+      <div class="hero-card" id="heroCard">
+        <div class="sick-overlay" id="sickOverlay">
+          <i class="fas fa-thermometer-half"></i>
+          <span>Sick mode active</span>
+        </div>
         <div class="hero-top-bar">
           <div class="hero-title"><i class="fas fa-bullseye"></i>Planned / Target</div>
           <div class="day-type-seg">
@@ -1351,6 +1492,27 @@ body[data-hero="bars"] .hero-card-inner { grid-template-columns: 1fr; }
       </div>
 
       <div id="statsContent" style="display:none;flex-direction:column;gap:14px">
+        <!-- ── Streak Card ── -->
+        <div class="streak-card" id="streakCard">
+          <div class="streak-main">
+            <div class="streak-icon"><i class="fas fa-fire"></i></div>
+            <div class="streak-nums">
+              <div class="streak-current"><span id="streakCurrent">0</span><span class="streak-unit">days</span></div>
+              <div class="streak-label">Current streak</div>
+            </div>
+          </div>
+          <div class="streak-meta">
+            <div class="streak-meta-item">
+              <div class="streak-meta-val" id="streakRecord">0</div>
+              <div class="streak-meta-lbl">Record</div>
+            </div>
+            <div class="streak-meta-item">
+              <div class="streak-meta-val" id="streakCountedDays">0</div>
+              <div class="streak-meta-lbl">Total counted</div>
+            </div>
+          </div>
+        </div>
+
         <div class="stats-summary-grid" id="statsSummary"></div>
 
         <div class="chart-card">
@@ -1424,6 +1586,25 @@ body[data-hero="bars"] .hero-card-inner { grid-template-columns: 1fr; }
         </div>
       </div>
 
+      <!-- ── Sick Mode ── -->
+      <div class="settings-section">
+        <div class="settings-section-title"><i class="fas fa-thermometer-half"></i> Sick Mode</div>
+        <div class="list-group">
+          <div class="settings-row">
+            <div class="settings-row-text">
+              <div class="settings-row-label">Sick mode active</div>
+              <div class="settings-row-sub" id="sickModeSub">Off</div>
+            </div>
+            <div class="settings-row-control">
+              <label class="toggle-switch">
+                <input type="checkbox" id="setSickMode">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- ── Haptics ── -->
       <div class="settings-section">
         <div class="settings-section-title"><i class="fas fa-wave-square"></i> Haptics</div>
@@ -1443,7 +1624,7 @@ body[data-hero="bars"] .hero-card-inner { grid-template-columns: 1fr; }
         </div>
       </div>
 
-      <div class="version-footer">FDDB · Check · v2.1</div>
+      <div class="version-footer">FDDB · Check · v2.2</div>
     </div>
   </section>
 
@@ -1677,10 +1858,17 @@ let mergeServings = false;
 let waterData = { drunk: null, goal: null };
 
 // ── Init ──
+// Hoisted cache for finalized-day rows (used by renderDateStrip on first paint).
+// Use var so it's hoisted and safe to reference from function bodies before init.
+var finalizedMap = new Map();
 const todayStr = new Date().toISOString().split('T')[0];
 document.getElementById('dateInput').value = todayStr;
 currentDate = todayStr;
 renderDateStrip(todayStr);
+// Load finalized status map so date-pill icons can render.
+if (typeof loadFinalizedMap === 'function') {
+  loadFinalizedMap().then(() => renderDateStrip(currentDate));
+}
 document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('open'));
 
 /* ══════════════════════════════════════
@@ -1691,6 +1879,8 @@ const SETTINGS_DEFAULTS = {
   adherenceGoal: 80,        // % — threshold for a day to count
   adherenceCutoff: '22:00', // HH:MM — auto-finalize time
   haptics: true,            // vibration feedback on/off
+  sickModeActive: false,    // when true, every day (incl. today) is auto-marked 'sick'
+  sickSince: null,          // YYYY-MM-DD — date sick mode started
 };
 let settings = { ...SETTINGS_DEFAULTS };
 
@@ -1710,6 +1900,8 @@ const SETTING_DB_KEYS = {
   adherenceGoal:    'adherence_goal',
   adherenceCutoff:  'adherence_cutoff',
   haptics:          'haptics',
+  sickModeActive:   'sick_mode_active',
+  sickSince:        'sick_since',
 };
 
 async function writeSettingToDb(key, value) {
@@ -1752,10 +1944,31 @@ function applySettingsToUI() {
   const goalEl = document.getElementById('setAdherenceGoal');
   const cutoffEl = document.getElementById('setAdherenceCutoff');
   const hapticsEl = document.getElementById('setHaptics');
+  const sickEl = document.getElementById('setSickMode');
+  const sickSubEl = document.getElementById('sickModeSub');
   if (!goalEl) return;
   goalEl.value = settings.adherenceGoal;
   cutoffEl.value = settings.adherenceCutoff;
   hapticsEl.checked = !!settings.haptics;
+  if (sickEl) sickEl.checked = !!settings.sickModeActive;
+  if (sickSubEl) {
+    sickSubEl.textContent = settings.sickModeActive
+      ? `Active since ${settings.sickSince || '—'} · all days marked sick`
+      : 'Off';
+  }
+  applySickModeOverlay();
+}
+
+// Show the sick overlay on the hero card iff the *currently viewed day*
+// is marked as sick in finalizedMap. Unrelated to the global sickModeActive
+// toggle — a day can be sick without the toggle being on (manual override),
+// and the toggle being on doesn't paint past/future non-sick days.
+function applySickModeOverlay() {
+  const heroCard = document.querySelector('.hero-card');
+  if (!heroCard) return;
+  const row = finalizedMap.get(currentDate);
+  const isSick = row && row.status === 'sick';
+  heroCard.classList.toggle('sick-mode', !!isSick);
 }
 
 function initSettingsUI() {
@@ -1788,8 +2001,41 @@ function initSettingsUI() {
     if (settings.haptics) haptic('check');
   });
 
+  const sickEl = document.getElementById('setSickMode');
+  if (sickEl) {
+    sickEl.addEventListener('change', async () => {
+      const on = sickEl.checked;
+      settings.sickModeActive = on;
+      settings.sickSince = on ? todayISO() : null;
+      cacheSettings();
+      applySettingsToUI(); // refresh sub-label
+      await writeSettingToDb('sickModeActive', on);
+      await writeSettingToDb('sickSince', settings.sickSince);
+      const today = todayISO();
+      if (on) {
+        // Force-apply sick to today
+        await writeFinalizedDay(today, null, settings.adherenceGoal, 'sick');
+      } else {
+        // Turning off: remove today's sick entry so it can re-auto-finalize normally
+        const row = finalizedMap.get(today);
+        if (row && row.status === 'sick') {
+          await deleteFinalizedDay(today);
+        }
+      }
+      if (typeof renderDateStrip === 'function') renderDateStrip(currentDate || today);
+      if (typeof renderStreak === 'function') renderStreak();
+      applySickModeOverlay();
+      showToast(on ? 'Sick mode on' : 'Sick mode off');
+    });
+  }
+
   // Background refresh from server — overrides cache if newer values exist.
   loadSettingsFromDb();
+}
+
+function todayISO() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
 /* ══════════════════════════════════════
@@ -1843,18 +2089,49 @@ function renderDateStrip(selected) {
   const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const MO = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const toLocalISO = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const STATUS_ICON = {
+    counted: '<i class="fas fa-check"></i>',
+    failed:  '<i class="fas fa-lock"></i>',
+    freeze:  '<i class="fas fa-snowflake"></i>',
+    sick:    '<i class="fas fa-thermometer-half"></i>',
+  };
   days.forEach(d => {
     const iso = toLocalISO(d);
     const pill = document.createElement('button');
     pill.className = 'date-pill';
     if (iso === todayStr) pill.classList.add('today');
     if (iso === selected) pill.classList.add('active');
-    pill.innerHTML = `<div class="dp-dow">${DOW[d.getDay()]}</div><div class="dp-num">${d.getDate()}</div><div class="dp-mo">${MO[d.getMonth()]}</div>`;
+    const fin = finalizedMap && finalizedMap.get ? finalizedMap.get(iso) : null;
+    const statusHtml = fin && STATUS_ICON[fin.status]
+      ? `<div class="dp-status ${fin.status}">${STATUS_ICON[fin.status]}</div>`
+      : '';
+    pill.innerHTML = `<div class="dp-dow">${DOW[d.getDay()]}</div><div class="dp-num">${d.getDate()}</div><div class="dp-mo">${MO[d.getMonth()]}</div>${statusHtml}`;
     pill.onclick = () => {
       document.getElementById('dateInput').value = iso;
       renderDateStrip(iso);
       loadDay();
     };
+    // Long-press / right-click → context menu.
+    let pressTimer, longFired = false;
+    pill.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      openDateMenu(iso, e.clientX, e.clientY);
+    });
+    pill.addEventListener('touchstart', (e) => {
+      longFired = false;
+      const t = e.touches[0];
+      pressTimer = setTimeout(() => {
+        longFired = true;
+        openDateMenu(iso, t.clientX, t.clientY);
+      }, 450);
+    }, { passive: true });
+    const cancelPress = () => clearTimeout(pressTimer);
+    pill.addEventListener('touchend', (e) => {
+      cancelPress();
+      if (longFired) { e.preventDefault(); } // swallow click after long-press
+    });
+    pill.addEventListener('touchmove', cancelPress);
+    pill.addEventListener('touchcancel', cancelPress);
     strip.appendChild(pill);
   });
 
@@ -2034,6 +2311,243 @@ async function setDayType(type) {
   await db.from('fddb_day_type').upsert({ date: currentDate, type }, { onConflict: 'date' });
 }
 function adherenceScore(pct) { return Math.max(0, 100 - Math.abs(100 - pct)); }
+
+/* ══════════════════════════════════════
+   STREAK — day finalization & streak calc
+   ══════════════════════════════════════ */
+// Compute day adherence from daily totals + target (same formula as hero ring).
+function computeDayAdherence(totals, target) {
+  if (!target || !totals) return null;
+  const parts = [
+    { val: totals.p, goal: target.p },
+    { val: totals.c, goal: target.c },
+    { val: totals.f, goal: target.f },
+  ].filter(m => m.goal > 0);
+  if (!parts.length) return null;
+  return Math.round(
+    parts.reduce((s, m) => s + adherenceScore(Math.round((m.val / m.goal) * 100)), 0) / parts.length
+  );
+}
+
+async function writeFinalizedDay(date, adherence, goalUsed, status) {
+  // NOTE: some older DB schemas have `adherence` as NOT NULL. For freeze/sick
+  // (where adherence is conceptually N/A) we persist 0 as a placeholder and
+  // rely on `status` to distinguish. Readers must check `status` first.
+  const isNonCounted = (status === 'freeze' || status === 'sick');
+  const row = {
+    date,
+    adherence: adherence ?? (isNonCounted ? 0 : null),
+    counted: (status === 'counted' || status === 'freeze' || status === 'sick'),
+    goal_used: goalUsed ?? null,
+    status: status || 'counted',
+  };
+  // Optimistic: update cache BEFORE the DB round-trip so other code paths
+  // (auto-finalize, strip re-render) see the new status immediately and
+  // don't race-overwrite it as 'failed'.
+  const prev = finalizedMap.get(date);
+  finalizedMap.set(date, { ...row });
+  try {
+    const { error } = await db.from('fddb_day_finalized').upsert(row, { onConflict: 'date' });
+    if (error) {
+      // Roll back cache so the UI reflects reality on next render.
+      if (prev) finalizedMap.set(date, prev); else finalizedMap.delete(date);
+      console.error('[writeFinalizedDay] upsert failed:', error.message, row);
+      showToast('Save failed: ' + error.message, 'error');
+    }
+  } catch (e) {
+    if (prev) finalizedMap.set(date, prev); else finalizedMap.delete(date);
+    console.error('[writeFinalizedDay] threw:', e);
+  }
+}
+
+async function deleteFinalizedDay(date) {
+  try {
+    await db.from('fddb_day_finalized').delete().eq('date', date);
+    finalizedMap.delete(date);
+  } catch (e) { /* silent */ }
+}
+
+// In-memory cache of finalized rows keyed by date (declared earlier, hoisted for init).
+async function loadFinalizedMap() {
+  try {
+    const { data } = await db.from('fddb_day_finalized').select('date, counted, adherence, status, goal_used');
+    finalizedMap.clear();
+    (data || []).forEach(r => finalizedMap.set(r.date, r));
+  } catch (e) { /* silent */ }
+}
+
+// Count freeze days used in the ISO week containing `date` (Mon-Sun).
+function freezesThisWeek(date) {
+  const d = new Date(date + 'T00:00:00');
+  const dow = (d.getDay() + 6) % 7; // 0=Mon
+  const mon = new Date(d); mon.setDate(d.getDate() - dow);
+  const iso = dt => `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+  let n = 0;
+  for (let i = 0; i < 7; i++) {
+    const day = new Date(mon); day.setDate(mon.getDate() + i);
+    const k = iso(day);
+    if (k === date) continue; // don't count self
+    const row = finalizedMap.get(k);
+    if (row && row.status === 'freeze') n++;
+  }
+  return n;
+}
+
+// Streak-Logik mit Status:
+//  - counted  → zählt (+1) und unterbricht nicht
+//  - freeze   → unterbricht nicht, zählt aber nicht
+//  - sick     → unterbricht nicht, zählt aber nicht
+//  - failed   → bricht den Streak
+//  - (missing)→ bricht den Streak (kein Eintrag = Tag verfehlt)
+function calcStreaks(finalizedRows) {
+  if (!finalizedRows.length) return { current: 0, record: 0, countedDays: 0 };
+  // Fallback: wenn `status` nicht existiert (Migration nicht gelaufen),
+  // leite ihn aus `counted` ab.
+  const normalizeStatus = (r) => {
+    if (r.status) return r.status;
+    return r.counted ? 'counted' : 'failed';
+  };
+  const byDate = new Map(finalizedRows.map(r => [r.date, { ...r, status: normalizeStatus(r) }]));
+  const sortedDates = [...byDate.keys()].sort();
+  const countedDays = [...byDate.values()].filter(r => r.status === 'counted').length;
+
+  const iso = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const isStreakContinuing = s => s === 'counted' || s === 'freeze' || s === 'sick';
+  const isCounted = s => s === 'counted';
+
+  // Record: walk from earliest to latest day by calendar.
+  let record = 0, run = 0;
+  const first = new Date(sortedDates[0] + 'T00:00:00');
+  const last  = new Date(sortedDates[sortedDates.length - 1] + 'T00:00:00');
+  for (let c = new Date(first); c <= last; c.setDate(c.getDate() + 1)) {
+    const row = byDate.get(iso(c));
+    if (row && isStreakContinuing(row.status)) {
+      if (isCounted(row.status)) run++; // only counted days add to streak length
+      // freeze/sick keep run alive but don't increment
+    } else {
+      record = Math.max(record, run);
+      run = 0;
+    }
+  }
+  record = Math.max(record, run);
+
+  // Current: walk back from today.
+  const today = new Date(); today.setHours(0,0,0,0);
+  let current = 0;
+  let cursor = new Date(today);
+  const todayRow = byDate.get(iso(cursor));
+  // Grace: skip today if no entry yet (day not finalized).
+  if (!todayRow) cursor.setDate(cursor.getDate() - 1);
+  while (true) {
+    const row = byDate.get(iso(cursor));
+    if (!row) break;                             // missing = broken
+    if (!isStreakContinuing(row.status)) break;  // failed = broken
+    if (isCounted(row.status)) current++;
+    // freeze/sick: continue without incrementing
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return { current, record, countedDays };
+}
+
+// Decide if a date should be auto-finalized (past, or past cutoff today).
+function shouldAutoFinalize(date) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const d = new Date(date); d.setHours(0,0,0,0);
+  if (d < today) return true; // any past day
+  if (d > today) return false; // future day
+  // Today — finalize only if now >= cutoff.
+  const [hh, mm] = (settings.adherenceCutoff || '22:00').split(':').map(Number);
+  const cutoff = new Date(); cutoff.setHours(hh||22, mm||0, 0, 0);
+  return new Date() >= cutoff;
+}
+
+async function ensureDayFinalized(date, adherence, force) {
+  // Sick mode: while the global toggle is on, any day on/after sickSince
+  // auto-marks as 'sick'. The toggle persists until the user turns it off —
+  // you're usually sick for more than a day. Days *before* sickSince keep
+  // their original status. Toggle-off deletes today's sick entry so the day
+  // can re-auto-finalize from macros.
+  if (settings.sickModeActive && settings.sickSince && date >= settings.sickSince) {
+    const existing = finalizedMap.get(date);
+    if (!existing || existing.status !== 'sick') {
+      await writeFinalizedDay(date, null, settings.adherenceGoal, 'sick');
+      renderDateStrip(currentDate);
+    }
+    return;
+  }
+  if (adherence == null && !force) return;
+  if (!force && !shouldAutoFinalize(date)) return;
+  if (!force && finalizedMap.has(date)) return;
+  const { data } = await db.from('fddb_day_finalized').select('date').eq('date', date).limit(1);
+  if (data && data.length && !force) {
+    const { data: full } = await db.from('fddb_day_finalized').select('*').eq('date', date).maybeSingle();
+    if (full) finalizedMap.set(date, full);
+    renderDateStrip(currentDate);
+    return;
+  }
+  if (adherence == null) return;
+  const status = adherence >= settings.adherenceGoal ? 'counted' : 'failed';
+  await writeFinalizedDay(date, adherence, settings.adherenceGoal, status);
+  renderDateStrip(currentDate);
+}
+
+async function manualFinalizeDay(date, adherence) {
+  if (adherence == null) { showToast('No data for this day', 'error'); return; }
+  const goalUsed = settings.adherenceGoal;
+  const status = adherence >= goalUsed ? 'counted' : 'failed';
+  await writeFinalizedDay(date, adherence, goalUsed, status);
+  if (status === 'counted') haptic('streakUp');
+  showToast(`Day finalized — ${adherence}% ${status === 'counted' ? 'counted ✓' : 'below goal'}`);
+  renderDateStrip(document.getElementById('dateInput').value || todayStr);
+  renderStreak();
+}
+
+async function setDayStatus(date, status) {
+  // status: 'freeze' | 'sick' | null (reset)
+  if (status === null) {
+    await deleteFinalizedDay(date);
+    showToast('Day status reset');
+  } else if (status === 'freeze') {
+    if (freezesThisWeek(date) >= 2) {
+      showToast('Freeze limit reached (2 per week)', 'error');
+      return;
+    }
+    await writeFinalizedDay(date, null, settings.adherenceGoal, 'freeze');
+    showToast('Day frozen ❄');
+  } else if (status === 'sick') {
+    // Sick cannot be set retroactively.
+    if (date !== todayStr) {
+      showToast('Sick day can only be set for today', 'error');
+      return;
+    }
+    await writeFinalizedDay(date, null, settings.adherenceGoal, 'sick');
+    showToast('Marked as sick day 🌡');
+  }
+  renderDateStrip(document.getElementById('dateInput').value || todayStr);
+  renderStreak();
+  applySickModeOverlay();
+}
+
+async function renderStreak() {
+  const cardEl = document.getElementById('streakCard');
+  if (!cardEl) return;
+  try {
+    await loadFinalizedMap();
+    const rows = [...finalizedMap.values()];
+    const { current, record, countedDays } = calcStreaks(rows);
+    document.getElementById('streakCurrent').textContent = current;
+    document.getElementById('streakRecord').textContent = record;
+    document.getElementById('streakCountedDays').textContent = countedDays;
+
+    const lastRecord = parseInt(localStorage.getItem('fddb.streak.lastRecord') || '0', 10);
+    if (record > lastRecord && record > 0) {
+      localStorage.setItem('fddb.streak.lastRecord', String(record));
+      haptic('streakUp');
+    }
+  } catch (e) { /* silent */ }
+}
+
+function adherenceScore2() {} // no-op placeholder retained for future use
 function adherenceColor(score) {
   const t = Math.max(0, Math.min(100, score)) / 100;
   let r, g, b;
@@ -2084,6 +2598,9 @@ function renderTargetBlock() {
     ringFg.style.stroke = adherenceColor(overallAdh);
     ringVal.textContent = overallAdh + '%';
     ringVal.style.color = adherenceColor(overallAdh);
+
+    // Auto-finalize this day if past cutoff / past date.
+    ensureDayFinalized(currentDate, overallAdh);
   } else {
     ringFg.style.strokeDashoffset = circ;
     ringVal.textContent = '–';
@@ -2137,6 +2654,7 @@ function renderDashboard(entries) {
   const content = document.getElementById('content');
   content.innerHTML = '';
   checkables = [];
+  applySickModeOverlay();
   if (!entries.length) {
     content.innerHTML = '<div class="placeholder"><i class="fas fa-bowl-food"></i>No entries for this date</div>';
     totals = {kcal:0,p:0,c:0,f:0};
@@ -2399,13 +2917,16 @@ function renderRecipeManage() {
   if (filterRow) {
     filterRow.innerHTML = [
       `<div class="cat-chip${activeFilterCat===null?' active':''}" onclick="setFilterCat(null)">All</div>`,
+      `<div class="cat-chip${activeFilterCat==='__none__'?' active':''}" onclick="setFilterCat('__none__')">None</div>`,
       ...allCategories.map(c => `<div class="cat-chip${activeFilterCat===c.id?' active':''}" onclick="setFilterCat('${c.id}')">${c.name}</div>`),
       `<div class="cat-chip" style="background:rgba(94,166,255,.08);border-color:rgba(94,166,255,.3);color:var(--blue);font-size:.72rem" onclick="manageCategoriesPrompt()"><i class="fas fa-tags"></i> + Category</div>`
     ].join('');
   }
   const filtered = [...allRecipes].sort((a, b) => a.name.localeCompare(b.name, 'de'))
     .filter(r => {
-      if (activeFilterCat && !r.catIds.includes(activeFilterCat)) return false;
+      if (activeFilterCat === '__none__') {
+        if (r.catIds && r.catIds.length > 0) return false;
+      } else if (activeFilterCat && !r.catIds.includes(activeFilterCat)) return false;
       if (!query) return true;
       return r.name.toLowerCase().includes(query) || r.items.some(i => i.toLowerCase().includes(query));
     });
@@ -2721,6 +3242,134 @@ function getStatsDateRange() {
   return { from: document.getElementById('statsFrom').value, to: document.getElementById('statsTo').value };
 }
 
+/* ══════════════════════════════════════
+   Date-pill context menu (freeze / sick / finalize)
+   ══════════════════════════════════════ */
+let _dateMenuEl = null;
+function closeDateMenu() {
+  if (_dateMenuEl) { _dateMenuEl.remove(); _dateMenuEl = null; }
+  document.removeEventListener('click', _dateMenuOutside, true);
+  document.removeEventListener('keydown', _dateMenuKey, true);
+}
+function _dateMenuOutside(e) {
+  if (_dateMenuEl && !_dateMenuEl.contains(e.target)) closeDateMenu();
+}
+function _dateMenuKey(e) { if (e.key === 'Escape') closeDateMenu(); }
+
+async function openDateMenu(date, x, y) {
+  closeDateMenu();
+  haptic('tap');
+  const fin = finalizedMap.get(date);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const d = new Date(date + 'T00:00:00');
+  const isFuture = d > today;
+  const isToday = date === todayStr;
+  const freezesUsed = freezesThisWeek(date) + (fin && fin.status === 'freeze' ? 1 : 0);
+
+  // Compute adherence for current day to allow Finalize.
+  let canFinalize = false, adhForFinalize = null;
+  if (!isFuture) {
+    const [macroRes, dtRes, tgtRes] = await Promise.all([
+      db.from('fddb_daily_macros').select('protein, carbs, fat').eq('date', date),
+      db.from('fddb_day_type').select('type').eq('date', date).maybeSingle(),
+      db.from('fddb_coach_targets').select('*').lte('valid_from', date).order('valid_from', { ascending: false }),
+    ]);
+    const rows = macroRes.data || [];
+    if (rows.length) {
+      const totals = rows.reduce((s, r) => ({
+        p: s.p + (parseFloat(r.protein)||0),
+        c: s.c + (parseFloat(r.carbs)||0),
+        f: s.f + (parseFloat(r.fat)||0),
+      }), { p:0, c:0, f:0 });
+      const type = (dtRes.data && dtRes.data.type) || 'training';
+      const match = (tgtRes.data || []).find(t => t.type === type);
+      if (match) {
+        adhForFinalize = computeDayAdherence(totals, { p: match.protein, c: match.carbs, f: match.fat });
+        canFinalize = adhForFinalize != null;
+      }
+    }
+  }
+
+  const menu = document.createElement('div');
+  menu.className = 'date-menu';
+  const dowStr = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
+  const dateLabel = `${dowStr}, ${d.getDate()} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]}`;
+  const statusSub = fin
+    ? `<span class="dmi-hint">· ${fin.status}${fin.adherence!=null?` · ${fin.adherence}%`:''}</span>`
+    : '';
+
+  const item = (cls, iconCls, icon, label, hint, disabled, onclick) => {
+    const btn = document.createElement('button');
+    btn.className = 'date-menu-item';
+    if (disabled) btn.disabled = true;
+    btn.innerHTML = `
+      <div class="dmi-icon ${iconCls}">${icon}</div>
+      <div class="dmi-label">${label}</div>
+      ${hint ? `<div class="dmi-hint">${hint}</div>` : ''}
+    `;
+    if (!disabled) btn.onclick = () => { closeDateMenu(); onclick(); };
+    return btn;
+  };
+
+  menu.innerHTML = `<div class="date-menu-header">${dateLabel} ${statusSub}</div>`;
+
+  // Finalize now (only if we have data and day isn't in the future)
+  menu.appendChild(item(
+    'finalize', 'counted', '<i class="fas fa-check"></i>',
+    'Finalize now',
+    canFinalize ? `${adhForFinalize}%` : (isFuture ? 'future' : 'no data'),
+    !canFinalize || isFuture,
+    () => manualFinalizeDay(date, adhForFinalize)
+  ));
+
+  // Freeze (2 per week, can be retroactive, NOT for future)
+  menu.appendChild(item(
+    'freeze', 'freeze', '<i class="fas fa-snowflake"></i>',
+    'Freeze day',
+    `${freezesUsed}/2 this week`,
+    isFuture || freezesThisWeek(date) >= 2,
+    () => setDayStatus(date, 'freeze')
+  ));
+
+  // Sick (only today)
+  menu.appendChild(item(
+    'sick', 'sick', '<i class="fas fa-thermometer-half"></i>',
+    'Mark as sick',
+    isToday ? '' : 'today only',
+    !isToday,
+    () => setDayStatus(date, 'sick')
+  ));
+
+  // Reset (only if something is set)
+  if (fin) {
+    const div = document.createElement('div');
+    div.className = 'date-menu-divider';
+    menu.appendChild(div);
+    menu.appendChild(item(
+      'reset', 'reset', '<i class="fas fa-rotate-left"></i>',
+      'Reset status', '', false,
+      () => setDayStatus(date, null)
+    ));
+  }
+
+  document.body.appendChild(menu);
+  // Position with viewport clamp.
+  const rect = menu.getBoundingClientRect();
+  const vw = window.innerWidth, vh = window.innerHeight;
+  let left = x, top = y + 6;
+  if (left + rect.width + 8 > vw) left = vw - rect.width - 8;
+  if (top + rect.height + 8 > vh)  top = y - rect.height - 6;
+  left = Math.max(8, left);
+  top = Math.max(8, top);
+  menu.style.left = left + 'px';
+  menu.style.top = top + 'px';
+  _dateMenuEl = menu;
+  setTimeout(() => {
+    document.addEventListener('click', _dateMenuOutside, true);
+    document.addEventListener('keydown', _dateMenuKey, true);
+  }, 0);
+}
+
 async function loadStats() {
   const { from, to } = getStatsDateRange();
   if (!from || !to || from > to) return;
@@ -2946,6 +3595,7 @@ async function loadStats() {
   }
 
   document.getElementById('statsContent').style.display = 'flex';
+  renderStreak();
   const hmTitle = document.querySelector('#statsHeatmap').previousElementSibling;
   if (avgAdh !== null) {
     hmTitle.innerHTML = `<i class="fas fa-th"></i> Adherence Heatmap <span style="color:${adherenceColor(avgAdh)};margin-left:6px">— Ø ${avgAdh}%</span>`;
