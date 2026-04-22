@@ -2002,12 +2002,20 @@ function initSettingsUI() {
     cacheSettings();
     writeSettingToDb('adherenceCutoff', v);
   });
-  hapticsEl.addEventListener('change', () => {
-    settings.haptics = hapticsEl.checked;
-    cacheSettings();
-    writeSettingToDb('haptics', settings.haptics);
-    if (settings.haptics) haptic('check');
-  });
+  const iosDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (iosDevice || !navigator.vibrate) {
+    hapticsEl.disabled = true;
+    hapticsEl.closest('.settings-row').querySelector('.settings-row-sub').textContent =
+      'Not supported on this device';
+  } else {
+    hapticsEl.addEventListener('change', () => {
+      settings.haptics = hapticsEl.checked;
+      cacheSettings();
+      writeSettingToDb('haptics', settings.haptics);
+      if (settings.haptics) haptic('check');
+    });
+  }
 
   const sickEl = document.getElementById('setSickMode');
   if (sickEl) {
@@ -2053,6 +2061,7 @@ function todayISO() {
    setting + browser support.
    ══════════════════════════════════════ */
 const HAPTIC_PATTERNS = {
+  tap:          8,
   check:        10,
   uncheck:      5,
   goalReached:  [20, 50, 20, 50, 80],
