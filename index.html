@@ -242,7 +242,6 @@ body {
   stroke-linecap: round;
   stroke-dasharray: 326.73; stroke-dashoffset: 326.73;
   transition: stroke-dashoffset .7s cubic-bezier(.22,.68,0,1.2), stroke .3s;
-  filter: drop-shadow(0 0 8px currentColor);
 }
 .hero-ring-center {
   position: absolute; inset: 0; display: flex; flex-direction: column;
@@ -1844,8 +1843,18 @@ function renderTargetBlock() {
   const ringVal = document.getElementById('heroRingVal');
   const circ = 2 * Math.PI * 52; // 326.73
   if (overallAdh !== null) {
-    const off = circ * (1 - overallAdh / 100);
-    ringFg.style.strokeDashoffset = off;
+    // Cap visual progress at 99% when <100% to avoid round-cap overlap
+    // creating a visible bump at 12 o'clock. At exactly 100% draw a full
+    // circle with butt caps for a clean closed ring.
+    if (overallAdh >= 100) {
+      ringFg.style.strokeDashoffset = 0;
+      ringFg.style.strokeLinecap = 'butt';
+    } else {
+      const visual = Math.min(overallAdh, 99);
+      const off = circ * (1 - visual / 100);
+      ringFg.style.strokeDashoffset = off;
+      ringFg.style.strokeLinecap = 'round';
+    }
     ringFg.style.stroke = adherenceColor(overallAdh);
     ringVal.textContent = overallAdh + '%';
     ringVal.style.color = adherenceColor(overallAdh);
