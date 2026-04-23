@@ -509,6 +509,38 @@ body {
 }
 .items-list { padding: 8px; display: flex; flex-direction: column; gap: 6px; }
 
+/* Empty meal card — keeps drop target alive after a meal is cleared.
+   Hidden by default; only visible while a drag is in progress. */
+.meal-card-empty {
+  display: none;
+  opacity: .7;
+  transition: opacity .18s ease, border-color .18s ease, background .18s ease;
+}
+body.is-dragging .meal-card-empty { display: block; }
+.meal-card-empty .meal-title {
+  background: transparent;
+  border-bottom: 1px dashed var(--border);
+}
+.meal-card-empty .meal-dot {
+  background: var(--text-dim);
+  box-shadow: none;
+}
+.meal-card-empty .meal-name { color: var(--text-dim); }
+.meal-empty-hint {
+  margin-left: auto;
+  font-size: .62rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  font-weight: 600;
+  opacity: .7;
+}
+.meal-card-empty .items-list {
+  min-height: 36px;
+  padding: 6px 8px;
+}
+.meal-card-empty.dnd-hover { opacity: 1; }
+
 /* Merge mode compact */
 .merge-active .meal-title { padding: 9px 12px; }
 .merge-active .items-list { padding: 5px 6px; gap: 3px; }
@@ -1707,7 +1739,7 @@ body.dnd-active {
         </div>
       </div>
 
-      <div class="version-footer">FDDB · Check · v2.24</div>
+      <div class="version-footer">FDDB · Check · v2.26</div>
     </div>
   </section>
 
@@ -2757,17 +2789,33 @@ function renderDashboard(entries) {
     totals.c += parseFloat(e.carbs)||0; totals.f += parseFloat(e.fat)||0;
   });
 
-  const sorted = Object.keys(grouped).sort((a,b) => (ORDER.indexOf(a)<0?99:ORDER.indexOf(a))-(ORDER.indexOf(b)<0?99:ORDER.indexOf(b)));
+  // Render every standard ORDER meal (even if empty) so drop targets stay available
+  // after a meal is emptied. Custom meals outside ORDER are appended only if they have items.
+  // Skip empty aliases whose label is already used by a non-empty meal (e.g. abendbrot/abendessen → "Dinner").
+  const customMeals = Object.keys(grouped).filter(m => ORDER.indexOf(m) < 0);
+  const orderedMeals = [...ORDER, ...customMeals.sort()];
+  const usedLabels = new Set(
+    orderedMeals.filter(m => (grouped[m] || []).length > 0).map(m => LABELS[m] || m)
+  );
+  const sorted = orderedMeals.filter(m => {
+    if ((grouped[m] || []).length > 0) return true;
+    // empty → only keep if no non-empty meal shares its display label
+    const label = LABELS[m] || m;
+    return !usedLabels.has(label);
+  });
 
   sorted.forEach((meal, mi) => {
-    const items = grouped[meal];
+    const items = grouped[meal] || [];
+    const isEmpty = items.length === 0;
     const mealKcal = items.reduce((s,i) => s+(i.kcal||0), 0);
     const card = document.createElement('div');
-    card.className = 'meal-card';
+    card.className = 'meal-card' + (isEmpty ? ' meal-card-empty' : '');
     card.dataset.meal = meal;
     card.style.animationDelay = `${mi*0.05}s`;
 
-    if (mergeServings) {
+    if (isEmpty) {
+      card.innerHTML = `<div class="meal-title"><div class="meal-dot"></div><div class="meal-name">${LABELS[meal]||meal}</div><div class="meal-empty-hint">Empty</div></div>`;
+    } else if (mergeServings) {
       const mealM = macroSum(items);
       card.innerHTML = `<div class="meal-title"><div class="meal-dot"></div><div class="meal-name">${LABELS[meal]||meal}</div><div class="macro-pills" style="margin-left:auto">${pillsHTML(mealM)}</div></div>`;
     } else {
@@ -4245,6 +4293,7 @@ initTweaks();
     if (state.src && restore) state.src.classList.remove('dnd-source');
     document.querySelectorAll('.meal-card.dnd-hover').forEach(c => c.classList.remove('dnd-hover'));
     state = null;
+    document.body.classList.remove('is-dragging');
     // unlockBodyScroll removes .dnd-active AND restores scroll.
     // Only needed if we actually locked (i.e. drag was started).
     if (wasStarted) unlockBodyScroll();
@@ -4274,6 +4323,7 @@ initTweaks();
     state.offsetX = clientX - rect.left;
     state.offsetY = clientY - rect.top;
     state.started = true;
+    document.body.classList.add('is-dragging');
 
     if (navigator.vibrate) try { navigator.vibrate(12); } catch(_) {}
     moveGhost(clientX, clientY);
