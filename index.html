@@ -1305,6 +1305,11 @@ body[data-hero="bars"] .hero-card-inner { grid-template-columns: 1fr; }
   font-size: .62rem; letter-spacing: .14em; text-transform: uppercase;
   color: var(--muted); font-weight: 600; margin-top: 2px;
 }
+.streak-meta-desc {
+  font-size: .56rem; color: var(--muted); font-weight: 400;
+  letter-spacing: 0; text-transform: none; opacity: .7;
+  margin-top: 2px; line-height: 1.3;
+}
 
 /* ════════════════════════════════════════════════════════
    SETTINGS
@@ -1614,16 +1619,19 @@ body.dnd-active {
             <div class="streak-nums">
               <div class="streak-current"><span id="streakCurrent">0</span><span class="streak-unit">days</span></div>
               <div class="streak-label">Current streak</div>
+              <div class="streak-meta-desc">consecutive days on goal<br><span id="streakGoalHint"></span></div>
             </div>
           </div>
           <div class="streak-meta">
             <div class="streak-meta-item">
               <div class="streak-meta-val" id="streakRecord">0</div>
               <div class="streak-meta-lbl">Record</div>
+              <div class="streak-meta-desc">longest streak<br>ever</div>
             </div>
             <div class="streak-meta-item">
               <div class="streak-meta-val" id="streakCountedDays">0</div>
               <div class="streak-meta-lbl">Total counted</div>
+              <div class="streak-meta-desc">days logged<br>within goal</div>
             </div>
           </div>
         </div>
@@ -2656,6 +2664,8 @@ async function renderStreak() {
     document.getElementById('streakCurrent').textContent = current;
     document.getElementById('streakRecord').textContent = record;
     document.getElementById('streakCountedDays').textContent = countedDays;
+    const goalHint = document.getElementById('streakGoalHint');
+    if (goalHint) goalHint.textContent = `(≥ ${settings.adherenceGoal ?? 80}% adherence)`;
 
     const lastRecord = parseInt(localStorage.getItem('fddb.streak.lastRecord') || '0', 10);
     if (record > lastRecord && record > 0) {
