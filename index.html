@@ -1354,9 +1354,6 @@ body[data-hero="bars"] .hero-card-inner { grid-template-columns: 1fr; }
 body.dnd-active {
   user-select: none; -webkit-user-select: none;
   overflow-anchor: none;
-  /* Scroll-Lock: body wird während aktivem Drag komplett
-     festgepinnt, sonst hijacked iOS den Touchstream für
-     natives Scrollen und der Ghost "reißt weg". */
   position: fixed;
   left: 0; right: 0;
   width: 100%;
@@ -1364,9 +1361,14 @@ body.dnd-active {
   touch-action: none;
   -webkit-overflow-scrolling: auto;
 }
-body.dnd-active .food-item,
-body.dnd-active .recipe-row { touch-action: none; }
-.food-item, .recipe-row { -webkit-touch-callout: none; }
+/* Permanent touch-action:none on draggable rows so iOS never
+   hijacks the touch stream for native scrolling during the
+   long-press window. User can still scroll by swiping on meal
+   headers, gaps, or any non-row area. */
+.food-item, .recipe-row {
+  touch-action: none;
+  -webkit-touch-callout: none;
+}
 
 .dnd-source {
   opacity: .35 !important;
@@ -1705,7 +1707,7 @@ body.dnd-active .recipe-row { touch-action: none; }
         </div>
       </div>
 
-      <div class="version-footer">FDDB · Check · v2.2</div>
+      <div class="version-footer">FDDB · Check · v2.24</div>
     </div>
   </section>
 
@@ -4324,8 +4326,11 @@ initTweaks();
       if (state.pointerType === 'mouse') {
         if (dist > MOVE_TOLERANCE) beginDrag(state.src, state.startX, state.startY);
       } else {
-        // touch: if scrolls before long-press fires, abort drag-intent
-        if (dist > MOVE_TOLERANCE) {
+        // touch: with touch-action:none iOS can't hijack to scroll,
+        // so finger jitter during the press window shouldn't kill
+        // the drag. Only abort on a *large* movement (clear intent
+        // to move before lift) — tolerate normal finger wiggle.
+        if (dist > 28) {
           clearTimeout(state.pressTimer);
           cancelDrag(true);
           return;
