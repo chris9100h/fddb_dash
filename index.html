@@ -1351,7 +1351,19 @@ body[data-hero="bars"] .hero-card-inner { grid-template-columns: 1fr; }
 }
 
 /* ══ Drag & Drop ══ */
-body.dnd-active { user-select: none; -webkit-user-select: none; overflow-anchor: none; }
+body.dnd-active {
+  user-select: none; -webkit-user-select: none;
+  overflow-anchor: none;
+  /* Scroll-Lock: body wird während aktivem Drag komplett
+     festgepinnt, sonst hijacked iOS den Touchstream für
+     natives Scrollen und der Ghost "reißt weg". */
+  position: fixed;
+  left: 0; right: 0;
+  width: 100%;
+  overflow: hidden;
+  touch-action: none;
+  -webkit-overflow-scrolling: auto;
+}
 body.dnd-active .food-item,
 body.dnd-active .recipe-row { touch-action: none; }
 .food-item, .recipe-row { -webkit-touch-callout: none; }
@@ -4177,6 +4189,31 @@ initTweaks();
   const LONG_PRESS_MS = 260;
   const MOVE_TOLERANCE = 8;
   let state = null;
+  let lockedScrollY = 0;
+
+  // Swallows native touchmove while a drag is active so iOS
+  // doesn't take over the touch stream for scrolling. Registered
+  // once, globally — cheap, and only preventDefaults while state
+  // is in "started" mode.
+  function touchMoveBlocker(ev) {
+    if (state && state.started) {
+      ev.preventDefault();
+    }
+  }
+  document.addEventListener('touchmove', touchMoveBlocker, { passive: false });
+
+  function lockBodyScroll() {
+    lockedScrollY = window.scrollY || window.pageYOffset || 0;
+    // Set top BEFORE flipping position:fixed so there's no
+    // intermediate layout where body jumps to top:0.
+    document.body.style.top = `-${lockedScrollY}px`;
+    document.body.classList.add('dnd-active');
+  }
+  function unlockBodyScroll() {
+    document.body.classList.remove('dnd-active');
+    document.body.style.top = '';
+    window.scrollTo(0, lockedScrollY);
+  }
 
   function findDraggable(el) {
     while (el && el !== document.body) {
@@ -4197,6 +4234,7 @@ initTweaks();
 
   function cancelDrag(restore = true) {
     if (!state) return;
+    const wasStarted = state.started;
     document.removeEventListener('pointermove', onMove);
     document.removeEventListener('pointerup', onUp);
     document.removeEventListener('pointercancel', onUp);
@@ -4204,11 +4242,19 @@ initTweaks();
     if (state.ghost) state.ghost.remove();
     if (state.src && restore) state.src.classList.remove('dnd-source');
     document.querySelectorAll('.meal-card.dnd-hover').forEach(c => c.classList.remove('dnd-hover'));
-    document.body.classList.remove('dnd-active');
     state = null;
+    // unlockBodyScroll removes .dnd-active AND restores scroll.
+    // Only needed if we actually locked (i.e. drag was started).
+    if (wasStarted) unlockBodyScroll();
   }
 
   function beginDrag(src, clientX, clientY) {
+    // Lock body scroll FIRST so subsequent rect measurements
+    // reflect the pinned layout. position:fixed + top:-scrollY
+    // keeps visible content in place, so viewport-relative
+    // coordinates remain valid.
+    lockBodyScroll();
+
     const rect = src.getBoundingClientRect();
     const ghost = src.cloneNode(true);
     ghost.classList.add('dnd-ghost');
@@ -4219,7 +4265,6 @@ initTweaks();
     document.body.appendChild(ghost);
 
     src.classList.add('dnd-source');
-    document.body.classList.add('dnd-active');
 
     state.ghost = ghost;
     state.baseLeft = rect.left;
@@ -4300,8 +4345,17 @@ initTweaks();
     }
 
     const EDGE = 70, vh = window.innerHeight;
-    if (ev.clientY < EDGE) window.scrollBy(0, -8);
-    else if (ev.clientY > vh - EDGE) window.scrollBy(0, 8);
+    // Body ist gelockt (position:fixed), also kann window.scrollBy
+    // nicht wirken. Stattdessen die virtuelle Lock-Position anpassen
+    // und über body.style.top "scrollen".
+    const maxScroll = Math.max(0, document.documentElement.scrollHeight - vh);
+    if (ev.clientY < EDGE && lockedScrollY > 0) {
+      lockedScrollY = Math.max(0, lockedScrollY - 10);
+      document.body.style.top = `-${lockedScrollY}px`;
+    } else if (ev.clientY > vh - EDGE && lockedScrollY < maxScroll) {
+      lockedScrollY = Math.min(maxScroll, lockedScrollY + 10);
+      document.body.style.top = `-${lockedScrollY}px`;
+    }
   }
 
   async function onUp(ev) {
