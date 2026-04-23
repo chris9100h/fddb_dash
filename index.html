@@ -1350,6 +1350,67 @@ body[data-hero="bars"] .hero-card-inner { grid-template-columns: 1fr; }
   background: #fff;
 }
 
+/* ══ Drag & Drop ══ */
+body.dnd-active { user-select: none; -webkit-user-select: none; overflow-anchor: none; }
+body.dnd-active .food-item,
+body.dnd-active .recipe-row { touch-action: none; }
+.food-item, .recipe-row { -webkit-touch-callout: none; }
+
+.dnd-source {
+  opacity: .35 !important;
+  transition: opacity .15s ease;
+}
+
+.dnd-ghost {
+  position: fixed;
+  z-index: 99999;
+  pointer-events: none;
+  will-change: transform, opacity;
+  border-radius: 14px;
+  background: var(--card, #1a1a1d);
+  box-shadow: 0 22px 50px -10px rgba(0,0,0,.6), 0 8px 18px -4px rgba(0,0,0,.4), 0 0 0 1px rgba(255,107,0,.35);
+  transform-origin: center;
+  transition: opacity .08s;
+  overflow: hidden;
+}
+.dnd-ghost * { pointer-events: none !important; }
+
+.meal-card.dnd-hover {
+  background: linear-gradient(180deg, rgba(255,107,0,.10) 0%, rgba(255,107,0,.03) 100%) !important;
+  box-shadow: 0 0 0 2px var(--accent, #ff6b00) inset, 0 12px 28px -8px rgba(255,107,0,.3) !important;
+  transform: scale(1.01);
+  transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+}
+
+.dnd-toast {
+  position: fixed;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 90px);
+  left: 50%;
+  transform: translate(-50%, 20px);
+  background: rgba(20,20,22,.92);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 999px;
+  font-size: .82rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 14px 32px -8px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.08);
+  opacity: 0;
+  transition: opacity .22s ease, transform .28s cubic-bezier(.4,1.4,.5,1);
+  z-index: 99999;
+  pointer-events: none;
+}
+.dnd-toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+.dnd-toast strong { color: var(--accent, #ff6b00); font-weight: 700; }
+.dnd-toast i { color: var(--accent, #ff6b00); font-size: .85rem; }
+
 </style>
 </head>
 <body>
@@ -2002,20 +2063,12 @@ function initSettingsUI() {
     cacheSettings();
     writeSettingToDb('adherenceCutoff', v);
   });
-  const iosDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  if (iosDevice || !navigator.vibrate) {
-    hapticsEl.disabled = true;
-    hapticsEl.closest('.settings-row').querySelector('.settings-row-sub').textContent =
-      'Not supported on this device';
-  } else {
-    hapticsEl.addEventListener('change', () => {
-      settings.haptics = hapticsEl.checked;
-      cacheSettings();
-      writeSettingToDb('haptics', settings.haptics);
-      if (settings.haptics) haptic('check');
-    });
-  }
+  hapticsEl.addEventListener('change', () => {
+    settings.haptics = hapticsEl.checked;
+    cacheSettings();
+    writeSettingToDb('haptics', settings.haptics);
+    if (settings.haptics) haptic('check');
+  });
 
   const sickEl = document.getElementById('setSickMode');
   if (sickEl) {
@@ -2061,7 +2114,6 @@ function todayISO() {
    setting + browser support.
    ══════════════════════════════════════ */
 const HAPTIC_PATTERNS = {
-  tap:          8,
   check:        10,
   uncheck:      5,
   goalReached:  [20, 50, 20, 50, 80],
@@ -2698,6 +2750,7 @@ function renderDashboard(entries) {
     const mealKcal = items.reduce((s,i) => s+(i.kcal||0), 0);
     const card = document.createElement('div');
     card.className = 'meal-card';
+    card.dataset.meal = meal;
     card.style.animationDelay = `${mi*0.05}s`;
 
     if (mergeServings) {
@@ -2744,6 +2797,10 @@ function renderDashboard(entries) {
         const itemKey = `${meal}::${e.item_name}`;
         const row = document.createElement('div');
         row.className = 'food-item' + (currentCheckedMap[itemKey] ? ' checked' : '');
+        row.dataset.meal = meal;
+        row.dataset.entryIds = String(e.id);
+        row.dataset.checkKeys = itemKey;
+        row.dataset.dragKind = 'item';
 
         if (mergeServings) {
           row.innerHTML = `<div class="cb-box"><i class="fas fa-check"></i></div><div class="food-name" style="font-size:.82rem">${e.item_name}</div>`;
@@ -2768,6 +2825,13 @@ function renderDashboard(entries) {
           const itemKey = mergeServings ? `${meal}::${recipe.name}::0` : `${meal}::${recipe.name}::${s}`;
           const rb = document.createElement('div');
           rb.className = 'recipe-row' + (currentCheckedMap[itemKey] ? ' checked' : '');
+          rb.dataset.meal = meal;
+          rb.dataset.entryIds = recEntries.map(x => x.id).join(',');
+          rb.dataset.checkKeys = (mergeServings
+            ? [`${meal}::${recipe.name}::0`]
+            : Array.from({length: servings}, (_, i) => `${meal}::${recipe.name}::${i}`)).join('|');
+          rb.dataset.dragKind = 'recipe';
+          rb.dataset.recipeName = recipe.name;
           const portionLabel = (!mergeServings && servings > 1) ? ` <span class="recipe-portion-tag">${s+1}/${servings}</span>` : (mergeServings && servings > 1 ? ` <span class="recipe-portion-tag">${servings}×</span>` : '');
 
           const hdr = document.createElement('div');
@@ -4103,6 +4167,248 @@ function persistTweaks() {
 }
 
 initTweaks();
+
+/* ══════════════════════════════════════════
+   DRAG & DROP — move food items / recipes
+   between meal cards. Long-press on touch,
+   move-threshold on mouse. Supabase-persisted.
+   ══════════════════════════════════════════ */
+(function(){
+  const LONG_PRESS_MS = 260;
+  const MOVE_TOLERANCE = 8;
+  let state = null;
+
+  function findDraggable(el) {
+    while (el && el !== document.body) {
+      if (el.dataset && (el.dataset.dragKind === 'item' || el.dataset.dragKind === 'recipe')) return el;
+      el = el.parentElement;
+    }
+    return null;
+  }
+
+  function findMealCardAtPoint(x, y) {
+    const els = document.elementsFromPoint(x, y);
+    for (const el of els) {
+      const card = el.closest ? el.closest('.meal-card') : null;
+      if (card && card.dataset.meal) return card;
+    }
+    return null;
+  }
+
+  function cancelDrag(restore = true) {
+    if (!state) return;
+    document.removeEventListener('pointermove', onMove);
+    document.removeEventListener('pointerup', onUp);
+    document.removeEventListener('pointercancel', onUp);
+    clearTimeout(state.pressTimer);
+    if (state.ghost) state.ghost.remove();
+    if (state.src && restore) state.src.classList.remove('dnd-source');
+    document.querySelectorAll('.meal-card.dnd-hover').forEach(c => c.classList.remove('dnd-hover'));
+    document.body.classList.remove('dnd-active');
+    state = null;
+  }
+
+  function beginDrag(src, clientX, clientY) {
+    const rect = src.getBoundingClientRect();
+    const ghost = src.cloneNode(true);
+    ghost.classList.add('dnd-ghost');
+    ghost.style.width = rect.width + 'px';
+    ghost.style.height = rect.height + 'px';
+    ghost.style.left = rect.left + 'px';
+    ghost.style.top = rect.top + 'px';
+    document.body.appendChild(ghost);
+
+    src.classList.add('dnd-source');
+    document.body.classList.add('dnd-active');
+
+    state.ghost = ghost;
+    state.baseLeft = rect.left;
+    state.baseTop = rect.top;
+    state.offsetX = clientX - rect.left;
+    state.offsetY = clientY - rect.top;
+    state.started = true;
+
+    if (navigator.vibrate) try { navigator.vibrate(12); } catch(_) {}
+    moveGhost(clientX, clientY);
+  }
+
+  function moveGhost(x, y) {
+    if (!state || !state.ghost) return;
+    const tx = x - state.offsetX - state.baseLeft;
+    const ty = y - state.offsetY - state.baseTop;
+    state.ghost.style.transform = `translate(${tx}px, ${ty}px) scale(1.03) rotate(-1.5deg)`;
+  }
+
+  function onDown(ev) {
+    if (ev.button !== undefined && ev.button !== 0) return;
+    const src = findDraggable(ev.target);
+    if (!src) return;
+    // ignore interactive children
+    if (ev.target.closest('.cb-box, .recipe-chevron')) return;
+
+    state = {
+      src,
+      startX: ev.clientX,
+      startY: ev.clientY,
+      pointerType: ev.pointerType || 'mouse',
+      started: false,
+      pressTimer: null,
+      ghost: null,
+      dropCard: null,
+    };
+
+    document.addEventListener('pointermove', onMove, { passive: false });
+    document.addEventListener('pointerup', onUp);
+    document.addEventListener('pointercancel', onUp);
+
+    if (state.pointerType !== 'mouse') {
+      state.pressTimer = setTimeout(() => {
+        if (!state) return;
+        beginDrag(state.src, state.startX, state.startY);
+      }, LONG_PRESS_MS);
+    }
+  }
+
+  function onMove(ev) {
+    if (!state) return;
+    const dx = ev.clientX - state.startX;
+    const dy = ev.clientY - state.startY;
+    const dist = Math.hypot(dx, dy);
+
+    if (!state.started) {
+      if (state.pointerType === 'mouse') {
+        if (dist > MOVE_TOLERANCE) beginDrag(state.src, state.startX, state.startY);
+      } else {
+        // touch: if scrolls before long-press fires, abort drag-intent
+        if (dist > MOVE_TOLERANCE) {
+          clearTimeout(state.pressTimer);
+          cancelDrag(true);
+          return;
+        }
+      }
+    }
+    if (!state || !state.started) return;
+    ev.preventDefault();
+
+    moveGhost(ev.clientX, ev.clientY);
+
+    const card = findMealCardAtPoint(ev.clientX, ev.clientY);
+    if (card !== state.dropCard) {
+      document.querySelectorAll('.meal-card.dnd-hover').forEach(c => c.classList.remove('dnd-hover'));
+      state.dropCard = card;
+      if (card && card.dataset.meal !== state.src.dataset.meal) card.classList.add('dnd-hover');
+    }
+
+    const EDGE = 70, vh = window.innerHeight;
+    if (ev.clientY < EDGE) window.scrollBy(0, -8);
+    else if (ev.clientY > vh - EDGE) window.scrollBy(0, 8);
+  }
+
+  async function onUp(ev) {
+    if (!state) return;
+    const wasStarted = state.started;
+    const dropCard = state.dropCard;
+    const src = state.src;
+    const ghost = state.ghost;
+    clearTimeout(state.pressTimer);
+
+    if (!wasStarted) {
+      cancelDrag(true);
+      return;
+    }
+
+    if (dropCard && dropCard.dataset.meal !== src.dataset.meal) {
+      const targetRect = dropCard.getBoundingClientRect();
+      const srcRect = src.getBoundingClientRect();
+      const gx = targetRect.left + targetRect.width/2 - srcRect.width/2 - state.baseLeft;
+      const gy = targetRect.top + 20 - state.baseTop;
+      ghost.style.transition = 'transform .25s cubic-bezier(.4,1.4,.5,1), opacity .25s';
+      ghost.style.transform = `translate(${gx}px, ${gy}px) scale(.85)`;
+      ghost.style.opacity = '0';
+
+      const newMeal = dropCard.dataset.meal;
+      const ids = src.dataset.entryIds.split(',').map(s => s.trim()).filter(Boolean);
+      const oldKeys = src.dataset.checkKeys.split('|').filter(Boolean);
+      const kind = src.dataset.dragKind;
+      const recipeName = src.dataset.recipeName;
+
+      // Swallow click that follows the pointerup
+      const swallow = e => { e.stopPropagation(); e.preventDefault(); };
+      document.addEventListener('click', swallow, { capture: true, once: true });
+      setTimeout(() => document.removeEventListener('click', swallow, { capture: true }), 80);
+
+      cancelDrag(false);
+      await moveEntries({ ids, fromMeal: src.dataset.meal, toMeal: newMeal, kind, oldKeys, recipeName });
+    } else {
+      ghost.style.transition = 'transform .22s cubic-bezier(.4,1.4,.5,1), opacity .22s';
+      ghost.style.transform = 'translate(0,0) scale(1)';
+      ghost.style.opacity = '0';
+      setTimeout(() => cancelDrag(true), 220);
+      const swallow = e => { e.stopPropagation(); e.preventDefault(); };
+      document.addEventListener('click', swallow, { capture: true, once: true });
+      setTimeout(() => document.removeEventListener('click', swallow, { capture: true }), 80);
+    }
+  }
+
+  async function moveEntries({ ids, fromMeal, toMeal, kind, oldKeys, recipeName }) {
+    if (!ids.length || fromMeal === toMeal) return;
+
+    // Optimistic: patch local arrays (ids are UUID strings)
+    const idSet = new Set(ids);
+    currentDayEntries.forEach(e => { if (idSet.has(e.id)) e.meal = toMeal; });
+
+    // Migrate check keys locally
+    const keyMoves = [];
+    oldKeys.forEach(oldK => {
+      const parts = oldK.split('::');
+      parts[0] = toMeal;
+      const newK = parts.join('::');
+      if (currentCheckedMap[oldK] !== undefined) {
+        const v = currentCheckedMap[oldK];
+        delete currentCheckedMap[oldK];
+        if (v) currentCheckedMap[newK] = v;
+        keyMoves.push({ oldK, newK, v });
+      }
+    });
+
+    renderDashboard(currentDayEntries);
+
+    try {
+      const updateRes = await db.from('fddb_daily_macros').update({ meal: toMeal }).in('id', ids);
+      if (updateRes.error) throw updateRes.error;
+
+      for (const { oldK, newK, v } of keyMoves) {
+        await db.from('fddb_checklist_status').delete().eq('date', currentDate).eq('item_key', oldK);
+        if (v) await db.from('fddb_checklist_status').upsert(
+          { date: currentDate, item_key: newK, checked: true },
+          { onConflict: 'date,item_key' }
+        );
+      }
+
+      if (navigator.vibrate) try { navigator.vibrate(8); } catch(_) {}
+      showMoveToast(kind === 'recipe' ? recipeName : 'Item', toMeal);
+    } catch (err) {
+      console.error('Move failed:', err);
+      alert('Verschieben fehlgeschlagen. Lade neu...');
+      loadDay();
+    }
+  }
+
+  function showMoveToast(name, toMeal) {
+    const existing = document.getElementById('dndToast');
+    if (existing) existing.remove();
+    const t = document.createElement('div');
+    t.id = 'dndToast';
+    t.className = 'dnd-toast';
+    const label = (typeof LABELS !== 'undefined' && LABELS[toMeal]) || toMeal;
+    t.innerHTML = `<i class="fas fa-arrow-right-long"></i> Moved to <strong>${label}</strong>`;
+    document.body.appendChild(t);
+    requestAnimationFrame(() => t.classList.add('show'));
+    setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 2200);
+  }
+
+  document.addEventListener('pointerdown', onDown);
+})();
 
 /* ──────────────────────────────────────────────────────────
    PWA · Service Worker registration
