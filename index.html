@@ -734,6 +734,8 @@ body.is-dragging .meal-card-empty { display: block; }
 .recipe-section-count { font-size: .7rem; color: var(--muted); background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 1px 8px; }
 .recipe-section-chevron { font-size: .65rem; color: var(--muted); transition: transform .2s; }
 .recipe-section-chevron.collapsed { transform: rotate(-90deg); }
+.recipe-collapse-btn { font-size: .72rem; color: var(--muted); background: none; border: none; cursor: pointer; padding: 4px 2px 8px; display: block; margin-left: auto; }
+.recipe-collapse-btn:hover { color: var(--text); }
 
 /* ════════════════════════════════════════════════════════
    MODALS (iOS sheet style)
@@ -1579,6 +1581,7 @@ body.dnd-active {
         <input type="text" id="recipeSearch" placeholder="Search recipes & ingredients…" oninput="renderRecipeManage()">
       </div>
       <div class="cat-filter-row" id="catFilterRow"></div>
+      <div id="recipeSectionControls"></div>
       <div id="recipeManageList"></div>
     </div>
   </section>
@@ -1755,7 +1758,7 @@ body.dnd-active {
         </div>
       </div>
 
-      <div class="version-footer">FDDB · Check · v2.28</div>
+      <div class="version-footer">FDDB · Check · v2.29</div>
     </div>
   </section>
 
@@ -3129,6 +3132,12 @@ function renderRecipeManage() {
     const uncategorized = filtered.filter(r => !r.catIds || r.catIds.length === 0);
     if (uncategorized.length) groups.push({ key: '__none__', label: 'Keine Kategorie', recipes: uncategorized });
 
+    const allCollapsed = groups.every(g => collapsedSections.has(g.key));
+    const ctrl = document.getElementById('recipeSectionControls');
+    if (ctrl) {
+      ctrl.innerHTML = `<button class="recipe-collapse-btn" onclick="toggleAllSections(${JSON.stringify(groups.map(g => g.key))}, ${allCollapsed})">${allCollapsed ? 'Expand all' : 'Collapse all'}</button>`;
+    }
+
     groups.forEach(group => {
       const isCollapsed = collapsedSections.has(group.key);
       const header = document.createElement('div');
@@ -3142,11 +3151,18 @@ function renderRecipeManage() {
       if (!isCollapsed) group.recipes.forEach(r => el.appendChild(makeCard(r, false)));
     });
   } else {
+    const ctrl = document.getElementById('recipeSectionControls');
+    if (ctrl) ctrl.innerHTML = '';
     filtered.forEach(recipe => el.appendChild(makeCard(recipe, true)));
   }
 }
 function toggleSection(key) {
   collapsedSections.has(key) ? collapsedSections.delete(key) : collapsedSections.add(key);
+  renderRecipeManage();
+}
+function toggleAllSections(keys, expand) {
+  if (expand) keys.forEach(k => collapsedSections.delete(k));
+  else keys.forEach(k => collapsedSections.add(k));
   renderRecipeManage();
 }
 function setFilterCat(id) { activeFilterCat = id; renderRecipeManage(); }
