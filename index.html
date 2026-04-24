@@ -726,6 +726,14 @@ body.is-dragging .meal-card-empty { display: block; }
 }
 .empty-recipes { text-align: center; padding: 50px 20px; color: var(--muted); }
 .empty-recipes i { font-size: 2.5rem; color: rgba(255,255,255,.08); display: block; margin-bottom: 14px; }
+.recipe-section-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 14px 2px 6px; cursor: pointer; user-select: none;
+}
+.recipe-section-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; flex: 1; }
+.recipe-section-count { font-size: .7rem; color: var(--muted); background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 1px 8px; }
+.recipe-section-chevron { font-size: .65rem; color: var(--muted); transition: transform .2s; }
+.recipe-section-chevron.collapsed { transform: rotate(-90deg); }
 
 /* ════════════════════════════════════════════════════════
    MODALS (iOS sheet style)
@@ -1972,6 +1980,7 @@ let allRecipes = [];
 let allCategories = [];
 let allUnits = [];
 let activeFilterCat = null;
+let collapsedSections = new Set();
 let currentDayEntries = [];
 let currentCheckedMap = {};
 let currentDate = '';
@@ -3089,7 +3098,8 @@ function renderRecipeManage() {
   if (!allRecipes.length) { el.innerHTML = '<div class="empty-recipes"><i class="fas fa-book-open"></i>No recipes created yet</div>'; return; }
   if (!filtered.length) { el.innerHTML = '<div class="empty-recipes"><i class="fas fa-search"></i>No recipes found</div>'; return; }
   el.innerHTML = '';
-  filtered.forEach(recipe => {
+
+  const makeCard = (recipe, showCatTags) => {
     const catNames = recipe.catIds.map(id => allCategories.find(c => c.id === id)?.name).filter(Boolean);
     const card = document.createElement('div');
     card.className = 'recipe-manage-card';
@@ -3097,7 +3107,7 @@ function renderRecipeManage() {
       <div class="recipe-manage-header" onclick="this.closest('.recipe-manage-card').classList.toggle('open')">
         <div style="flex:1;min-width:0">
           <div class="recipe-manage-name">${recipe.name}</div>
-          ${catNames.length ? `<div class="recipe-cat-tags">${catNames.map(n=>`<span class="recipe-cat-tag">${n}</span>`).join('')}</div>` : ''}
+          ${showCatTags && catNames.length ? `<div class="recipe-cat-tags">${catNames.map(n=>`<span class="recipe-cat-tag">${n}</span>`).join('')}</div>` : ''}
         </div>
         <div class="recipe-manage-count">${recipe.items.length} · ${recipe.servings}×</div>
         <div class="recipe-manage-actions">
@@ -3109,8 +3119,35 @@ function renderRecipeManage() {
       <div class="recipe-manage-items">
         ${[...recipe.items].sort((a,b) => stripAmount(a).localeCompare(stripAmount(b))).map(n => `<div class="manage-ingredient"><i class="fas fa-circle" style="font-size:.4rem;color:var(--accent);margin-right:7px;vertical-align:middle"></i>${n}</div>`).join('')}
       </div>`;
-    el.appendChild(card);
-  });
+    return card;
+  };
+
+  if (activeFilterCat === null && !query) {
+    const groups = allCategories
+      .map(cat => ({ key: cat.id, label: cat.name, recipes: filtered.filter(r => r.catIds.includes(cat.id)) }))
+      .filter(g => g.recipes.length > 0);
+    const uncategorized = filtered.filter(r => !r.catIds || r.catIds.length === 0);
+    if (uncategorized.length) groups.push({ key: '__none__', label: 'Keine Kategorie', recipes: uncategorized });
+
+    groups.forEach(group => {
+      const isCollapsed = collapsedSections.has(group.key);
+      const header = document.createElement('div');
+      header.className = 'recipe-section-header';
+      header.innerHTML = `
+        <span class="recipe-section-title">${group.label}</span>
+        <span class="recipe-section-count">${group.recipes.length}</span>
+        <i class="fas fa-chevron-down recipe-section-chevron${isCollapsed ? ' collapsed' : ''}"></i>`;
+      header.onclick = () => toggleSection(group.key);
+      el.appendChild(header);
+      if (!isCollapsed) group.recipes.forEach(r => el.appendChild(makeCard(r, false)));
+    });
+  } else {
+    filtered.forEach(recipe => el.appendChild(makeCard(recipe, true)));
+  }
+}
+function toggleSection(key) {
+  collapsedSections.has(key) ? collapsedSections.delete(key) : collapsedSections.add(key);
+  renderRecipeManage();
 }
 function setFilterCat(id) { activeFilterCat = id; renderRecipeManage(); }
 async function duplicateRecipe(id) {
