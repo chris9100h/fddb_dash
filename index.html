@@ -734,8 +734,13 @@ body.is-dragging .meal-card-empty { display: block; }
 .recipe-section-count { font-size: .7rem; color: var(--muted); background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 1px 8px; }
 .recipe-section-chevron { font-size: .65rem; color: var(--muted); transition: transform .2s; }
 .recipe-section-chevron.collapsed { transform: rotate(-90deg); }
-.recipe-collapse-btn { font-size: .72rem; color: var(--muted); background: none; border: none; cursor: pointer; padding: 4px 2px 8px; display: block; margin-left: auto; }
-.recipe-collapse-btn:hover { color: var(--text); }
+#recipeSectionControls { display: flex; justify-content: flex-end; padding: 6px 0 2px; }
+.recipe-collapse-btn {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 99px; padding: 7px 14px; font-size: .8rem;
+  color: var(--text-dim); cursor: pointer; transition: all .15s; display: flex; align-items: center; gap: 6px;
+}
+.recipe-collapse-btn:hover { border-color: var(--border-strong); color: var(--text); }
 
 /* ════════════════════════════════════════════════════════
    MODALS (iOS sheet style)
@@ -1758,7 +1763,7 @@ body.dnd-active {
         </div>
       </div>
 
-      <div class="version-footer">FDDB · Check · v2.30</div>
+      <div class="version-footer">FDDB · Check · v2.31</div>
     </div>
   </section>
 
@@ -1984,6 +1989,7 @@ let allCategories = [];
 let allUnits = [];
 let activeFilterCat = null;
 let collapsedSections = new Set();
+let _currentGroupKeys = [];
 let currentDayEntries = [];
 let currentCheckedMap = {};
 let currentDate = '';
@@ -3132,10 +3138,11 @@ function renderRecipeManage() {
     const uncategorized = filtered.filter(r => !r.catIds || r.catIds.length === 0);
     if (uncategorized.length) groups.push({ key: '__none__', label: 'Keine Kategorie', recipes: uncategorized });
 
+    _currentGroupKeys = groups.map(g => g.key);
     const allCollapsed = groups.every(g => collapsedSections.has(g.key));
     const ctrl = document.getElementById('recipeSectionControls');
     if (ctrl) {
-      ctrl.innerHTML = `<button class="recipe-collapse-btn" onclick="toggleAllSections(${JSON.stringify(groups.map(g => g.key))}, ${allCollapsed})">${allCollapsed ? 'Expand all' : 'Collapse all'}</button>`;
+      ctrl.innerHTML = `<button class="recipe-collapse-btn" onclick="toggleAllSections(${allCollapsed})"><i class="fas fa-angles-${allCollapsed ? 'down' : 'up'}"></i>${allCollapsed ? 'Expand all' : 'Collapse all'}</button>`;
     }
 
     groups.forEach(group => {
@@ -3160,9 +3167,9 @@ function toggleSection(key) {
   collapsedSections.has(key) ? collapsedSections.delete(key) : collapsedSections.add(key);
   renderRecipeManage();
 }
-function toggleAllSections(keys, expand) {
-  if (expand) keys.forEach(k => collapsedSections.delete(k));
-  else keys.forEach(k => collapsedSections.add(k));
+function toggleAllSections(expand) {
+  if (expand) _currentGroupKeys.forEach(k => collapsedSections.delete(k));
+  else _currentGroupKeys.forEach(k => collapsedSections.add(k));
   renderRecipeManage();
 }
 function setFilterCat(id) { activeFilterCat = id; renderRecipeManage(); }
