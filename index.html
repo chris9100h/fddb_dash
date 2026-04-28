@@ -150,7 +150,7 @@ body {
   flex-shrink: 0;
   align-self: center;
 }
-#viewStats .large-header-row { margin-bottom: 0; }
+#viewStats .large-header-row { margin-bottom: 0; align-items: center; }
 .header-streak-fire { color: var(--accent); font-size: 1.05rem; }
 .header-streak-body { display: flex; flex-direction: column; }
 .header-streak-num {
@@ -158,8 +158,6 @@ body {
   color: var(--text); display: inline-flex; align-items: baseline; gap: 5px;
 }
 .header-streak-unit { font-size: .7rem; color: var(--text-dim); font-family: 'DM Sans', sans-serif; font-weight: 500; letter-spacing: 0; }
-.header-streak-lbl { font-size: .58rem; letter-spacing: .13em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin-top: 1px; }
-
 .pill-btn {
   width: 38px; height: 38px; border-radius: 12px;
   background: var(--surface); border: 1px solid var(--border);
@@ -1621,7 +1619,6 @@ body.dnd-active {
           <div class="header-streak-fire"><i class="fas fa-fire"></i></div>
           <div class="header-streak-body">
             <div class="header-streak-num"><span id="streakCurrent">0</span><span class="header-streak-unit">d</span></div>
-            <div class="header-streak-lbl">streak</div>
           </div>
           <span id="streakRecord" style="display:none"></span>
           <span id="streakCountedDays" style="display:none"></span>
@@ -1767,7 +1764,7 @@ body.dnd-active {
         </div>
       </div>
 
-      <div class="version-footer">FDDB · Check · v2.33</div>
+      <div class="version-footer">FDDB · Check · v2.34</div>
     </div>
   </section>
 
