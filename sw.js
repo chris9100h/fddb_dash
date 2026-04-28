@@ -7,13 +7,19 @@
    - GitHub API calls: network-only too.
    Bump CACHE_VERSION whenever shell assets change so old caches get purged. */
 
-const CACHE_VERSION = 'v39';
+const CACHE_VERSION = 'v41';
 const CACHE_NAME = `fddb-dash-${CACHE_VERSION}`;
 
 // Pre-cache these at install so the first offline launch works fully.
 const SHELL_ASSETS = [
   './',
   './index.html',
+  './style.css',
+  './js/config.js',
+  './js/ui.js',
+  './js/data.js',
+  './js/actions.js',
+  './js/app.js',
   './icon-180.png',
   './icon-192.png',
   './icon-512.png',
