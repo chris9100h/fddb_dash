@@ -1463,6 +1463,15 @@ body.dnd-active {
   transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
 }
 
+.dnd-drop-line {
+  height: 2px;
+  background: var(--accent, #ff6b00);
+  border-radius: 999px;
+  margin: 1px 0;
+  box-shadow: 0 0 8px rgba(255,107,0,.5);
+  pointer-events: none;
+}
+
 .dnd-toast {
   position: fixed;
   bottom: calc(env(safe-area-inset-bottom, 0px) + 90px);

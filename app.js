@@ -885,7 +885,11 @@ function renderDashboard(entries) {
   });
 
   sorted.forEach((meal, mi) => {
-    const items = grouped[meal] || [];
+    const items = (grouped[meal] || []).slice().sort((a, b) => {
+      const ao = a.sort_order ?? Infinity;
+      const bo = b.sort_order ?? Infinity;
+      return ao - bo;
+    });
     const isEmpty = items.length === 0;
     const mealKcal = items.reduce((s,i) => s+(i.kcal||0), 0);
     const card = document.createElement('div');
@@ -2467,6 +2471,25 @@ initTweaks();
     return null;
   }
 
+  function updateSameMealDropTarget(x, y, card) {
+    const rows = [...card.querySelectorAll('[data-drag-kind]')].filter(r => r !== state.src);
+    let insertBefore = null;
+    for (const row of rows) {
+      const rect = row.getBoundingClientRect();
+      if (y < rect.top + rect.height / 2) { insertBefore = row; break; }
+    }
+    if (insertBefore === state.dropInsertBefore && state.dropLine && state.dropLine.parentElement) return;
+    state.dropInsertBefore = insertBefore;
+    if (!state.dropLine) {
+      state.dropLine = document.createElement('div');
+      state.dropLine.className = 'dnd-drop-line';
+    }
+    const list = card.querySelector('.items-list');
+    if (!list) return;
+    if (insertBefore) list.insertBefore(state.dropLine, insertBefore);
+    else list.appendChild(state.dropLine);
+  }
+
   function cancelDrag(restore = true) {
     if (!state) return;
     const wasStarted = state.started;
@@ -2475,6 +2498,7 @@ initTweaks();
     document.removeEventListener('pointercancel', onUp);
     clearTimeout(state.pressTimer);
     if (state.ghost) state.ghost.remove();
+    if (state.dropLine) state.dropLine.remove();
     if (state.src && restore) state.src.classList.remove('dnd-source');
     document.querySelectorAll('.meal-card.dnd-hover').forEach(c => c.classList.remove('dnd-hover'));
     state = null;
@@ -2537,6 +2561,8 @@ initTweaks();
       pressTimer: null,
       ghost: null,
       dropCard: null,
+      dropLine: null,
+      dropInsertBefore: undefined,
     };
 
     document.addEventListener('pointermove', onMove, { passive: false });
@@ -2578,10 +2604,17 @@ initTweaks();
     moveGhost(ev.clientX, ev.clientY);
 
     const card = findMealCardAtPoint(ev.clientX, ev.clientY);
-    if (card !== state.dropCard) {
+    if (card && card.dataset.meal === state.src.dataset.meal) {
       document.querySelectorAll('.meal-card.dnd-hover').forEach(c => c.classList.remove('dnd-hover'));
       state.dropCard = card;
-      if (card && card.dataset.meal !== state.src.dataset.meal) card.classList.add('dnd-hover');
+      updateSameMealDropTarget(ev.clientX, ev.clientY, card);
+    } else {
+      if (state.dropLine) { state.dropLine.remove(); state.dropLine = null; state.dropInsertBefore = undefined; }
+      if (card !== state.dropCard) {
+        document.querySelectorAll('.meal-card.dnd-hover').forEach(c => c.classList.remove('dnd-hover'));
+        state.dropCard = card;
+        if (card) card.classList.add('dnd-hover');
+      }
     }
 
     const EDGE = 70, vh = window.innerHeight;
@@ -2626,13 +2659,28 @@ initTweaks();
       const kind = src.dataset.dragKind;
       const recipeName = src.dataset.recipeName;
 
-      // Swallow click that follows the pointerup
       const swallow = e => { e.stopPropagation(); e.preventDefault(); };
       document.addEventListener('click', swallow, { capture: true, once: true });
       setTimeout(() => document.removeEventListener('click', swallow, { capture: true }), 80);
 
       cancelDrag(false);
       await moveEntries({ ids, fromMeal: src.dataset.meal, toMeal: newMeal, kind, oldKeys, recipeName });
+    } else if (dropCard && dropCard.dataset.meal === src.dataset.meal) {
+      const capturedInsertBefore = state.dropInsertBefore;
+      const capturedCard = dropCard;
+      const meal = dropCard.dataset.meal;
+
+      ghost.style.transition = 'opacity .15s ease';
+      ghost.style.opacity = '0';
+
+      const swallow = e => { e.stopPropagation(); e.preventDefault(); };
+      document.addEventListener('click', swallow, { capture: true, once: true });
+      setTimeout(() => document.removeEventListener('click', swallow, { capture: true }), 80);
+
+      setTimeout(() => {
+        cancelDrag(true);
+        reorderEntries({ srcEl: src, insertBefore: capturedInsertBefore, mealCard: capturedCard, meal });
+      }, 150);
     } else {
       ghost.style.transition = 'transform .22s cubic-bezier(.4,1.4,.5,1), opacity .22s';
       ghost.style.transform = 'translate(0,0) scale(1)';
@@ -2684,6 +2732,44 @@ initTweaks();
     } catch (err) {
       console.error('Move failed:', err);
       alert('Verschieben fehlgeschlagen. Lade neu...');
+      loadDay();
+    }
+  }
+
+  async function reorderEntries({ srcEl, insertBefore, mealCard, meal }) {
+    const allRows = [...mealCard.querySelectorAll('[data-drag-kind]')];
+    const otherRows = allRows.filter(r => r !== srcEl);
+    let insertIdx;
+    if (insertBefore) {
+      const idx = otherRows.indexOf(insertBefore);
+      insertIdx = idx >= 0 ? idx : otherRows.length;
+    } else {
+      insertIdx = otherRows.length;
+    }
+    const newOrder = [...otherRows.slice(0, insertIdx), srcEl, ...otherRows.slice(insertIdx)];
+
+    newOrder.forEach((row, sortOrder) => {
+      row.dataset.entryIds.split(',').map(s => s.trim()).filter(Boolean).forEach(id => {
+        const entry = currentDayEntries.find(e => String(e.id) === id);
+        if (entry) entry.sort_order = sortOrder;
+      });
+    });
+
+    renderDashboard(currentDayEntries);
+
+    try {
+      const updates = newOrder.flatMap((row, sortOrder) =>
+        row.dataset.entryIds.split(',').map(s => s.trim()).filter(Boolean).map(id =>
+          db.from('fddb_daily_macros').update({ sort_order: sortOrder }).eq('id', id)
+        )
+      );
+      const results = await Promise.all(updates);
+      const failed = results.find(r => r.error);
+      if (failed) throw failed.error;
+      if (settings.haptics) { try { _safariPulse(1, 0); } catch(_){} if (navigator.vibrate) try { navigator.vibrate(8); } catch(_) {} }
+    } catch (err) {
+      console.error('Reorder failed:', err);
+      alert('Umsortieren fehlgeschlagen. Lade neu...');
       loadDay();
     }
   }
