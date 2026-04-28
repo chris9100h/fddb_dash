@@ -141,6 +141,23 @@ body {
   color: var(--text);
 }
 .header-actions { display: flex; gap: 8px; }
+.header-streak {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 13px;
+  background: linear-gradient(135deg, rgba(255,138,64,.14), rgba(255,92,64,.07));
+  border: 1px solid rgba(255,138,64,.30);
+  border-radius: 16px;
+  flex-shrink: 0;
+}
+.header-streak-fire { color: var(--accent); font-size: 1.05rem; }
+.header-streak-body { display: flex; flex-direction: column; }
+.header-streak-num {
+  font-family: 'Bebas Neue', sans-serif; font-size: 1.75rem; line-height: 1;
+  color: var(--text); display: inline-flex; align-items: baseline; gap: 5px;
+}
+.header-streak-unit { font-size: .7rem; color: var(--text-dim); font-family: 'DM Sans', sans-serif; font-weight: 500; letter-spacing: 0; }
+.header-streak-lbl { font-size: .58rem; letter-spacing: .13em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin-top: 1px; }
+.header-streak-record { font-size: .58rem; color: var(--muted); font-weight: 500; margin-top: 1px; }
 
 .pill-btn {
   width: 38px; height: 38px; border-radius: 12px;
@@ -1599,6 +1616,15 @@ body.dnd-active {
           <div class="eyebrow">Insights</div>
           <h1 class="large-title">Stats</h1>
         </div>
+        <div class="header-streak" id="streakCard">
+          <div class="header-streak-fire"><i class="fas fa-fire"></i></div>
+          <div class="header-streak-body">
+            <div class="header-streak-num"><span id="streakCurrent">0</span><span class="header-streak-unit">d</span></div>
+            <div class="header-streak-lbl">streak</div>
+            <div class="header-streak-record">record <span id="streakRecord">0</span>d · <span id="streakCountedDays">0</span> counted</div>
+          </div>
+          <span id="streakGoalHint" style="display:none"></span>
+        </div>
       </div>
     </header>
     <div class="page-content">
@@ -1628,30 +1654,6 @@ body.dnd-active {
       </div>
 
       <div id="statsContent" style="display:none;flex-direction:column;gap:14px">
-        <!-- ── Streak Card ── -->
-        <div class="streak-card" id="streakCard">
-          <div class="streak-main">
-            <div class="streak-icon"><i class="fas fa-fire"></i></div>
-            <div class="streak-nums">
-              <div class="streak-current"><span id="streakCurrent">0</span><span class="streak-unit">days</span></div>
-              <div class="streak-label">Current streak</div>
-              <div class="streak-meta-desc">consecutive days on goal<br><span id="streakGoalHint"></span></div>
-            </div>
-          </div>
-          <div class="streak-meta">
-            <div class="streak-meta-item">
-              <div class="streak-meta-val" id="streakRecord">0</div>
-              <div class="streak-meta-lbl">Record</div>
-              <div class="streak-meta-desc">longest streak<br>ever</div>
-            </div>
-            <div class="streak-meta-item">
-              <div class="streak-meta-val" id="streakCountedDays">0</div>
-              <div class="streak-meta-lbl">Total counted</div>
-              <div class="streak-meta-desc">days logged<br>within goal</div>
-            </div>
-          </div>
-        </div>
-
         <div class="stats-summary-grid" id="statsSummary"></div>
 
         <div class="chart-card">
