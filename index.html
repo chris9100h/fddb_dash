@@ -694,7 +694,6 @@ body.is-dragging .meal-card-empty { display: block; }
 .search-bar input:focus { border-color: var(--accent); }
 .search-bar input::placeholder { color: var(--muted); }
 
-.cat-filter-row { display: flex; flex-wrap: wrap; gap: 6px; }
 .cat-chip {
   background: var(--surface); border: 1px solid var(--border);
   border-radius: 99px; padding: 7px 14px; font-size: .8rem;
@@ -702,6 +701,44 @@ body.is-dragging .meal-card-empty { display: block; }
 }
 .cat-chip:hover { border-color: var(--border-strong); color: var(--text); }
 .cat-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+.cat-dropdown { position: relative; }
+.cat-dropdown-trigger {
+  width: 100%; display: flex; align-items: center; gap: 10px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 11px 15px; font-size: .85rem;
+  color: var(--text-dim); cursor: pointer; transition: all .18s; text-align: left;
+}
+.cat-dropdown-trigger:hover { border-color: var(--border-strong); color: var(--text); }
+.cat-dropdown-trigger.filtered {
+  border-color: var(--accent);
+  background: linear-gradient(135deg, rgba(255,138,64,.10), rgba(255,92,64,.05));
+  color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(255,138,64,.2), 0 4px 12px -2px rgba(255,138,64,.15);
+}
+.cat-dropdown-trigger.filtered .cat-dropdown-icon { color: var(--accent); }
+.cat-dropdown-icon { font-size: .85rem; color: var(--muted); flex-shrink: 0; transition: color .18s; }
+.cat-dropdown-label { flex: 1; font-weight: 500; }
+.cat-dropdown-arrow { font-size: .6rem; color: var(--muted); transition: transform .18s; }
+.cat-dropdown.open .cat-dropdown-arrow { transform: rotate(180deg); }
+.cat-dropdown-menu {
+  display: none; position: absolute; top: calc(100% + 6px); left: 0; right: 0;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 14px; padding: 5px; z-index: 200;
+  box-shadow: 0 10px 30px -4px rgba(0,0,0,.55);
+}
+.cat-dropdown.open .cat-dropdown-menu { display: block; }
+.cat-dropdown-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 9px 11px; border-radius: 9px; font-size: .83rem;
+  color: var(--text-dim); cursor: pointer; transition: background .1s, color .1s;
+}
+.cat-dropdown-item:hover { background: var(--surface-2); color: var(--text); }
+.cat-dropdown-item.active { color: var(--accent); font-weight: 600; }
+.cat-dropdown-item.active::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent); flex-shrink: 0; margin-left: 2px;
+}
+.cat-dropdown-divider { height: 1px; background: var(--border); margin: 4px 3px; }
 
 .recipe-manage-card {
   background: var(--surface); border: 1px solid var(--border);
@@ -1601,7 +1638,14 @@ body.dnd-active {
         <i class="fas fa-search"></i>
         <input type="text" id="recipeSearch" placeholder="Search recipes & ingredients…" oninput="renderRecipeManage()">
       </div>
-      <div class="cat-filter-row" id="catFilterRow"></div>
+      <div class="cat-dropdown" id="catDropdown">
+        <button class="cat-dropdown-trigger" id="catDropdownTrigger" onclick="toggleCatDropdown(event)">
+          <i class="fas fa-filter cat-dropdown-icon"></i>
+          <span class="cat-dropdown-label" id="catDropdownLabel">All categories</span>
+          <i class="fas fa-chevron-down cat-dropdown-arrow"></i>
+        </button>
+        <div class="cat-dropdown-menu" id="catFilterRow"></div>
+      </div>
       <div id="recipeSectionControls"></div>
       <div id="recipeManageList"></div>
     </div>
@@ -1764,7 +1808,7 @@ body.dnd-active {
         </div>
       </div>
 
-      <div class="version-footer">FDDB · Check · v2.34</div>
+      <div class="version-footer">FDDB · Check · v2.35</div>
     </div>
   </section>
 
@@ -3091,11 +3135,18 @@ function renderRecipeManage() {
   const filterRow = document.getElementById('catFilterRow');
   if (filterRow) {
     filterRow.innerHTML = [
-      `<div class="cat-chip${activeFilterCat===null?' active':''}" onclick="setFilterCat(null)">All</div>`,
-      `<div class="cat-chip${activeFilterCat==='__none__'?' active':''}" onclick="setFilterCat('__none__')">None</div>`,
-      ...allCategories.map(c => `<div class="cat-chip${activeFilterCat===c.id?' active':''}" onclick="setFilterCat('${c.id}')">${c.name}</div>`),
-      `<div class="cat-chip" style="background:rgba(94,166,255,.08);border-color:rgba(94,166,255,.3);color:var(--blue);font-size:.72rem" onclick="manageCategoriesPrompt()"><i class="fas fa-tags"></i> + Category</div>`
+      `<div class="cat-dropdown-item${activeFilterCat===null?' active':''}" onclick="setFilterCat(null);closeCatDropdown()">All categories</div>`,
+      `<div class="cat-dropdown-item${activeFilterCat==='__none__'?' active':''}" onclick="setFilterCat('__none__');closeCatDropdown()">No category</div>`,
+      ...allCategories.map(c => `<div class="cat-dropdown-item${activeFilterCat===c.id?' active':''}" onclick="setFilterCat('${c.id}');closeCatDropdown()">${c.name}</div>`),
+      `<div class="cat-dropdown-divider"></div>`,
+      `<div class="cat-dropdown-item" style="color:var(--blue)" onclick="manageCategoriesPrompt();closeCatDropdown()"><i class="fas fa-tags"></i> Manage categories</div>`
     ].join('');
+    const label = activeFilterCat === null ? 'All categories'
+      : activeFilterCat === '__none__' ? 'No category'
+      : (allCategories.find(c => c.id === activeFilterCat)?.name ?? 'All categories');
+    const trigger = document.getElementById('catDropdownTrigger');
+    document.getElementById('catDropdownLabel').textContent = label;
+    if (trigger) trigger.classList.toggle('filtered', activeFilterCat !== null);
   }
   const filtered = [...allRecipes].sort((a, b) => a.name.localeCompare(b.name, 'de'))
     .filter(r => {
@@ -3174,6 +3225,16 @@ function toggleAllSections(expand) {
   renderRecipeManage();
 }
 function setFilterCat(id) { activeFilterCat = id; renderRecipeManage(); }
+function toggleCatDropdown(e) {
+  e.stopPropagation();
+  document.getElementById('catDropdown').classList.toggle('open');
+}
+function closeCatDropdown() {
+  document.getElementById('catDropdown')?.classList.remove('open');
+}
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#catDropdown')) closeCatDropdown();
+});
 async function duplicateRecipe(id) {
   const recipe = allRecipes.find(r => r.id === id);
   if (!recipe) return;
