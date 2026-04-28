@@ -1825,7 +1825,7 @@ body.dnd-active {
         </div>
       </div>
 
-      <div class="version-footer">FDDB · Check · v2.36</div>
+      <div class="version-footer">FDDB · Check · v2.37</div>
     </div>
   </section>
 
@@ -3449,6 +3449,13 @@ function saveDraftFromInputs() {
   targetsDraft[targetsEditType] = { kcal, p, c, f };
 }
 function switchTargetsType(type) { saveDraftFromInputs(); targetsEditType = type; renderTargetsModal(); }
+function recalcTargetsKcal() {
+  const p = parseFloat(document.getElementById('t_p')?.value) || 0;
+  const c = parseFloat(document.getElementById('t_c')?.value) || 0;
+  const f = parseFloat(document.getElementById('t_f')?.value) || 0;
+  const kcalEl = document.getElementById('t_kcal');
+  if (kcalEl) kcalEl.value = Math.round(p * 4 + c * 4 + f * 9);
+}
 function renderTargetsModal() {
   const t = targetsDraft[targetsEditType];
   const hist = targetsHistory.filter(r => r.type === targetsEditType).slice(0, 5);
@@ -3459,14 +3466,14 @@ function renderTargetsModal() {
       <div class="add-tab${targetsEditType==='rest'?' active':''}" style="flex:1;text-align:center;cursor:pointer" onclick="switchTargetsType('rest')"><i class="fas fa-bed"></i> Rest</div>
     </div>
     ${[
-      { id:'t_kcal', label:'Calories (kcal)', val: t.kcal, color:'var(--orange)' },
-      { id:'t_p', label:'Protein (g)', val: t.p, color:'var(--blue)' },
-      { id:'t_c', label:'Carbs (g)', val: t.c, color:'var(--yellow)' },
-      { id:'t_f', label:'Fat (g)', val: t.f, color:'var(--red)' },
+      { id:'t_kcal', label:'Calories (kcal)', val: t.kcal, color:'var(--orange)', ro: true },
+      { id:'t_p',    label:'Protein (g)',     val: t.p,    color:'var(--blue)'   },
+      { id:'t_c',    label:'Carbs (g)',       val: t.c,    color:'var(--yellow)' },
+      { id:'t_f',    label:'Fat (g)',         val: t.f,    color:'var(--red)'    },
     ].map(f => `
       <div class="edit-section" style="margin-bottom:12px">
-        <div class="edit-section-title" style="color:${f.color}"><i class="fas fa-circle" style="font-size:.4rem"></i> ${f.label}</div>
-        <input class="text-input" id="${f.id}" type="number" min="0" value="${f.val}" style="margin-bottom:0">
+        <div class="edit-section-title" style="color:${f.color}"><i class="fas fa-circle" style="font-size:.4rem"></i> ${f.label}${f.ro ? ' <span style="font-size:.6rem;color:var(--muted);font-family:\'DM Sans\',sans-serif;font-weight:400;text-transform:none;letter-spacing:0">· auto</span>' : ''}</div>
+        <input class="text-input" id="${f.id}" type="number" min="0" value="${f.val}" style="margin-bottom:0${f.ro ? ';opacity:.55;cursor:default' : ''}" ${f.ro ? 'readonly' : 'oninput="recalcTargetsKcal()"'}>
       </div>`).join('')}
     ${hist.length > 1 ? `
       <div class="edit-divider"></div>
