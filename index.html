@@ -1825,7 +1825,7 @@ body.dnd-active {
         </div>
       </div>
 
-      <div class="version-footer">FDDB · Check · v2.37</div>
+      <div class="version-footer">FDDB · Check · v2.38</div>
     </div>
   </section>
 
@@ -2248,18 +2248,37 @@ function todayISO() {
    setting + browser support.
    ══════════════════════════════════════ */
 const HAPTIC_PATTERNS = {
-  check:        10,
-  uncheck:      5,
-  goalReached:  [20, 50, 20, 50, 80],
-  streakUp:     [10, 40, 10, 40, 10, 40, 100],
-  error:        [100, 50, 100],
+  check:       { v: 10,                           p: 1, d: 0   },
+  uncheck:     { v: 5,                            p: 1, d: 0   },
+  tap:         { v: null,                         p: 1, d: 0   },
+  goalReached: { v: [20, 50, 20, 50, 80],         p: 3, d: 80  },
+  streakUp:    { v: [10, 40, 10, 40, 10, 40, 100],p: 4, d: 70  },
+  error:       { v: [100, 50, 100],               p: 3, d: 100 },
 };
+
+/* Safari iOS 18+: toggling a [switch] checkbox triggers native haptic */
+let _hapticSwitch = null;
+function _safariPulse(n, delay) {
+  if (!_hapticSwitch) {
+    _hapticSwitch = document.createElement('input');
+    _hapticSwitch.type = 'checkbox';
+    _hapticSwitch.setAttribute('switch', '');
+    _hapticSwitch.style.cssText = 'position:fixed;opacity:0;pointer-events:none;width:0;height:0';
+    document.body.appendChild(_hapticSwitch);
+  }
+  if (n === 1) { _hapticSwitch.checked = !_hapticSwitch.checked; return; }
+  for (let i = 0; i < n; i++) {
+    setTimeout(() => { _hapticSwitch.checked = !_hapticSwitch.checked; }, i * delay);
+  }
+}
+
 function haptic(type) {
   if (!settings.haptics) return;
-  const pattern = HAPTIC_PATTERNS[type];
-  if (pattern == null) return;
+  const h = HAPTIC_PATTERNS[type];
+  if (!h) return;
   try {
-    if (navigator.vibrate) navigator.vibrate(pattern);
+    _safariPulse(h.p, h.d);
+    if (navigator.vibrate && h.v != null) navigator.vibrate(h.v);
   } catch (e) { /* ignore */ }
 }
 
@@ -4520,7 +4539,7 @@ initTweaks();
     state.started = true;
     document.body.classList.add('is-dragging');
 
-    if (navigator.vibrate) try { navigator.vibrate(12); } catch(_) {}
+    if (settings.haptics) { try { _safariPulse(1, 0); } catch(_){} if (navigator.vibrate) try { navigator.vibrate(12); } catch(_) {} }
     moveGhost(clientX, clientY);
   }
 
@@ -4689,7 +4708,7 @@ initTweaks();
         );
       }
 
-      if (navigator.vibrate) try { navigator.vibrate(8); } catch(_) {}
+      if (settings.haptics) { try { _safariPulse(1, 0); } catch(_){} if (navigator.vibrate) try { navigator.vibrate(8); } catch(_) {} }
       showMoveToast(kind === 'recipe' ? recipeName : 'Item', toMeal);
     } catch (err) {
       console.error('Move failed:', err);
