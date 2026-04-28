@@ -1825,7 +1825,7 @@ body.dnd-active {
         </div>
       </div>
 
-      <div class="version-footer">FDDB · Check · v2.38</div>
+      <div class="version-footer">FDDB · Check · v2.39</div>
     </div>
   </section>
 
@@ -2509,7 +2509,7 @@ async function loadDay() {
 
   currentDayType = dayTypeRes.data?.type || 'training';
   if (!dayTypeRes.data) {
-    db.from('fddb_day_type').upsert({ date: dateVal, type: 'training' }, { onConflict: 'date' });
+    await db.from('fddb_day_type').upsert({ date: dateVal, type: 'training' }, { onConflict: 'date' });
   }
   renderDayTypeToggle();
   renderDashboard(currentDayEntries);
