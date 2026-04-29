@@ -1094,8 +1094,7 @@ let creatorStep = 0, creatorMeal = null, creatorSelected = [], creatorIsTemplate
 function openCreator() {
   creatorStep = 0; creatorMeal = null; creatorSelected = []; creatorIsTemplate = false;
   document.getElementById('recipeNameInput').value = '';
-  const cb = document.getElementById('creatorIsTemplateCheck');
-  if (cb) cb.checked = false;
+  document.getElementById('creatorIsTemplateCheck')?.classList.remove('active');
   renderCreatorStep();
   document.getElementById('creatorOverlay').classList.add('open');
 }
@@ -1423,10 +1422,7 @@ function renderEditModal() {
     </div>
     <div class="edit-section">
       <div class="edit-section-title"><i class="fas fa-layer-group"></i> Template</div>
-      <label style="display:flex;align-items:center;gap:9px;cursor:pointer;margin-bottom:10px">
-        <input type="checkbox" id="editIsTemplateCheck" ${editIsTemplate ? 'checked' : ''} onchange="editIsTemplate=this.checked;renderEditModal()" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer">
-        <span style="font-size:.85rem;color:var(--text-dim)">Als Template markieren</span>
-      </label>
+      <div class="cat-chip${editIsTemplate ? ' active' : ''}" style="display:inline-flex;align-items:center;gap:6px;margin-bottom:10px" onclick="editIsTemplate=!editIsTemplate;renderEditModal()"><i class="fas fa-layer-group"></i>Als Template</div>
       ${editIsTemplate ? '' : (() => {
         const candidates = allRecipes
           .filter(r => r.isTemplate && r.id !== editTargetId)

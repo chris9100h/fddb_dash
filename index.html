@@ -330,7 +330,7 @@
         </div>
       </div>
 
-      <div class="version-footer">FDDB · Check · v2.45</div>
+      <div class="version-footer">FDDB · Check · v2.46</div>
     </div>
   </section>
 
@@ -454,10 +454,7 @@
         <div class="step-label">3 · Name</div>
         <div class="selected-summary" id="selectedSummary"></div>
         <input class="text-input" id="recipeNameInput" placeholder="Recipe name…" autocomplete="off">
-        <label style="display:flex;align-items:center;gap:9px;margin-top:14px;cursor:pointer">
-          <input type="checkbox" id="creatorIsTemplateCheck" onchange="creatorIsTemplate=this.checked" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer">
-          <span style="font-size:.85rem;color:var(--text-dim)"><i class="fas fa-layer-group" style="color:var(--accent);margin-right:4px"></i>Als Template markieren</span>
-        </label>
+        <div id="creatorIsTemplateCheck" class="cat-chip" style="margin-top:14px;display:inline-flex;align-items:center;gap:6px" onclick="creatorIsTemplate=!creatorIsTemplate;this.classList.toggle('active',creatorIsTemplate)"><i class="fas fa-layer-group"></i>Als Template</div>
       </div>
     </div>
     <div class="modal-footer">
