@@ -912,14 +912,24 @@ function renderDashboard(entries) {
 
     const remaining = items.map((item, idx) => ({ item, idx, used: false }));
     const renderBlocks = [];
-    const recipesByLength = [...allRecipes].sort((a,b) => b.items.length - a.items.length);
+    const recipeTemplateMap = new Map(allRecipes.map(r => [r.id, r]));
+    const recipesByLength = [...allRecipes].map(r => {
+      if (r.templateId) {
+        const tmpl = recipeTemplateMap.get(r.templateId);
+        if (tmpl) {
+          const effectiveItems = [...new Set([...tmpl.items, ...r.items])];
+          return { ...r, effectiveItems };
+        }
+      }
+      return { ...r, effectiveItems: r.items };
+    }).sort((a, b) => b.effectiveItems.length - a.effectiveItems.length);
 
     recipesByLength.forEach(recipe => {
-      if (recipe.items.length === 0) return;
+      if (recipe.effectiveItems.length === 0) return;
       const matchIndices = [];
       const workingPool = remaining.filter(r => !r.used);
       let allFound = true;
-      for (const rName of recipe.items) {
+      for (const rName of recipe.effectiveItems) {
         const found = workingPool.find(r => !matchIndices.includes(r.idx) && stripAmount(r.item.item_name) === rName);
         if (found) matchIndices.push(found.idx);
         else { allFound = false; break; }
@@ -1230,11 +1240,15 @@ function renderRecipeManage() {
   }
   const filtered = [...allRecipes].sort((a, b) => a.name.localeCompare(b.name, 'de'))
     .filter(r => {
+      if (r.templateId) return false;
       if (activeFilterCat === '__none__') {
         if (r.catIds && r.catIds.length > 0) return false;
       } else if (activeFilterCat && !r.catIds.includes(activeFilterCat)) return false;
       if (!query) return true;
-      return r.name.toLowerCase().includes(query) || r.items.some(i => i.toLowerCase().includes(query));
+      const matchesSelf = r.name.toLowerCase().includes(query) || r.items.some(i => i.toLowerCase().includes(query));
+      if (matchesSelf) return true;
+      const variants = allRecipes.filter(v => v.templateId === r.id);
+      return variants.some(v => v.name.toLowerCase().includes(query) || v.items.some(i => i.toLowerCase().includes(query)));
     });
   if (!allRecipes.length) { el.innerHTML = '<div class="empty-recipes"><i class="fas fa-book-open"></i>No recipes created yet</div>'; return; }
   if (!filtered.length) { el.innerHTML = '<div class="empty-recipes"><i class="fas fa-search"></i>No recipes found</div>'; return; }
@@ -1273,11 +1287,10 @@ function renderRecipeManage() {
   };
 
   if (activeFilterCat === null && !query) {
-    const topLevel = filtered.filter(r => !r.templateId);
     const groups = allCategories
-      .map(cat => ({ key: cat.id, label: cat.name, recipes: topLevel.filter(r => r.catIds.includes(cat.id)) }))
+      .map(cat => ({ key: cat.id, label: cat.name, recipes: filtered.filter(r => r.catIds.includes(cat.id)) }))
       .filter(g => g.recipes.length > 0);
-    const uncategorized = topLevel.filter(r => !r.catIds || r.catIds.length === 0);
+    const uncategorized = filtered.filter(r => !r.catIds || r.catIds.length === 0);
     if (uncategorized.length) groups.push({ key: '__none__', label: 'Keine Kategorie', recipes: uncategorized });
 
     _currentGroupKeys = groups.map(g => g.key);
