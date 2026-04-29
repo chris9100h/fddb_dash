@@ -1166,11 +1166,11 @@ function makeTemplateCard(template, variants, showCatTags) {
     const missing = template.items.filter(i => !v.items.includes(i));
     const diffLabel = extra.length > 0 ? `+${extra.length}` : (missing.length > 0 ? `-${missing.length}` : '=');
     const safeVName = v.name.replace(/'/g, "\\'");
-    const allItems = [...template.items, ...extra].sort((a, b) => stripAmount(a).localeCompare(stripAmount(b)));
-    const ingredientRows = allItems.map(n => {
-      const isExtra = extra.includes(n);
-      return `<div class="manage-ingredient"><i class="fas fa-circle" style="font-size:.4rem;color:${isExtra ? 'var(--accent)' : 'var(--muted)'};margin-right:7px;vertical-align:middle"></i>${n}</div>`;
-    }).join('');
+    const ingredientRows = extra.length
+      ? extra.sort((a, b) => stripAmount(a).localeCompare(stripAmount(b))).map(n =>
+          `<div class="manage-ingredient"><i class="fas fa-circle" style="font-size:.4rem;color:var(--accent);margin-right:7px;vertical-align:middle"></i>${n}</div>`
+        ).join('')
+      : `<div style="font-size:.8rem;color:var(--muted)">No extra ingredients</div>`;
     return `
       <div class="variant-row">
         <div class="variant-row-header">
