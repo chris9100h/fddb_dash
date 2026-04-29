@@ -386,7 +386,7 @@ function showView(id) {
 
 /* ── Load recipes ── */
 async function loadRecipes() {
-  const { data: recipes } = await db.from('fddb_recipes').select('id, name, servings').order('name');
+  const { data: recipes } = await db.from('fddb_recipes').select('id, name, servings, template_id').order('name');
   if (!recipes) return;
   const { data: items } = await db.from('fddb_recipe_items').select('recipe_id, item_name');
   const { data: rcats } = await db.from('fddb_recipe_categories').select('recipe_id, category_id');
@@ -397,6 +397,7 @@ async function loadRecipes() {
   buildStripRegex();
   allRecipes = (recipes || []).map(r => ({
     id: r.id, name: r.name, servings: r.servings || 1,
+    templateId: r.template_id || null,
     items: (items || []).filter(i => i.recipe_id === r.id).map(i => i.item_name),
     catIds: (rcats || []).filter(c => c.recipe_id === r.id).map(c => c.category_id),
   }));
@@ -1139,6 +1140,74 @@ async function creatorNext() {
   showToast(`Recipe "${name}" saved`, 'success');
 }
 
+/* ── Template card ── */
+function makeTemplateCard(template, variants, showCatTags) {
+  const catNames = template.catIds.map(id => allCategories.find(c => c.id === id)?.name).filter(Boolean);
+  const card = document.createElement('div');
+  card.className = 'template-card';
+  const baseItems = [...template.items].sort((a, b) => stripAmount(a).localeCompare(stripAmount(b)));
+  const variantRows = variants.map(v => {
+    const extra = v.items.filter(i => !template.items.includes(i));
+    const missing = template.items.filter(i => !v.items.includes(i));
+    const diffLabel = extra.length > 0 ? `+${extra.length}` : (missing.length > 0 ? `-${missing.length}` : '=');
+    const safeVName = v.name.replace(/'/g, "\\'");
+    return `
+      <div class="variant-row">
+        <div class="variant-row-main" onclick="openEditModal('${v.id}')">
+          <span class="variant-name">${v.name}</span>
+          <span class="variant-extra-badge">${diffLabel}</span>
+        </div>
+        <div class="variant-actions">
+          <button class="btn-icon-sm btn-dupe" onclick="event.stopPropagation(); duplicateRecipe('${v.id}')"><i class="fas fa-copy"></i></button>
+          <button class="btn-icon-sm btn-edit" onclick="event.stopPropagation(); openEditModal('${v.id}')"><i class="fas fa-pen"></i></button>
+          <button class="btn-icon-sm btn-delete" onclick="event.stopPropagation(); deleteRecipe('${v.id}', '${safeVName}')"><i class="fas fa-trash"></i></button>
+        </div>
+      </div>`;
+  }).join('');
+  const safeTName = template.name.replace(/'/g, "\\'");
+  card.innerHTML = `
+    <div class="template-header" onclick="this.closest('.template-card').classList.toggle('base-open')">
+      <div style="flex:1;min-width:0">
+        <div class="template-title">
+          <i class="fas fa-layer-group template-icon"></i>
+          <span class="recipe-manage-name">${template.name}</span>
+        </div>
+        ${showCatTags && catNames.length ? `<div class="recipe-cat-tags">${catNames.map(n => `<span class="recipe-cat-tag">${n}</span>`).join('')}</div>` : ''}
+      </div>
+      <span class="template-base-count">${template.items.length} Basis · ${variants.length} Var.</span>
+      <div class="recipe-manage-actions" onclick="event.stopPropagation()">
+        <button class="btn-icon-sm btn-edit" onclick="openEditModal('${template.id}')"><i class="fas fa-pen"></i></button>
+        <button class="btn-icon-sm btn-delete" onclick="deleteRecipe('${template.id}', '${safeTName}')"><i class="fas fa-trash"></i></button>
+      </div>
+      <i class="fas fa-chevron-down template-chevron"></i>
+    </div>
+    <div class="template-base-items">
+      ${baseItems.map(n => `<div class="manage-ingredient"><i class="fas fa-circle" style="font-size:.4rem;color:var(--muted);margin-right:7px;vertical-align:middle"></i>${n}</div>`).join('')}
+    </div>
+    <div class="template-variants">
+      ${variantRows}
+      <button class="btn-add-variant" onclick="addVariant('${template.id}')"><i class="fas fa-plus"></i> Variante hinzufügen</button>
+    </div>`;
+  return card;
+}
+
+async function addVariant(templateId) {
+  const template = allRecipes.find(r => r.id === templateId);
+  if (!template) return;
+  const newName = template.name + ' (Variante)';
+  const { data: newRecipe, error } = await db.from('fddb_recipes').insert({ name: newName, template_id: templateId }).select().single();
+  if (error) { showToast('Error: ' + error.message, 'error'); return; }
+  if (template.items.length > 0) {
+    await db.from('fddb_recipe_items').insert(template.items.map(item_name => ({ recipe_id: newRecipe.id, item_name })));
+  }
+  if (template.catIds?.length > 0) {
+    await db.from('fddb_recipe_categories').insert(template.catIds.map(category_id => ({ recipe_id: newRecipe.id, category_id })));
+  }
+  await loadRecipes(); renderRecipeManage();
+  showToast('Variante erstellt', 'success');
+  openEditModal(newRecipe.id);
+}
+
 /* ── Recipe manage ── */
 function renderRecipeManage() {
   const el = document.getElementById('recipeManageList');
@@ -1194,11 +1263,21 @@ function renderRecipeManage() {
     return card;
   };
 
+  const templateIds = new Set(allRecipes.filter(r => r.templateId).map(r => r.templateId));
+  const renderItem = (recipe, showCatTags) => {
+    if (templateIds.has(recipe.id)) {
+      const variants = allRecipes.filter(r => r.templateId === recipe.id);
+      return makeTemplateCard(recipe, variants, showCatTags);
+    }
+    return makeCard(recipe, showCatTags);
+  };
+
   if (activeFilterCat === null && !query) {
+    const topLevel = filtered.filter(r => !r.templateId);
     const groups = allCategories
-      .map(cat => ({ key: cat.id, label: cat.name, recipes: filtered.filter(r => r.catIds.includes(cat.id)) }))
+      .map(cat => ({ key: cat.id, label: cat.name, recipes: topLevel.filter(r => r.catIds.includes(cat.id)) }))
       .filter(g => g.recipes.length > 0);
-    const uncategorized = filtered.filter(r => !r.catIds || r.catIds.length === 0);
+    const uncategorized = topLevel.filter(r => !r.catIds || r.catIds.length === 0);
     if (uncategorized.length) groups.push({ key: '__none__', label: 'Keine Kategorie', recipes: uncategorized });
 
     _currentGroupKeys = groups.map(g => g.key);
@@ -1218,12 +1297,12 @@ function renderRecipeManage() {
         <i class="fas fa-chevron-down recipe-section-chevron${isCollapsed ? ' collapsed' : ''}"></i>`;
       header.onclick = () => toggleSection(group.key);
       el.appendChild(header);
-      if (!isCollapsed) group.recipes.forEach(r => el.appendChild(makeCard(r, false)));
+      if (!isCollapsed) group.recipes.forEach(r => el.appendChild(renderItem(r, false)));
     });
   } else {
     const ctrl = document.getElementById('recipeSectionControls');
     if (ctrl) ctrl.innerHTML = '';
-    filtered.forEach(recipe => el.appendChild(makeCard(recipe, true)));
+    filtered.forEach(recipe => el.appendChild(renderItem(recipe, true)));
   }
 }
 function toggleSection(key) {
@@ -1281,12 +1360,13 @@ function buildStripRegex() {
 function stripAmount(name) { return name.replace(stripRegex, '').trim(); }
 
 /* ── Edit Modal ── */
-let editTargetId = null, editName = '', editItems = [], editServings = 1, editCatIds = [], editAddTab = 'day';
+let editTargetId = null, editName = '', editItems = [], editServings = 1, editCatIds = [], editAddTab = 'day', editTemplateId = null;
 function openEditModal(id) {
   const recipe = allRecipes.find(r => r.id === id);
   if (!recipe) return;
   editTargetId = id; editName = recipe.name; editItems = [...recipe.items];
   editServings = recipe.servings || 1; editCatIds = [...(recipe.catIds || [])]; editAddTab = 'day';
+  editTemplateId = recipe.templateId || null;
   document.getElementById('editOverlay').classList.add('open');
   renderEditModal();
 }
@@ -1321,6 +1401,22 @@ function renderEditModal() {
           ? `<span style="font-size:.8rem;color:var(--muted)">No categories yet.</span>`
           : allCategories.map(c => `<div class="cat-chip${editCatIds.includes(c.id)?' active':''}" onclick="toggleEditCat('${c.id}')">${c.name}</div>`).join('')}
       </div>
+    </div>
+    <div class="edit-section">
+      <div class="edit-section-title"><i class="fas fa-layer-group"></i> Template</div>
+      ${(() => {
+        const isTemplate = allRecipes.some(r => r.templateId === editTargetId);
+        if (isTemplate) {
+          return `<p style="font-size:.8rem;color:var(--muted);margin:0">Dieses Rezept ist selbst ein Template und kann nicht als Variante zugewiesen werden.</p>`;
+        }
+        const candidates = allRecipes
+          .filter(r => r.id !== editTargetId && !r.templateId)
+          .sort((a, b) => a.name.localeCompare(b.name, 'de'));
+        return `<select class="text-input" id="editTemplateSelect" onchange="editTemplateId = this.value || null" style="width:100%">
+          <option value="">— Kein Template (eigenständig) —</option>
+          ${candidates.map(r => `<option value="${r.id}"${editTemplateId === r.id ? ' selected' : ''}>${r.name}</option>`).join('')}
+        </select>`;
+      })()}
     </div>
     <div class="edit-divider"></div>
     <div class="edit-section">
@@ -1403,7 +1499,7 @@ async function saveEdit() {
   if (!name) { showToast('Please enter a name', 'error'); return; }
   if (!editTargetId) return;
   document.getElementById('editSaveBtn').disabled = true;
-  const { error: nameErr } = await db.from('fddb_recipes').update({ name, servings: editServings }).eq('id', editTargetId);
+  const { error: nameErr } = await db.from('fddb_recipes').update({ name, servings: editServings, template_id: editTemplateId || null }).eq('id', editTargetId);
   if (nameErr) { showToast('Error: ' + nameErr.message, 'error'); document.getElementById('editSaveBtn').disabled = false; return; }
   await db.from('fddb_recipe_items').delete().eq('recipe_id', editTargetId);
   if (editItems.length > 0) {
