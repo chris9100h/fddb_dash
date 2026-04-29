@@ -2369,14 +2369,9 @@ async function takeFullScreenshot() {
     #__screenshotStage .hero-ring-val {
       font-size: 2rem !important;
     }
-    /* Chart images fill container width; height follows aspect ratio */
+    /* Chart images fill container width without overflowing */
     #__screenshotStage img {
       max-width: 100% !important;
-      height: auto !important;
-    }
-    /* chart-body has inline height:Xpx — let it shrink to image height */
-    #__screenshotStage .chart-body {
-      height: auto !important;
     }
     /* Preserve collapsed recipe state */
     #__screenshotStage .recipe-ingredients {
@@ -2391,16 +2386,17 @@ async function takeFullScreenshot() {
 
   // 3) Replace every cloned <canvas> with an <img> carrying the
   //    snapshot — html2canvas can't re-render chart.js canvases.
-  // Use width:100%/height:auto so the image fills the container width
-  // while preserving aspect ratio. The chart-body container height is
-  // overridden to auto in the CSS below so no empty space is left.
+  // width:100% fills the capture-stage container; height keeps the
+  // original canvas pixel height so the chart is not squished vertically.
+  // The chart content is slightly horizontally compressed (desktop ~900px
+  // → 400px) but remains fully readable.
   clone.querySelectorAll('canvas').forEach(c => {
     const key = c.getAttribute('data-cx-key');
     const snap = key && canvasSnapshots.get(key);
     if (!snap) return;
     const img = document.createElement('img');
     img.src = snap.url;
-    img.style.cssText = `display:block;width:100%;height:auto`;
+    img.style.cssText = `display:block;width:100%;height:${snap.h}px`;
     c.replaceWith(img);
   });
 
