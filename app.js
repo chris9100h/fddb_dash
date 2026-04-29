@@ -977,6 +977,9 @@ function renderDashboard(entries) {
         const totalM = macroSum(recEntries);
         const servings = recipe.servings || 1;
         const effectiveServings = mergeServings ? 1 : servings;
+        const displayName = recipe.templateId
+          ? ((allRecipes.find(r => r.id === recipe.templateId)?.name ?? '') + ' · ' + recipe.name)
+          : recipe.name;
         const portionM = mergeServings ? totalM : { kcal: totalM.kcal/servings, p: totalM.p/servings, c: totalM.c/servings, f: totalM.f/servings };
 
         for (let s = 0; s < effectiveServings; s++) {
@@ -998,7 +1001,7 @@ function renderDashboard(entries) {
             hdr.innerHTML = `
               <div class="cb-box"><i class="fas fa-check"></i></div>
               <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0">
-                <span class="recipe-row-name" style="font-size:.82rem">${recipe.name}</span>
+                <span class="recipe-row-name" style="font-size:.82rem">${displayName}</span>
                 <span class="recipe-tag">Recipe</span>
                 ${portionLabel}
               </div>`;
@@ -1007,7 +1010,7 @@ function renderDashboard(entries) {
               <div class="cb-box"><i class="fas fa-check"></i></div>
               <div class="recipe-row-body">
                 <div class="recipe-row-title">
-                  <span class="recipe-row-name">${recipe.name}</span>
+                  <span class="recipe-row-name">${displayName}</span>
                   <span class="recipe-tag">Recipe</span>
                   ${portionLabel}
                 </div>
@@ -1207,7 +1210,7 @@ function makeTemplateCard(template, variants, showCatTags) {
 async function addVariant(templateId) {
   const template = allRecipes.find(r => r.id === templateId);
   if (!template) return;
-  const newName = template.name + ' (Variante)';
+  const newName = 'Neue Variante';
   const { data: newRecipe, error } = await db.from('fddb_recipes').insert({ name: newName, template_id: templateId }).select().single();
   if (error) { showToast('Error: ' + error.message, 'error'); return; }
   if (template.items.length > 0) {
