@@ -1159,24 +1159,33 @@ async function creatorNext() {
 function makeTemplateCard(template, variants, showCatTags) {
   const catNames = template.catIds.map(id => allCategories.find(c => c.id === id)?.name).filter(Boolean);
   const card = document.createElement('div');
-  card.className = 'template-card';
+  card.className = 'template-card card-collapsed';
   const baseItems = [...template.items].sort((a, b) => stripAmount(a).localeCompare(stripAmount(b)));
   const variantRows = variants.map(v => {
     const extra = v.items.filter(i => !template.items.includes(i));
     const missing = template.items.filter(i => !v.items.includes(i));
     const diffLabel = extra.length > 0 ? `+${extra.length}` : (missing.length > 0 ? `-${missing.length}` : '=');
     const safeVName = v.name.replace(/'/g, "\\'");
+    const allItems = [...template.items, ...extra].sort((a, b) => stripAmount(a).localeCompare(stripAmount(b)));
+    const ingredientRows = allItems.map(n => {
+      const isExtra = extra.includes(n);
+      return `<div class="manage-ingredient"><i class="fas fa-circle" style="font-size:.4rem;color:${isExtra ? 'var(--accent)' : 'var(--muted)'};margin-right:7px;vertical-align:middle"></i>${n}</div>`;
+    }).join('');
     return `
       <div class="variant-row">
-        <div class="variant-row-main" onclick="openEditModal('${v.id}')">
-          <span class="variant-name">${v.name}</span>
-          <span class="variant-extra-badge">${diffLabel}</span>
+        <div class="variant-row-header">
+          <div class="variant-row-main" onclick="this.closest('.variant-row').classList.toggle('open')">
+            <span class="variant-name">${v.name}</span>
+            <span class="variant-extra-badge">${diffLabel}</span>
+          </div>
+          <div class="variant-actions">
+            <button class="btn-icon-sm btn-dupe" onclick="duplicateRecipe('${v.id}')"><i class="fas fa-copy"></i></button>
+            <button class="btn-icon-sm btn-edit" onclick="openEditModal('${v.id}')"><i class="fas fa-pen"></i></button>
+            <button class="btn-icon-sm btn-delete" onclick="deleteRecipe('${v.id}', '${safeVName}')"><i class="fas fa-trash"></i></button>
+          </div>
+          <i class="fas fa-chevron-down variant-chevron" onclick="this.closest('.variant-row').classList.toggle('open')"></i>
         </div>
-        <div class="variant-actions">
-          <button class="btn-icon-sm btn-dupe" onclick="event.stopPropagation(); duplicateRecipe('${v.id}')"><i class="fas fa-copy"></i></button>
-          <button class="btn-icon-sm btn-edit" onclick="event.stopPropagation(); openEditModal('${v.id}')"><i class="fas fa-pen"></i></button>
-          <button class="btn-icon-sm btn-delete" onclick="event.stopPropagation(); deleteRecipe('${v.id}', '${safeVName}')"><i class="fas fa-trash"></i></button>
-        </div>
+        <div class="variant-ingredients">${ingredientRows}</div>
       </div>`;
   }).join('');
   const safeTName = template.name.replace(/'/g, "\\'");

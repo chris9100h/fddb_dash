@@ -781,12 +781,12 @@ body.is-dragging .meal-card-empty { display: block; }
 .template-card.card-collapsed .template-base-items,
 .template-card.card-collapsed .template-variants { display: none; }
 .template-variants { border-top: 1px solid var(--border); }
-.variant-row {
-  display: flex; align-items: center; gap: 8px;
-  padding: 9px 14px; border-bottom: 1px solid var(--border);
-  transition: background .12s;
-}
+.variant-row { border-bottom: 1px solid var(--border); }
 .variant-row:last-of-type { border-bottom: none; }
+.variant-row-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 14px;
+}
 .variant-row-main {
   display: flex; align-items: center; gap: 8px;
   flex: 1; min-width: 0; cursor: pointer;
@@ -799,6 +799,10 @@ body.is-dragging .meal-card-empty { display: block; }
   border-radius: 6px; padding: 2px 6px; white-space: nowrap;
 }
 .variant-actions { display: flex; gap: 5px; flex-shrink: 0; }
+.variant-chevron { font-size: .6rem; color: var(--muted); transition: transform .2s; cursor: pointer; padding: 4px; flex-shrink: 0; }
+.variant-row.open .variant-chevron { transform: rotate(180deg); }
+.variant-ingredients { display: none; padding: 8px 14px 10px; border-top: 1px solid var(--border); background: rgba(255,255,255,.02); }
+.variant-row.open .variant-ingredients { display: block; }
 .btn-add-variant {
   display: flex; align-items: center; justify-content: center; gap: 6px;
   width: 100%; padding: 10px 14px; background: none;
