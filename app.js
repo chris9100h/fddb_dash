@@ -2128,7 +2128,27 @@ async function takeFullScreenshot() {
 
   // 1) Snapshot all live <canvas> elements in the active view as
   //    data URLs, keyed by source canvas id.
+  //    On desktop Chart.js charts render very wide (e.g. 900×150px).
+  //    Resize each Chart.js instance to CAPTURE_WIDTH before snapshotting
+  //    so the image already has the right proportions and needs no
+  //    distorting transforms in the clone.
+  const CAPTURE_CHART_WIDTH = 460 - 60; // stage width minus padding
   const liveCanvases = activeView.querySelectorAll('canvas');
+  const chartResizeList = []; // track which charts we resized for restore
+  liveCanvases.forEach(c => {
+    if (typeof Chart !== 'undefined') {
+      const chart = Chart.getChart(c);
+      if (chart) {
+        chartResizeList.push({ chart, origW: c.offsetWidth, origH: c.offsetHeight });
+        chart.resize(CAPTURE_CHART_WIDTH, c.offsetHeight);
+      }
+    }
+  });
+  // Wait two frames for Chart.js to finish re-rendering at the new size.
+  if (chartResizeList.length) {
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  }
+
   const canvasSnapshots = new Map();
   liveCanvases.forEach((c, i) => {
     try {
@@ -2386,17 +2406,15 @@ async function takeFullScreenshot() {
 
   // 3) Replace every cloned <canvas> with an <img> carrying the
   //    snapshot — html2canvas can't re-render chart.js canvases.
-  // width:100% fills the capture-stage container; height keeps the
-  // original canvas pixel height so the chart is not squished vertically.
-  // The chart content is slightly horizontally compressed (desktop ~900px
-  // → 400px) but remains fully readable.
+  //    Charts were already resized to CAPTURE_CHART_WIDTH before
+  //    snapshotting, so snap.w ≈ container width and no distortion occurs.
   clone.querySelectorAll('canvas').forEach(c => {
     const key = c.getAttribute('data-cx-key');
     const snap = key && canvasSnapshots.get(key);
     if (!snap) return;
     const img = document.createElement('img');
     img.src = snap.url;
-    img.style.cssText = `display:block;width:100%;height:${snap.h}px`;
+    img.style.cssText = `display:block;width:${snap.w}px;height:${snap.h}px;max-width:100%`;
     c.replaceWith(img);
   });
 
@@ -2449,6 +2467,8 @@ async function takeFullScreenshot() {
     overrideStyle.remove();
     liveCanvases.forEach(c => c.removeAttribute('data-cx-key'));
     overlay.remove();
+    // Restore Chart.js instances to their original desktop size
+    chartResizeList.forEach(({ chart, origW, origH }) => chart.resize(origW, origH));
     // Restore merge-mode if we flipped it on for the capture
     if (wasMergeOff && mergeServings) toggleMergeServings();
   }
