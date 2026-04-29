@@ -769,14 +769,17 @@ body.is-dragging .meal-card-empty { display: block; }
 }
 .template-title { display: flex; align-items: center; gap: 7px; }
 .template-icon { font-size: .72rem; color: var(--accent); opacity: .8; }
-.template-base-count { font-size: .72rem; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
-.template-chevron { font-size: .65rem; color: var(--muted); transition: transform .2s; margin-left: 2px; }
-.template-card.base-open .template-chevron { transform: rotate(180deg); }
+.template-base-count { font-size: .72rem; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; cursor: pointer; padding: 2px 4px; border-radius: 5px; transition: background .12s; }
+.template-base-count:hover { background: var(--card); color: var(--text); }
+.template-chevron { font-size: .65rem; color: var(--muted); transition: transform .2s; margin-left: 2px; cursor: pointer; padding: 4px; }
+.template-card.card-collapsed .template-chevron { transform: rotate(-90deg); }
 .template-base-items {
   display: none; padding: 10px 14px;
   border-top: 1px solid var(--border); background: rgba(255,107,0,.03);
 }
 .template-card.base-open .template-base-items { display: block; }
+.template-card.card-collapsed .template-base-items,
+.template-card.card-collapsed .template-variants { display: none; }
 .template-variants { border-top: 1px solid var(--border); }
 .variant-row {
   display: flex; align-items: center; gap: 8px;

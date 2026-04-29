@@ -1181,20 +1181,20 @@ function makeTemplateCard(template, variants, showCatTags) {
   }).join('');
   const safeTName = template.name.replace(/'/g, "\\'");
   card.innerHTML = `
-    <div class="template-header" onclick="this.closest('.template-card').classList.toggle('base-open')">
-      <div style="flex:1;min-width:0">
+    <div class="template-header">
+      <div style="flex:1;min-width:0" onclick="this.closest('.template-card').classList.toggle('card-collapsed')">
         <div class="template-title">
           <i class="fas fa-layer-group template-icon"></i>
           <span class="recipe-manage-name">${template.name}</span>
         </div>
         ${showCatTags && catNames.length ? `<div class="recipe-cat-tags">${catNames.map(n => `<span class="recipe-cat-tag">${n}</span>`).join('')}</div>` : ''}
       </div>
-      <span class="template-base-count">${template.items.length} Base · ${variants.length} Var.</span>
-      <div class="recipe-manage-actions" onclick="event.stopPropagation()">
+      <span class="template-base-count" onclick="this.closest('.template-card').classList.toggle('base-open')">${template.items.length} Base · ${variants.length} Var.</span>
+      <div class="recipe-manage-actions">
         <button class="btn-icon-sm btn-edit" onclick="openEditModal('${template.id}')"><i class="fas fa-pen"></i></button>
         <button class="btn-icon-sm btn-delete" onclick="deleteRecipe('${template.id}', '${safeTName}')"><i class="fas fa-trash"></i></button>
       </div>
-      <i class="fas fa-chevron-down template-chevron"></i>
+      <i class="fas fa-chevron-down template-chevron" onclick="this.closest('.template-card').classList.toggle('card-collapsed')"></i>
     </div>
     <div class="template-base-items">
       ${baseItems.map(n => `<div class="manage-ingredient"><i class="fas fa-circle" style="font-size:.4rem;color:var(--muted);margin-right:7px;vertical-align:middle"></i>${n}</div>`).join('')}
