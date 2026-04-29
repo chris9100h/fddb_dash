@@ -1189,7 +1189,7 @@ function makeTemplateCard(template, variants, showCatTags) {
         </div>
         ${showCatTags && catNames.length ? `<div class="recipe-cat-tags">${catNames.map(n => `<span class="recipe-cat-tag">${n}</span>`).join('')}</div>` : ''}
       </div>
-      <span class="template-base-count">${template.items.length} Basis · ${variants.length} Var.</span>
+      <span class="template-base-count">${template.items.length} Base · ${variants.length} Var.</span>
       <div class="recipe-manage-actions" onclick="event.stopPropagation()">
         <button class="btn-icon-sm btn-edit" onclick="openEditModal('${template.id}')"><i class="fas fa-pen"></i></button>
         <button class="btn-icon-sm btn-delete" onclick="deleteRecipe('${template.id}', '${safeTName}')"><i class="fas fa-trash"></i></button>
@@ -1201,7 +1201,7 @@ function makeTemplateCard(template, variants, showCatTags) {
     </div>
     <div class="template-variants">
       ${variantRows}
-      <button class="btn-add-variant" onclick="addVariant('${template.id}')"><i class="fas fa-plus"></i> Variante hinzufügen</button>
+      <button class="btn-add-variant" onclick="addVariant('${template.id}')"><i class="fas fa-plus"></i> Add variant</button>
     </div>`;
   return card;
 }
@@ -1209,7 +1209,7 @@ function makeTemplateCard(template, variants, showCatTags) {
 async function addVariant(templateId) {
   const template = allRecipes.find(r => r.id === templateId);
   if (!template) return;
-  const newName = 'Neue Variante';
+  const newName = 'New Variant';
   const { data: newRecipe, error } = await db.from('fddb_recipes').insert({ name: newName, template_id: templateId }).select().single();
   if (error) { showToast('Error: ' + error.message, 'error'); return; }
   if (template.items.length > 0) {
@@ -1219,7 +1219,7 @@ async function addVariant(templateId) {
     await db.from('fddb_recipe_categories').insert(template.catIds.map(category_id => ({ recipe_id: newRecipe.id, category_id })));
   }
   await loadRecipes(); renderRecipeManage();
-  showToast('Variante erstellt', 'success');
+  showToast('Variant created', 'success');
   openEditModal(newRecipe.id);
 }
 
@@ -1295,7 +1295,7 @@ function renderRecipeManage() {
       .map(cat => ({ key: cat.id, label: cat.name, recipes: filtered.filter(r => r.catIds.includes(cat.id)) }))
       .filter(g => g.recipes.length > 0);
     const uncategorized = filtered.filter(r => !r.catIds || r.catIds.length === 0);
-    if (uncategorized.length) groups.push({ key: '__none__', label: 'Keine Kategorie', recipes: uncategorized });
+    if (uncategorized.length) groups.push({ key: '__none__', label: 'No category', recipes: uncategorized });
 
     _currentGroupKeys = groups.map(g => g.key);
     const allCollapsed = groups.every(g => collapsedSections.has(g.key));
@@ -1422,14 +1422,14 @@ function renderEditModal() {
     </div>
     <div class="edit-section">
       <div class="edit-section-title"><i class="fas fa-layer-group"></i> Template</div>
-      <div class="cat-chip${editIsTemplate ? ' active' : ''}" style="display:inline-flex;align-items:center;gap:6px;margin-bottom:10px" onclick="editIsTemplate=!editIsTemplate;renderEditModal()"><i class="fas fa-layer-group"></i>Als Template</div>
+      <div class="cat-chip${editIsTemplate ? ' active' : ''}" style="display:inline-flex;align-items:center;gap:6px;margin-bottom:10px" onclick="editIsTemplate=!editIsTemplate;renderEditModal()"><i class="fas fa-layer-group"></i>Mark as template</div>
       ${editIsTemplate ? '' : (() => {
         const candidates = allRecipes
           .filter(r => r.isTemplate && r.id !== editTargetId)
           .sort((a, b) => a.name.localeCompare(b.name, 'de'));
-        if (!candidates.length) return `<p style="font-size:.8rem;color:var(--muted);margin:0">Noch keine Templates vorhanden.</p>`;
+        if (!candidates.length) return `<p style="font-size:.8rem;color:var(--muted);margin:0">No templates yet.</p>`;
         return `<select class="text-input" id="editTemplateSelect" onchange="editTemplateId = this.value || null" style="width:100%">
-          <option value="">— Kein Template (eigenständig) —</option>
+          <option value="">— No template (standalone) —</option>
           ${candidates.map(r => `<option value="${r.id}"${editTemplateId === r.id ? ' selected' : ''}>${r.name}</option>`).join('')}
         </select>`;
       })()}
@@ -2079,11 +2079,11 @@ function showToast(msg, type='') {
    ══════════════════════════════════════ */
 async function takeFullScreenshot() {
   if (typeof html2canvas === 'undefined') {
-    showToast('Screenshot-Lib lädt noch…', 'error');
+    showToast('Screenshot lib still loading…', 'error');
     return;
   }
   const activeView = document.querySelector('.view.active');
-  if (!activeView) { showToast('Keine Ansicht aktiv', 'error'); return; }
+  if (!activeView) { showToast('No active view', 'error'); return; }
 
   const label = (activeView.querySelector('.large-title')?.textContent || 'page').trim();
   const dateStr = new Date().toISOString().slice(0, 10);
@@ -2096,7 +2096,7 @@ async function takeFullScreenshot() {
     color:#fff;font-family:inherit;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)`;
   overlay.innerHTML = `
     <div style="width:48px;height:48px;border:3px solid rgba(255,255,255,.2);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite"></div>
-    <div style="font-size:.9rem;color:#fff">Screenshot wird erstellt…</div>
+    <div style="font-size:.9rem;color:#fff">Creating screenshot…</div>
     <div style="font-size:.7rem;color:rgba(255,255,255,.5);letter-spacing:.08em;text-transform:uppercase">bitte kurz warten</div>
   `;
   document.body.appendChild(overlay);
@@ -2415,13 +2415,13 @@ async function takeFullScreenshot() {
     });
 
     canvas.toBlob(blob => {
-      if (!blob) { showToast('Screenshot fehlgeschlagen', 'error'); return; }
+      if (!blob) { showToast('Screenshot failed', 'error'); return; }
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url; a.download = filename;
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
-      showToast('Screenshot gespeichert: ' + filename, 'success');
+      showToast('Screenshot saved: ' + filename, 'success');
     }, 'image/png');
   } catch (err) {
     console.error('Screenshot failed:', err);
