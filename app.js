@@ -386,7 +386,7 @@ function showView(id) {
 
 /* ── Load recipes ── */
 async function loadRecipes() {
-  const { data: recipes } = await db.from('fddb_recipes').select('id, name, servings, template_id').order('name');
+  const { data: recipes } = await db.from('fddb_recipes').select('id, name, servings, template_id, is_template').order('name');
   if (!recipes) return;
   const { data: items } = await db.from('fddb_recipe_items').select('recipe_id, item_name');
   const { data: rcats } = await db.from('fddb_recipe_categories').select('recipe_id, category_id');
@@ -397,6 +397,7 @@ async function loadRecipes() {
   buildStripRegex();
   allRecipes = (recipes || []).map(r => ({
     id: r.id, name: r.name, servings: r.servings || 1,
+    isTemplate: !!r.is_template,
     templateId: r.template_id || null,
     items: (items || []).filter(i => i.recipe_id === r.id).map(i => i.item_name),
     catIds: (rcats || []).filter(c => c.recipe_id === r.id).map(c => c.category_id),
@@ -1086,10 +1087,12 @@ async function saveNewUnit() {
 }
 
 /* ── Recipe Creator ── */
-let creatorStep = 0, creatorMeal = null, creatorSelected = [];
+let creatorStep = 0, creatorMeal = null, creatorSelected = [], creatorIsTemplate = false;
 function openCreator() {
-  creatorStep = 0; creatorMeal = null; creatorSelected = [];
+  creatorStep = 0; creatorMeal = null; creatorSelected = []; creatorIsTemplate = false;
   document.getElementById('recipeNameInput').value = '';
+  const cb = document.getElementById('creatorIsTemplateCheck');
+  if (cb) cb.checked = false;
   renderCreatorStep();
   document.getElementById('creatorOverlay').classList.add('open');
 }
@@ -1139,7 +1142,7 @@ async function creatorNext() {
   const name = document.getElementById('recipeNameInput').value.trim();
   document.getElementById('btnNext').disabled = true;
   document.getElementById('btnNext').textContent = '…';
-  const { data: recipe, error: recErr } = await db.from('fddb_recipes').insert({ name }).select().single();
+  const { data: recipe, error: recErr } = await db.from('fddb_recipes').insert({ name, is_template: creatorIsTemplate }).select().single();
   if (recErr) { showToast('Error: ' + recErr.message, 'error'); document.getElementById('btnNext').disabled = false; document.getElementById('btnNext').textContent = 'Save'; return; }
   const itemRows = creatorSelected.map(item_name => ({ recipe_id: recipe.id, item_name: stripAmount(item_name) }));
   const { error: itemErr } = await db.from('fddb_recipe_items').insert(itemRows);
@@ -1277,9 +1280,8 @@ function renderRecipeManage() {
     return card;
   };
 
-  const templateIds = new Set(allRecipes.filter(r => r.templateId).map(r => r.templateId));
   const renderItem = (recipe, showCatTags) => {
-    if (templateIds.has(recipe.id)) {
+    if (recipe.isTemplate) {
       const variants = allRecipes.filter(r => r.templateId === recipe.id);
       return makeTemplateCard(recipe, variants, showCatTags);
     }
@@ -1373,13 +1375,14 @@ function buildStripRegex() {
 function stripAmount(name) { return name.replace(stripRegex, '').trim(); }
 
 /* ── Edit Modal ── */
-let editTargetId = null, editName = '', editItems = [], editServings = 1, editCatIds = [], editAddTab = 'day', editTemplateId = null;
+let editTargetId = null, editName = '', editItems = [], editServings = 1, editCatIds = [], editAddTab = 'day', editTemplateId = null, editIsTemplate = false;
 function openEditModal(id) {
   const recipe = allRecipes.find(r => r.id === id);
   if (!recipe) return;
   editTargetId = id; editName = recipe.name; editItems = [...recipe.items];
   editServings = recipe.servings || 1; editCatIds = [...(recipe.catIds || [])]; editAddTab = 'day';
   editTemplateId = recipe.templateId || null;
+  editIsTemplate = recipe.isTemplate || false;
   document.getElementById('editOverlay').classList.add('open');
   renderEditModal();
 }
@@ -1417,14 +1420,15 @@ function renderEditModal() {
     </div>
     <div class="edit-section">
       <div class="edit-section-title"><i class="fas fa-layer-group"></i> Template</div>
-      ${(() => {
-        const isTemplate = allRecipes.some(r => r.templateId === editTargetId);
-        if (isTemplate) {
-          return `<p style="font-size:.8rem;color:var(--muted);margin:0">Dieses Rezept ist selbst ein Template und kann nicht als Variante zugewiesen werden.</p>`;
-        }
+      <label style="display:flex;align-items:center;gap:9px;cursor:pointer;margin-bottom:10px">
+        <input type="checkbox" id="editIsTemplateCheck" ${editIsTemplate ? 'checked' : ''} onchange="editIsTemplate=this.checked;renderEditModal()" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer">
+        <span style="font-size:.85rem;color:var(--text-dim)">Als Template markieren</span>
+      </label>
+      ${editIsTemplate ? '' : (() => {
         const candidates = allRecipes
-          .filter(r => r.id !== editTargetId && !r.templateId)
+          .filter(r => r.isTemplate && r.id !== editTargetId)
           .sort((a, b) => a.name.localeCompare(b.name, 'de'));
+        if (!candidates.length) return `<p style="font-size:.8rem;color:var(--muted);margin:0">Noch keine Templates vorhanden.</p>`;
         return `<select class="text-input" id="editTemplateSelect" onchange="editTemplateId = this.value || null" style="width:100%">
           <option value="">— Kein Template (eigenständig) —</option>
           ${candidates.map(r => `<option value="${r.id}"${editTemplateId === r.id ? ' selected' : ''}>${r.name}</option>`).join('')}
@@ -1512,7 +1516,7 @@ async function saveEdit() {
   if (!name) { showToast('Please enter a name', 'error'); return; }
   if (!editTargetId) return;
   document.getElementById('editSaveBtn').disabled = true;
-  const { error: nameErr } = await db.from('fddb_recipes').update({ name, servings: editServings, template_id: editTemplateId || null }).eq('id', editTargetId);
+  const { error: nameErr } = await db.from('fddb_recipes').update({ name, servings: editServings, is_template: editIsTemplate, template_id: editIsTemplate ? null : (editTemplateId || null) }).eq('id', editTargetId);
   if (nameErr) { showToast('Error: ' + nameErr.message, 'error'); document.getElementById('editSaveBtn').disabled = false; return; }
   await db.from('fddb_recipe_items').delete().eq('recipe_id', editTargetId);
   if (editItems.length > 0) {
