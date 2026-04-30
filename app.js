@@ -2948,7 +2948,7 @@ initTweaks();
       const idSet = new Set(ids);
       const existing = (weekTreats || []).filter(e => !idSet.has(String(e.id)));
       if (existing.length > 0) {
-        showToast('Joker bereits vergeben diese Woche 🎯', 'error');
+        showToast('Weekly joker already used this week 🎯', 'error');
         return;
       }
     }
