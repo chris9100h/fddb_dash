@@ -97,6 +97,8 @@ const SETTINGS_DEFAULTS = {
   haptics: true,            // vibration feedback on/off
   sickModeActive: false,    // when true, every day (incl. today) is auto-marked 'sick'
   sickSince: null,          // YYYY-MM-DD — date sick mode started
+  freezePerWeek: 2,         // max freeze days allowed per Mon–Sun week
+  weeklyTreatMaxKcal: 0,    // 0 = no limit; excess kcal above threshold count against totals
 };
 let settings = { ...SETTINGS_DEFAULTS };
 
@@ -113,11 +115,13 @@ function cacheSettings() {
 // Map camelCase setting key ⇆ Supabase row key.
 // Using snake_case in DB matches the convention of other fddb_ tables.
 const SETTING_DB_KEYS = {
-  adherenceGoal:    'adherence_goal',
-  adherenceCutoff:  'adherence_cutoff',
-  haptics:          'haptics',
-  sickModeActive:   'sick_mode_active',
-  sickSince:        'sick_since',
+  adherenceGoal:       'adherence_goal',
+  adherenceCutoff:     'adherence_cutoff',
+  haptics:             'haptics',
+  sickModeActive:      'sick_mode_active',
+  sickSince:           'sick_since',
+  freezePerWeek:       'freeze_per_week',
+  weeklyTreatMaxKcal:  'weekly_treat_max_kcal',
 };
 
 async function writeSettingToDb(key, value) {
@@ -172,6 +176,10 @@ function applySettingsToUI() {
       ? `Active since ${settings.sickSince || '—'} · all days marked sick`
       : 'Off';
   }
+  const freezePerWeekEl = document.getElementById('setFreezePerWeek');
+  const treatMaxKcalEl  = document.getElementById('setTreatMaxKcal');
+  if (freezePerWeekEl) freezePerWeekEl.value = settings.freezePerWeek;
+  if (treatMaxKcalEl)  treatMaxKcalEl.value  = settings.weeklyTreatMaxKcal;
   applySickModeOverlay();
 }
 
@@ -242,6 +250,25 @@ function initSettingsUI() {
       if (typeof renderStreak === 'function') renderStreak();
       applySickModeOverlay();
       showToast(on ? 'Sick mode on' : 'Sick mode off');
+    });
+  }
+
+  const freezePerWeekEl = document.getElementById('setFreezePerWeek');
+  if (freezePerWeekEl) {
+    freezePerWeekEl.addEventListener('change', () => {
+      settings.freezePerWeek = parseInt(freezePerWeekEl.value, 10);
+      cacheSettings();
+      writeSettingToDb('freezePerWeek', settings.freezePerWeek);
+    });
+  }
+
+  const treatMaxKcalEl = document.getElementById('setTreatMaxKcal');
+  if (treatMaxKcalEl) {
+    treatMaxKcalEl.addEventListener('change', () => {
+      settings.weeklyTreatMaxKcal = parseInt(treatMaxKcalEl.value, 10);
+      cacheSettings();
+      writeSettingToDb('weeklyTreatMaxKcal', settings.weeklyTreatMaxKcal);
+      if (currentDate) renderDashboard(currentDayEntries);
     });
   }
 
@@ -743,8 +770,8 @@ async function setDayStatus(date, status) {
     await deleteFinalizedDay(date);
     showToast('Day status reset');
   } else if (status === 'freeze') {
-    if (freezesThisWeek(date) >= 2) {
-      showToast('Freeze limit reached (2 per week)', 'error');
+    if (freezesThisWeek(date) >= settings.freezePerWeek) {
+      showToast(`Freeze limit reached (${settings.freezePerWeek}/week)`, 'error');
       return;
     }
     await writeFinalizedDay(date, null, settings.adherenceGoal, 'freeze');
@@ -910,6 +937,21 @@ function renderDashboard(entries) {
       totals.c += parseFloat(e.carbs)||0; totals.f += parseFloat(e.fat)||0;
     }
   });
+
+  // If a calorie cap is set, add back the excess fraction of the treat's macros
+  const treatItems = grouped[WEEKLY_TREAT_MEAL] || [];
+  if (treatItems.length > 0 && settings.weeklyTreatMaxKcal > 0) {
+    const treatKcal = treatItems.reduce((s, e) => s + (e.kcal||0), 0);
+    if (treatKcal > settings.weeklyTreatMaxKcal) {
+      const excessFraction = (treatKcal - settings.weeklyTreatMaxKcal) / treatKcal;
+      treatItems.forEach(e => {
+        totals.kcal += (e.kcal||0)                  * excessFraction;
+        totals.p    += (parseFloat(e.protein)||0)    * excessFraction;
+        totals.c    += (parseFloat(e.carbs)||0)      * excessFraction;
+        totals.f    += (parseFloat(e.fat)||0)        * excessFraction;
+      });
+    }
+  }
 
   // Render every standard ORDER meal (even if empty) so drop targets stay available
   // after a meal is emptied. Custom meals outside ORDER are appended only if they have items.
@@ -1103,14 +1145,28 @@ function renderDashboard(entries) {
 
 function renderWeeklyTreatCard(items, container) {
   const isEmpty = items.length === 0;
+  const treatKcal = items.reduce((s, e) => s + (e.kcal||0), 0);
+  const cap = settings.weeklyTreatMaxKcal || 0;
+  const isOverBudget = cap > 0 && treatKcal > cap;
+
   const card = document.createElement('div');
   card.className = 'meal-card weekly-treat-card' + (isEmpty ? ' weekly-treat-empty' : '');
   card.dataset.meal = WEEKLY_TREAT_MEAL;
 
+  let badge = '';
+  if (!isEmpty) {
+    if (isOverBudget) {
+      const excess = Math.round(treatKcal - cap);
+      badge = `<div class="weekly-treat-excluded-badge weekly-treat-over-budget">+${excess} kcal counted</div>`;
+    } else {
+      badge = `<div class="weekly-treat-excluded-badge">excluded</div>`;
+    }
+  }
+
   card.innerHTML = `<div class="meal-title weekly-treat-title">
     <span class="weekly-treat-icon">🎯</span>
     <div class="meal-name weekly-treat-name">Weekly Treat</div>
-    ${!isEmpty ? `<div class="weekly-treat-excluded-badge">excluded</div>` : ''}
+    ${badge}
   </div>`;
 
   const list = document.createElement('div');
@@ -1827,8 +1883,8 @@ async function openDateMenu(date, x, y) {
   menu.appendChild(item(
     'freeze', 'freeze', '<i class="fas fa-snowflake"></i>',
     'Freeze day',
-    `${freezesUsed}/2 this week`,
-    isFuture || freezesThisWeek(date) >= 2,
+    `${freezesUsed}/${settings.freezePerWeek} this week`,
+    isFuture || freezesThisWeek(date) >= settings.freezePerWeek,
     () => setDayStatus(date, 'freeze')
   ));
 
