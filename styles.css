@@ -1557,6 +1557,75 @@ body.dnd-active {
 .dnd-toast i { color: var(--accent, #ff6b00); font-size: .85rem; }
 
 /* ════════════════════════════════════════════════════════
+   WEEKLY TREAT CARD
+   ════════════════════════════════════════════════════════ */
+:root { --gold: #f59e0b; --gold-soft: rgba(245,158,11,.14); --gold-glow: 0 0 20px rgba(245,158,11,.22); }
+
+.weekly-treat-card {
+  border-color: rgba(245,158,11,.25);
+  background: linear-gradient(160deg, rgba(245,158,11,.06) 0%, var(--surface) 60%);
+  margin-top: 4px;
+}
+.weekly-treat-card.weekly-treat-empty {
+  display: block;
+  opacity: .75;
+  transition: opacity .18s ease, border-color .18s ease;
+}
+.weekly-treat-card.weekly-treat-empty .weekly-treat-title {
+  border-bottom: 1px dashed rgba(245,158,11,.3);
+  background: transparent;
+}
+body.is-dragging .weekly-treat-card.weekly-treat-empty { opacity: 1; }
+.weekly-treat-card.dnd-hover {
+  background: linear-gradient(160deg, rgba(245,158,11,.16) 0%, rgba(245,158,11,.05) 100%) !important;
+  box-shadow: 0 0 0 2px var(--gold) inset, var(--gold-glow) !important;
+  transform: scale(1.01);
+  transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+}
+
+.weekly-treat-title {
+  background: linear-gradient(90deg, rgba(245,158,11,.12) 0%, transparent 70%) !important;
+  border-bottom: 1px solid rgba(245,158,11,.18);
+  gap: 8px;
+}
+.weekly-treat-icon { font-size: .95rem; flex-shrink: 0; }
+.weekly-treat-name { color: var(--gold) !important; }
+.weekly-treat-excluded-badge {
+  margin-left: auto;
+  font-size: .55rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--gold);
+  background: rgba(245,158,11,.15);
+  border: 1px solid rgba(245,158,11,.3);
+  border-radius: 999px;
+  padding: 2px 7px;
+}
+
+.weekly-treat-hint {
+  padding: 10px 6px;
+  font-size: .72rem;
+  color: var(--text-dim);
+  text-align: center;
+  opacity: .7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.weekly-treat-hint i { color: var(--gold); opacity: .8; }
+
+.weekly-treat-item .weekly-treat-joker-icon {
+  width: 26px; height: 26px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--gold);
+  font-size: .8rem;
+  flex-shrink: 0;
+}
+.weekly-treat-pills .mp { opacity: .55; }
+
+/* ════════════════════════════════════════════════════════
    LOGIN OVERLAY
    ════════════════════════════════════════════════════════ */
 .login-overlay {
