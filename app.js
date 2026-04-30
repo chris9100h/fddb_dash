@@ -39,11 +39,52 @@ const todayStr = new Date().toISOString().split('T')[0];
 document.getElementById('dateInput').value = todayStr;
 currentDate = todayStr;
 renderDateStrip(todayStr);
-// Load finalized status map so date-pill icons can render.
-if (typeof loadFinalizedMap === 'function') {
-  loadFinalizedMap().then(() => renderDateStrip(currentDate));
-}
 document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('open'));
+
+// ── Auth ──
+(async function initAuth() {
+  const { data: { session } } = await db.auth.getSession();
+  if (session) {
+    document.getElementById('loginOverlay').classList.add('hidden');
+    initApp();
+  }
+  db.auth.onAuthStateChange((event) => {
+    if (event === 'SIGNED_OUT') {
+      document.getElementById('loginOverlay').classList.remove('hidden');
+    }
+  });
+})();
+
+function initApp() {
+  loadFinalizedMap().then(() => renderDateStrip(currentDate));
+  setTimeout(initSettingsUI, 0);
+  loadRecipes().then(() => loadDay());
+}
+
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const btn = document.getElementById('loginBtn');
+  const errorEl = document.getElementById('loginError');
+  errorEl.classList.remove('show');
+  btn.classList.add('loading');
+  btn.disabled = true;
+  const { error } = await db.auth.signInWithPassword({ email, password });
+  btn.classList.remove('loading');
+  btn.disabled = false;
+  if (error) {
+    errorEl.textContent = error.message;
+    errorEl.classList.add('show');
+    return;
+  }
+  document.getElementById('loginOverlay').classList.add('hidden');
+  initApp();
+}
+
+async function doLogout() {
+  await db.auth.signOut();
+  document.getElementById('loginOverlay').classList.remove('hidden');
+}
 
 /* ══════════════════════════════════════
    SETTINGS (Supabase-backed, localStorage cache)
@@ -253,14 +294,9 @@ function haptic(type) {
   } catch (e) { /* ignore */ }
 }
 
-// Initialise settings UI on next tick (after DOM is settled).
-setTimeout(initSettingsUI, 0);
-
 /* ── Date Strip ── */
 // Window-offset: 0 means today is the rightmost pill, 4 means 4 days back, etc.
 var dateStripOffset = 0;
-
-loadRecipes().then(() => loadDay());
 
 function renderDateStrip(selected) {
   const strip = document.getElementById('dateStrip');
