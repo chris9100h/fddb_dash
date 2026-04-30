@@ -1771,7 +1771,7 @@ async function openDateMenu(date, x, y) {
   let canFinalize = false, adhForFinalize = null;
   if (!isFuture) {
     const [macroRes, dtRes, tgtRes] = await Promise.all([
-      db.from('fddb_daily_macros').select('protein, carbs, fat').eq('date', date),
+      db.from('fddb_daily_macros').select('protein, carbs, fat').eq('date', date).neq('meal', WEEKLY_TREAT_MEAL),
       db.from('fddb_day_type').select('type').eq('date', date).maybeSingle(),
       db.from('fddb_coach_targets').select('*').lte('valid_from', date).order('valid_from', { ascending: false }),
     ]);
@@ -1887,7 +1887,7 @@ async function loadStats() {
   document.getElementById('statsEmpty').style.display = 'none';
 
   const [macroRes, dayTypeRes, targetsRes, finalizedRes] = await Promise.all([
-    db.from('fddb_daily_macros').select('date, kcal, protein, carbs, fat').gte('date', from).lte('date', to),
+    db.from('fddb_daily_macros').select('date, kcal, protein, carbs, fat').gte('date', from).lte('date', to).neq('meal', WEEKLY_TREAT_MEAL),
     db.from('fddb_day_type').select('date, type').gte('date', from).lte('date', to),
     db.from('fddb_coach_targets').select('*').lte('valid_from', to).order('valid_from', { ascending: false }),
     db.from('fddb_day_finalized').select('date, status').gte('date', from).lte('date', to),
