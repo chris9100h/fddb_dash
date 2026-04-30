@@ -13,7 +13,8 @@ const WATER_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIs
 const dbWater = supabase.createClient(WATER_URL, WATER_KEY);
 
 const ORDER = ['frühstück','zwischenmahlzeit 1','mittagessen','zwischenmahlzeit 2','abendbrot','abendessen'];
-const LABELS = { 'frühstück':'Breakfast','zwischenmahlzeit 1':'Snack 1','mittagessen':'Lunch','zwischenmahlzeit 2':'Snack 2','abendbrot':'Dinner','abendessen':'Dinner' };
+const LABELS = { 'frühstück':'Breakfast','zwischenmahlzeit 1':'Snack 1','mittagessen':'Lunch','zwischenmahlzeit 2':'Snack 2','abendbrot':'Dinner','abendessen':'Dinner','weekly_treat':'Weekly Treat' };
+const WEEKLY_TREAT_MEAL = 'weekly_treat';
 
 let checkables = [];
 let totals = { kcal:0, p:0, c:0, f:0 };
@@ -894,6 +895,7 @@ function renderDashboard(entries) {
   if (!entries.length) {
     content.innerHTML = '<div class="placeholder"><i class="fas fa-bowl-food"></i>No entries for this date</div>';
     totals = {kcal:0,p:0,c:0,f:0};
+    renderWeeklyTreatCard([], content);
     renderTargetBlock();
     updateChecked();
     return;
@@ -903,14 +905,17 @@ function renderDashboard(entries) {
   totals = {kcal:0,p:0,c:0,f:0};
   entries.forEach(e => {
     (grouped[e.meal] = grouped[e.meal]||[]).push(e);
-    totals.kcal += e.kcal||0; totals.p += parseFloat(e.protein)||0;
-    totals.c += parseFloat(e.carbs)||0; totals.f += parseFloat(e.fat)||0;
+    if (e.meal !== WEEKLY_TREAT_MEAL) {
+      totals.kcal += e.kcal||0; totals.p += parseFloat(e.protein)||0;
+      totals.c += parseFloat(e.carbs)||0; totals.f += parseFloat(e.fat)||0;
+    }
   });
 
   // Render every standard ORDER meal (even if empty) so drop targets stay available
   // after a meal is emptied. Custom meals outside ORDER are appended only if they have items.
   // Skip empty aliases whose label is already used by a non-empty meal (e.g. abendbrot/abendessen → "Dinner").
-  const customMeals = Object.keys(grouped).filter(m => ORDER.indexOf(m) < 0);
+  // weekly_treat is handled separately below — exclude from the standard loop.
+  const customMeals = Object.keys(grouped).filter(m => ORDER.indexOf(m) < 0 && m !== WEEKLY_TREAT_MEAL);
   const orderedMeals = [...ORDER, ...customMeals.sort()];
   const usedLabels = new Set(
     orderedMeals.filter(m => (grouped[m] || []).length > 0).map(m => LABELS[m] || m)
@@ -1088,8 +1093,50 @@ function renderDashboard(entries) {
     content.appendChild(card);
   });
 
+  // Weekly Treat card — always rendered as a drop target at the bottom.
+  // Items here are intentionally excluded from totals and checkables.
+  renderWeeklyTreatCard(grouped[WEEKLY_TREAT_MEAL] || [], content);
+
   renderTargetBlock();
   updateChecked();
+}
+
+function renderWeeklyTreatCard(items, container) {
+  const isEmpty = items.length === 0;
+  const card = document.createElement('div');
+  card.className = 'meal-card weekly-treat-card' + (isEmpty ? ' weekly-treat-empty' : '');
+  card.dataset.meal = WEEKLY_TREAT_MEAL;
+
+  card.innerHTML = `<div class="meal-title weekly-treat-title">
+    <span class="weekly-treat-icon">🎯</span>
+    <div class="meal-name weekly-treat-name">Weekly Treat</div>
+    ${!isEmpty ? `<div class="weekly-treat-excluded-badge">excluded</div>` : ''}
+  </div>`;
+
+  const list = document.createElement('div');
+  list.className = 'items-list';
+
+  if (isEmpty) {
+    const hint = document.createElement('div');
+    hint.className = 'weekly-treat-hint';
+    hint.innerHTML = `<i class="fas fa-arrow-down-to-line"></i> Drag your weekly treat here`;
+    list.appendChild(hint);
+  } else {
+    items.forEach(e => {
+      const m = { kcal: e.kcal||0, p: parseFloat(e.protein)||0, c: parseFloat(e.carbs)||0, f: parseFloat(e.fat)||0 };
+      const row = document.createElement('div');
+      row.className = 'food-item weekly-treat-item';
+      row.dataset.meal = WEEKLY_TREAT_MEAL;
+      row.dataset.entryIds = String(e.id);
+      row.dataset.checkKeys = `${WEEKLY_TREAT_MEAL}::${e.item_name}`;
+      row.dataset.dragKind = 'item';
+      row.innerHTML = `<div class="weekly-treat-joker-icon"><i class="fas fa-star"></i></div><div class="food-item-body"><div class="food-name">${e.item_name}</div><div class="macro-pills weekly-treat-pills">${pillsHTML(m)}</div></div>`;
+      list.appendChild(row);
+    });
+  }
+
+  card.appendChild(list);
+  container.appendChild(card);
 }
 
 /* ── Persist ── */
@@ -2877,8 +2924,34 @@ initTweaks();
     }
   }
 
+  function getWeekBounds(dateStr) {
+    const d = new Date(dateStr);
+    const dow = d.getDay(); // 0=Sun … 6=Sat
+    const diffToMon = dow === 0 ? -6 : 1 - dow;
+    const mon = new Date(d); mon.setDate(d.getDate() + diffToMon);
+    const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+    const fmt = x => x.toISOString().split('T')[0];
+    return { monday: fmt(mon), sunday: fmt(sun) };
+  }
+
   async function moveEntries({ ids, fromMeal, toMeal, kind, oldKeys, recipeName }) {
     if (!ids.length || fromMeal === toMeal) return;
+
+    if (toMeal === WEEKLY_TREAT_MEAL) {
+      const { monday, sunday } = getWeekBounds(currentDate);
+      const { data: weekTreats } = await db
+        .from('fddb_daily_macros')
+        .select('id, date')
+        .eq('meal', WEEKLY_TREAT_MEAL)
+        .gte('date', monday)
+        .lte('date', sunday);
+      const idSet = new Set(ids);
+      const existing = (weekTreats || []).filter(e => !idSet.has(String(e.id)));
+      if (existing.length > 0) {
+        showToast('Joker bereits vergeben diese Woche 🎯', 'error');
+        return;
+      }
+    }
 
     // Optimistic: patch local arrays (ids are UUID strings)
     const idSet = new Set(ids);
