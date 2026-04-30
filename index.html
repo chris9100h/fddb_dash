@@ -330,7 +330,25 @@
         </div>
       </div>
 
-      <div class="version-footer">FDDB · Check · v2.54</div>
+      <!-- ── Account ── -->
+      <div class="settings-section">
+        <div class="settings-section-title"><i class="fas fa-user-circle"></i> Account</div>
+        <div class="list-group">
+          <div class="settings-row">
+            <div class="settings-row-text">
+              <div class="settings-row-label">Sign out</div>
+              <div class="settings-row-sub">Ausloggen — beim nächsten Start anmelden</div>
+            </div>
+            <div class="settings-row-control">
+              <button class="btn-primary-sm" style="background:rgba(248,113,113,.15);color:var(--red)" onclick="doLogout()">
+                <i class="fas fa-arrow-right-from-bracket"></i> Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="version-footer">FDDB · Check · v2.55</div>
     </div>
   </section>
 
@@ -531,6 +549,31 @@
 
 <!-- Toast -->
 <div class="toast" id="toast"></div>
+
+<!-- ═══════════════════════════ LOGIN OVERLAY ═══════════════════════════ -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-card">
+    <div class="login-logo">
+      <i class="fas fa-bolt"></i>
+    </div>
+    <div class="login-eyebrow">FDDB</div>
+    <h1 class="login-title">Check</h1>
+    <p class="login-sub">Sign in to continue</p>
+    <div class="login-form">
+      <input type="email" id="loginEmail" class="text-input" placeholder="Email"
+             autocomplete="email" autocapitalize="none" autocorrect="off" spellcheck="false"
+             onkeydown="if(event.key==='Enter')document.getElementById('loginPassword').focus()">
+      <input type="password" id="loginPassword" class="text-input" placeholder="Password"
+             autocomplete="current-password"
+             onkeydown="if(event.key==='Enter')doLogin()">
+      <div class="login-error" id="loginError"></div>
+      <button class="btn btn-primary login-btn" id="loginBtn" onclick="doLogin()">
+        <span id="loginBtnLabel">Sign In</span>
+        <i class="fas fa-spinner login-spin" id="loginSpinner"></i>
+      </button>
+    </div>
+  </div>
+</div>
 
 <script src="app.js"></script>
 </body>

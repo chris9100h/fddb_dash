@@ -1556,3 +1556,74 @@ body.dnd-active {
 .dnd-toast strong { color: var(--accent, #ff6b00); font-weight: 700; }
 .dnd-toast i { color: var(--accent, #ff6b00); font-size: .85rem; }
 
+/* ════════════════════════════════════════════════════════
+   LOGIN OVERLAY
+   ════════════════════════════════════════════════════════ */
+.login-overlay {
+  display: flex;
+  position: fixed; inset: 0;
+  background: var(--bg);
+  z-index: 1000;
+  align-items: center; justify-content: center;
+  padding: 24px;
+}
+.login-overlay.hidden { display: none; }
+
+.login-card {
+  width: 100%; max-width: 380px;
+  background:
+    linear-gradient(180deg,
+      rgba(255,255,255,.06) 0%,
+      rgba(255,255,255,.02) 50%,
+      rgba(10,10,11,.35) 100%),
+    rgba(18,18,22,.55);
+  backdrop-filter: blur(28px) saturate(180%) brightness(1.05);
+  -webkit-backdrop-filter: blur(28px) saturate(180%) brightness(1.05);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 28px;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255,255,255,.12),
+    inset 0 -1px 0 0 rgba(0,0,0,.25),
+    0 40px 100px -20px rgba(0,0,0,.8),
+    0 8px 24px -4px rgba(0,0,0,.4);
+  padding: 40px 32px 36px;
+  display: flex; flex-direction: column; align-items: center;
+  animation: viewIn .35s cubic-bezier(.22,.68,0,1.2);
+}
+
+.login-logo {
+  width: 68px; height: 68px; border-radius: 20px;
+  background: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.7rem; color: #fff;
+  box-shadow: var(--orange-glow), 0 10px 28px -6px rgba(255,107,0,.5);
+  margin-bottom: 22px; flex-shrink: 0;
+}
+.login-eyebrow {
+  font-size: .66rem; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--muted); font-weight: 600; margin-bottom: 4px;
+}
+.login-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 3.2rem; line-height: 1; letter-spacing: .02em;
+  color: var(--text); margin-bottom: 8px;
+}
+.login-sub {
+  font-size: .82rem; color: var(--text-dim); margin-bottom: 32px;
+}
+.login-form { width: 100%; display: flex; flex-direction: column; }
+.login-form .text-input { margin-bottom: 10px; }
+.login-error {
+  font-size: .8rem; color: var(--red);
+  margin: 0 0 10px; text-align: center;
+  display: none; line-height: 1.4;
+}
+.login-error.show { display: block; }
+.login-btn {
+  width: 100%; margin-top: 4px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.login-spin { display: none; }
+.login-btn.loading .login-spin { display: inline; animation: spin .7s linear infinite; }
+.login-btn.loading #loginBtnLabel { opacity: 0.5; }
+
