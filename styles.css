@@ -1436,6 +1436,13 @@ body[data-hero="bars"] .hero-card-inner { grid-template-columns: 1fr; }
 .settings-time { width: 110px; }
 .settings-num:focus, .settings-time:focus { border-color: var(--accent); }
 .settings-suffix { font-size: .88rem; color: var(--text-dim); font-weight: 500; }
+.settings-select {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 10px; color: var(--text); font-family: inherit;
+  font-size: .88rem; padding: 8px 10px; outline: none;
+  color-scheme: dark; transition: border-color .15s; cursor: pointer;
+}
+.settings-select:focus { border-color: var(--accent); }
 
 /* Toggle switch (iOS style) */
 .toggle-switch {
@@ -1615,6 +1622,11 @@ body.is-dragging .weekly-treat-card.weekly-treat-empty { display: block; opacity
   gap: 6px;
 }
 .weekly-treat-hint i { color: var(--gold); opacity: .8; }
+.weekly-treat-over-budget {
+  color: var(--red) !important;
+  background: rgba(248,113,113,.12) !important;
+  border-color: rgba(248,113,113,.35) !important;
+}
 
 .weekly-treat-item .weekly-treat-joker-icon {
   width: 26px; height: 26px;
