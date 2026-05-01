@@ -1628,6 +1628,21 @@ body.is-dragging .weekly-treat-card.weekly-treat-empty { display: block; opacity
   border-color: rgba(248,113,113,.35) !important;
 }
 
+/* Floating Weekly Treat drop pill — fixed above tab bar during drag */
+.dnd-treat-pill {
+  position: fixed;
+  left: 12px; right: 12px;
+  bottom: calc(var(--tabbar-h) + var(--safe-bot) + 10px);
+  z-index: 9998;
+  animation: none !important;
+  box-shadow: 0 8px 28px -6px rgba(0,0,0,.6), 0 0 0 1px rgba(245,158,11,.2);
+}
+.dnd-treat-pill-hint {
+  margin-left: auto;
+  font-size: .62rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--text-dim); opacity: .7;
+}
+
 .weekly-treat-item .weekly-treat-joker-icon {
   width: 26px; height: 26px;
   display: flex; align-items: center; justify-content: center;
