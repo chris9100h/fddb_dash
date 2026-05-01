@@ -199,13 +199,10 @@ function initSettingsUI() {
   applySettingsToUI();
 
   goalEl.addEventListener('change', () => {
-    let v = parseInt(goalEl.value, 10);
-    if (!Number.isFinite(v)) v = SETTINGS_DEFAULTS.adherenceGoal;
-    v = Math.max(50, Math.min(100, v));
-    goalEl.value = v;
-    settings.adherenceGoal = v;
+    const v = parseInt(goalEl.value, 10);
+    settings.adherenceGoal = Number.isFinite(v) ? v : SETTINGS_DEFAULTS.adherenceGoal;
     cacheSettings();
-    writeSettingToDb('adherenceGoal', v);
+    writeSettingToDb('adherenceGoal', settings.adherenceGoal);
   });
   cutoffEl.addEventListener('change', () => {
     const v = cutoffEl.value || SETTINGS_DEFAULTS.adherenceCutoff;
