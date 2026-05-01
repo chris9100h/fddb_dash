@@ -1980,6 +1980,8 @@ async function loadStats() {
   });
   const ptStyles = dayData.map(d => d.status === 'freeze' ? 'rectRot' : d.status === 'sick' ? 'triangle' : jokerDates.has(d.date) ? 'star' : 'circle');
   const ptRadii = dayData.map(d => (d.status === 'freeze' || d.status === 'sick') ? 6 : jokerDates.has(d.date) ? 6 : (dayData.length > 30 ? 0 : 4));
+  const ptBorderColors = dayData.map(d => jokerDates.has(d.date) ? 'rgba(245,158,11,1)' : 'transparent');
+  const ptBorderWidths = dayData.map(d => jokerDates.has(d.date) ? 2 : 0);
   const maxAbs = Math.max(...devValues.filter(v=>v!==null).map(Math.abs), 5);
   const yBound = Math.max(10, Math.ceil(maxAbs / 5) * 5);
 
@@ -1990,7 +1992,7 @@ async function loadStats() {
       datasets: [{
         label: 'Deviation', data: devValues, borderWidth: 2,
         pointRadius: ptRadii, pointStyle: ptStyles,
-        pointBackgroundColor: ptColors, pointBorderColor: 'transparent',
+        pointBackgroundColor: ptColors, pointBorderColor: ptBorderColors, pointBorderWidth: ptBorderWidths,
         tension: .35, fill: 'origin',
         backgroundColor: 'rgba(90,90,90,.08)', spanGaps: true,
         segment: {
