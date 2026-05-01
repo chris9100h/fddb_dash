@@ -2081,9 +2081,7 @@ async function loadStats() {
       const status = d.status;
       const isJoker = jokerDates.has(d.date);
       const typeIcon = dtype === 'training' ? `<i class="fas fa-dumbbell" style="font-size:.55rem;color:rgba(255,255,255,.5);margin-left:5px"></i>` : dtype === 'rest' ? `<i class="fas fa-bed" style="font-size:.55rem;color:rgba(255,255,255,.5);margin-left:5px"></i>` : '';
-      const jokerIcon = isJoker ? `<span style="font-size:.6rem;position:absolute;top:3px;right:4px;line-height:1">⭐</span>` : '';
       const cell = document.createElement('div');
-      cell.style.position = 'relative';
       let bg = cellBg(a);
       if (status === 'freeze') bg = 'rgba(96,165,250,0.2)';
       else if (status === 'sick') bg = 'rgba(251,191,36,0.2)';
@@ -2097,9 +2095,17 @@ async function loadStats() {
         mainContent = `<div style="font-family:'Bebas Neue',sans-serif;font-size:1.15rem;color:${a!==null?'#fff':'#444'}">${a !== null ? a+'%' : '–'}</div>`;
       }
       const tipText = status === 'freeze' ? `${d.date}: Freeze` : status === 'sick' ? `${d.date}: Sick` : `${d.date}: ${a !== null ? a + '%' : 'N/A'}${isJoker ? ' · Joker ⭐' : ''}`;
-      cell.innerHTML = `${mainContent}${typeIcon}${jokerIcon}`;
+      cell.innerHTML = `${mainContent}${typeIcon}`;
       cell.setAttribute('data-tip', tipText);
-      cwGrid.appendChild(cell);
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'display:flex;flex-direction:column;gap:2px';
+      wrapper.appendChild(cell);
+      if (isJoker) {
+        const jokerBar = document.createElement('div');
+        jokerBar.style.cssText = 'height:3px;border-radius:99px;background:var(--gold);width:100%';
+        wrapper.appendChild(jokerBar);
+      }
+      cwGrid.appendChild(wrapper);
     });
     hm.appendChild(cwGrid);
   } else {
