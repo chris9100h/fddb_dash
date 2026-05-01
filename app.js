@@ -94,7 +94,6 @@ const SETTINGS_CACHE_KEY = 'fddb.settings.cache.v1';
 const SETTINGS_DEFAULTS = {
   adherenceGoal: 80,        // % — threshold for a day to count
   adherenceCutoff: '22:00', // HH:MM — auto-finalize time
-  haptics: true,            // vibration feedback on/off
   sickModeActive: false,    // when true, every day (incl. today) is auto-marked 'sick'
   sickSince: null,          // YYYY-MM-DD — date sick mode started
   freezePerWeek: 2,         // max freeze days allowed per Mon–Sun week
@@ -117,7 +116,6 @@ function cacheSettings() {
 const SETTING_DB_KEYS = {
   adherenceGoal:       'adherence_goal',
   adherenceCutoff:     'adherence_cutoff',
-  haptics:             'haptics',
   sickModeActive:      'sick_mode_active',
   sickSince:           'sick_since',
   freezePerWeek:       'freeze_per_week',
@@ -163,13 +161,11 @@ async function loadSettingsFromDb() {
 function applySettingsToUI() {
   const goalEl = document.getElementById('setAdherenceGoal');
   const cutoffEl = document.getElementById('setAdherenceCutoff');
-  const hapticsEl = document.getElementById('setHaptics');
   const sickEl = document.getElementById('setSickMode');
   const sickSubEl = document.getElementById('sickModeSub');
   if (!goalEl) return;
   goalEl.value = settings.adherenceGoal;
   cutoffEl.value = settings.adherenceCutoff;
-  hapticsEl.checked = !!settings.haptics;
   if (sickEl) sickEl.checked = !!settings.sickModeActive;
   if (sickSubEl) {
     sickSubEl.textContent = settings.sickModeActive
@@ -198,7 +194,6 @@ function applySickModeOverlay() {
 function initSettingsUI() {
   const goalEl = document.getElementById('setAdherenceGoal');
   const cutoffEl = document.getElementById('setAdherenceCutoff');
-  const hapticsEl = document.getElementById('setHaptics');
   if (!goalEl) return;
 
   applySettingsToUI();
@@ -217,12 +212,6 @@ function initSettingsUI() {
     settings.adherenceCutoff = v;
     cacheSettings();
     writeSettingToDb('adherenceCutoff', v);
-  });
-  hapticsEl.addEventListener('change', () => {
-    settings.haptics = hapticsEl.checked;
-    cacheSettings();
-    writeSettingToDb('haptics', settings.haptics);
-    if (settings.haptics) haptic('check');
   });
 
   const sickEl = document.getElementById('setSickMode');
@@ -279,47 +268,6 @@ function initSettingsUI() {
 function todayISO() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-}
-
-/* ══════════════════════════════════════
-   HAPTICS
-   Central helper — all vibration goes
-   through haptic(type). Respects user
-   setting + browser support.
-   ══════════════════════════════════════ */
-const HAPTIC_PATTERNS = {
-  check:       { v: 10,                           p: 1, d: 0   },
-  uncheck:     { v: 5,                            p: 1, d: 0   },
-  tap:         { v: null,                         p: 1, d: 0   },
-  goalReached: { v: [20, 50, 20, 50, 80],         p: 3, d: 80  },
-  streakUp:    { v: [10, 40, 10, 40, 10, 40, 100],p: 4, d: 70  },
-  error:       { v: [100, 50, 100],               p: 3, d: 100 },
-};
-
-/* Safari iOS 18+: toggling a [switch] checkbox triggers native haptic */
-let _hapticSwitch = null;
-function _safariPulse(n, delay) {
-  if (!_hapticSwitch) {
-    _hapticSwitch = document.createElement('input');
-    _hapticSwitch.type = 'checkbox';
-    _hapticSwitch.setAttribute('switch', '');
-    _hapticSwitch.style.cssText = 'position:fixed;opacity:0;pointer-events:none;width:0;height:0';
-    document.body.appendChild(_hapticSwitch);
-  }
-  if (n === 1) { _hapticSwitch.checked = !_hapticSwitch.checked; return; }
-  for (let i = 0; i < n; i++) {
-    setTimeout(() => { _hapticSwitch.checked = !_hapticSwitch.checked; }, i * delay);
-  }
-}
-
-function haptic(type) {
-  if (!settings.haptics) return;
-  const h = HAPTIC_PATTERNS[type];
-  if (!h) return;
-  try {
-    _safariPulse(h.p, h.d);
-    if (navigator.vibrate && h.v != null) navigator.vibrate(h.v);
-  } catch (e) { /* ignore */ }
 }
 
 /* ── Date Strip ── */
@@ -758,7 +706,6 @@ async function manualFinalizeDay(date, adherence) {
   const goalUsed = settings.adherenceGoal;
   const status = adherence >= goalUsed ? 'counted' : 'failed';
   await writeFinalizedDay(date, adherence, goalUsed, status);
-  if (status === 'counted') haptic('streakUp');
   showToast(`Day finalized — ${adherence}% ${status === 'counted' ? 'counted ✓' : 'below goal'}`);
   renderDateStrip(document.getElementById('dateInput').value || todayStr);
   renderStreak();
@@ -806,7 +753,7 @@ async function renderStreak() {
     const lastRecord = parseInt(localStorage.getItem('fddb.streak.lastRecord') || '0', 10);
     if (record > lastRecord && record > 0) {
       localStorage.setItem('fddb.streak.lastRecord', String(record));
-      haptic('streakUp');
+
     }
   } catch (e) { /* silent */ }
 }
@@ -1199,7 +1146,6 @@ function renderWeeklyTreatCard(items, container) {
 const pendingWrites = {};
 function persistChecked(itemKey, checked) {
   currentCheckedMap[itemKey] = checked;
-  haptic(checked ? 'check' : 'uncheck');
   clearTimeout(pendingWrites[itemKey]);
   pendingWrites[itemKey] = setTimeout(async () => {
     await db.from('fddb_checklist_status').upsert({ date: currentDate, item_key: itemKey, checked }, { onConflict: 'date,item_key' });
@@ -1815,7 +1761,6 @@ function _dateMenuKey(e) { if (e.key === 'Escape') closeDateMenu(); }
 
 async function openDateMenu(date, x, y) {
   closeDateMenu();
-  haptic('tap');
   const fin = finalizedMap.get(date);
   const today = new Date(); today.setHours(0,0,0,0);
   const d = new Date(date + 'T00:00:00');
@@ -2214,7 +2159,6 @@ function showToast(msg, type='') {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.className = 'toast' + (type ? ' '+type : '');
-  if (type === 'error') haptic('error');
   clearTimeout(toastTimer);
   requestAnimationFrame(() => { t.classList.add('show'); });
   toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
@@ -2897,7 +2841,6 @@ initTweaks();
     scrollRafId = requestAnimationFrame(tickScroll);
     showTreatPill();
 
-    if (settings.haptics) { try { _safariPulse(1, 0); } catch(_){} if (navigator.vibrate) try { navigator.vibrate(12); } catch(_) {} }
     moveGhost(clientX, clientY);
   }
 
@@ -3093,7 +3036,6 @@ initTweaks();
         );
       }
 
-      if (settings.haptics) { try { _safariPulse(1, 0); } catch(_){} if (navigator.vibrate) try { navigator.vibrate(8); } catch(_) {} }
       showMoveToast(kind === 'recipe' ? recipeName : 'Item', toMeal);
     } catch (err) {
       console.error('Move failed:', err);
@@ -3132,7 +3074,6 @@ initTweaks();
       const results = await Promise.all(updates);
       const failed = results.find(r => r.error);
       if (failed) throw failed.error;
-      if (settings.haptics) { try { _safariPulse(1, 0); } catch(_){} if (navigator.vibrate) try { navigator.vibrate(8); } catch(_) {} }
     } catch (err) {
       console.error('Reorder failed:', err);
       alert('Umsortieren fehlgeschlagen. Lade neu...');
