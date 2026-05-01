@@ -2136,6 +2136,8 @@ async function loadStats() {
         cell.innerHTML = `<i class="fas fa-snowflake" style="font-size:.5rem;color:rgba(96,165,250,.9)"></i>`;
       } else if (status === 'sick') {
         cell.innerHTML = `<i class="fas fa-thermometer-half" style="font-size:.5rem;color:rgba(251,191,36,.9)"></i>`;
+      } else if (isJoker) {
+        cell.innerHTML = `<i class="fas fa-star" style="font-size:.5rem;color:var(--gold)"></i>`;
       }
       cell.className = 'heatmap-cell';
       wrapper.appendChild(cell);
@@ -2143,11 +2145,6 @@ async function loadStats() {
         const bar = document.createElement('div');
         bar.style.cssText = `height:3px;border-radius:99px;background:${barColor};width:100%`;
         wrapper.appendChild(bar);
-      }
-      if (isJoker) {
-        const jokerBar = document.createElement('div');
-        jokerBar.style.cssText = `height:3px;border-radius:99px;background:var(--gold);width:100%`;
-        wrapper.appendChild(jokerBar);
       }
       grid.appendChild(wrapper);
     });
