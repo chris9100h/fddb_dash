@@ -1628,7 +1628,8 @@ body.is-dragging .weekly-treat-card.weekly-treat-empty { display: block; opacity
   border-color: rgba(248,113,113,.35) !important;
 }
 
-/* Floating Weekly Treat drop pill — fixed above tab bar during drag */
+/* Hide the in-page weekly treat card while dragging — the floating pill takes over */
+body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
 .dnd-treat-pill {
   position: fixed;
   left: 12px; right: 12px;
