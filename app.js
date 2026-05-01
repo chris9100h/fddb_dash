@@ -1727,7 +1727,7 @@ function setStatsPeriod(p) {
 
 function getStatsDateRange() {
   const today = new Date();
-  const fmt = d => d.toISOString().split('T')[0];
+  const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   if (statsPeriod === 'week') {
     const dow = today.getDay() || 7;
     const mon = new Date(today); mon.setDate(today.getDate() - dow + 1);
