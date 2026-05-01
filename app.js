@@ -2717,6 +2717,7 @@ initTweaks();
   const MOVE_TOLERANCE = 8;
   let state = null;
   let lockedScrollY = 0;
+  let lockedScrollMax = 0;
   let scrollRafId = null;
 
   // Swallows native touchmove while a drag is active so iOS
@@ -2732,6 +2733,8 @@ initTweaks();
 
   function lockBodyScroll() {
     lockedScrollY = window.scrollY || window.pageYOffset || 0;
+    // Capture max scroll BEFORE position:fixed collapses scrollHeight to vh.
+    lockedScrollMax = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
     // Set top BEFORE flipping position:fixed so there's no
     // intermediate layout where body jumps to top:0.
     document.body.style.top = `-${lockedScrollY}px`;
@@ -2807,16 +2810,15 @@ initTweaks();
     const x   = state.lastClientX || 0;
     const vh  = window.innerHeight;
     const EDGE = 90;
-    const maxScroll = Math.max(0, document.documentElement.scrollHeight - vh);
     let scrolled = false;
     if (y < EDGE && lockedScrollY > 0) {
       const t = 1 - y / EDGE;
       lockedScrollY = Math.max(0, lockedScrollY - Math.round(2 + t * 20));
       document.body.style.top = `-${lockedScrollY}px`;
       scrolled = true;
-    } else if (y > vh - EDGE && lockedScrollY < maxScroll) {
+    } else if (y > vh - EDGE && lockedScrollY < lockedScrollMax) {
       const t = (y - (vh - EDGE)) / EDGE;
-      lockedScrollY = Math.min(maxScroll, lockedScrollY + Math.round(2 + t * 20));
+      lockedScrollY = Math.min(lockedScrollMax, lockedScrollY + Math.round(2 + t * 20));
       document.body.style.top = `-${lockedScrollY}px`;
       scrolled = true;
     }
