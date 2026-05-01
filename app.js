@@ -1108,7 +1108,7 @@ function renderWeeklyTreatCard(items, container) {
   }
 
   card.innerHTML = `<div class="meal-title weekly-treat-title">
-    <span class="weekly-treat-icon">🎯</span>
+    <span class="weekly-treat-icon">⭐</span>
     <div class="meal-name weekly-treat-name">Weekly Treat</div>
     ${badge}
   </div>`;
@@ -1884,15 +1884,17 @@ async function loadStats() {
   document.getElementById('statsContent').style.display = 'none';
   document.getElementById('statsEmpty').style.display = 'none';
 
-  const [macroRes, dayTypeRes, targetsRes, finalizedRes] = await Promise.all([
+  const [macroRes, dayTypeRes, targetsRes, finalizedRes, jokerRes] = await Promise.all([
     db.from('fddb_daily_macros').select('date, kcal, protein, carbs, fat').gte('date', from).lte('date', to).neq('meal', WEEKLY_TREAT_MEAL),
     db.from('fddb_day_type').select('date, type').gte('date', from).lte('date', to),
     db.from('fddb_coach_targets').select('*').lte('valid_from', to).order('valid_from', { ascending: false }),
     db.from('fddb_day_finalized').select('date, status').gte('date', from).lte('date', to),
+    db.from('fddb_daily_macros').select('date').eq('meal', WEEKLY_TREAT_MEAL).gte('date', from).lte('date', to),
   ]);
 
   document.getElementById('statsLoading').style.display = 'none';
   const macros = macroRes.data || [];
+  const jokerDates = new Set((jokerRes.data || []).map(r => r.date));
   const dayTypes = dayTypeRes.data || [];
   const allTgts = targetsRes.data || [];
   if (!macros.length) { document.getElementById('statsEmpty').style.display = 'block'; return; }
@@ -1973,10 +1975,11 @@ async function loadStats() {
   const ptColors = dayData.map(d => {
     if (d.status === 'freeze') return 'rgba(96,165,250,1)';
     if (d.status === 'sick') return 'rgba(251,191,36,1)';
+    if (jokerDates.has(d.date)) return 'rgba(245,158,11,1)';
     return devToColor(d.devAvg, 1);
   });
-  const ptStyles = dayData.map(d => d.status === 'freeze' ? 'rectRot' : d.status === 'sick' ? 'triangle' : 'circle');
-  const ptRadii = dayData.map(d => (d.status === 'freeze' || d.status === 'sick') ? 6 : (dayData.length > 30 ? 0 : 4));
+  const ptStyles = dayData.map(d => d.status === 'freeze' ? 'rectRot' : d.status === 'sick' ? 'triangle' : jokerDates.has(d.date) ? 'star' : 'circle');
+  const ptRadii = dayData.map(d => (d.status === 'freeze' || d.status === 'sick') ? 6 : jokerDates.has(d.date) ? 6 : (dayData.length > 30 ? 0 : 4));
   const maxAbs = Math.max(...devValues.filter(v=>v!==null).map(Math.abs), 5);
   const yBound = Math.max(10, Math.ceil(maxAbs / 5) * 5);
 
@@ -2002,7 +2005,7 @@ async function loadStats() {
         legend: { display: false },
         tooltip: { callbacks: { label: ctx => {
           const d = dayData[ctx.dataIndex];
-          const statusLabel = d && d.status === 'freeze' ? ' · Freeze ❄' : d && d.status === 'sick' ? ' · Sick 🤒' : '';
+          const statusLabel = d && d.status === 'freeze' ? ' · Freeze ❄' : d && d.status === 'sick' ? ' · Sick 🤒' : d && jokerDates.has(d.date) ? ' · Joker ⭐' : '';
           return ctx.raw !== null ? 'Dev: ' + (ctx.raw > 0 ? '+' : '') + ctx.raw + '%' + statusLabel : 'N/A';
         }}}
       },
@@ -2074,12 +2077,15 @@ async function loadStats() {
       const a = d.adh;
       const dtype = dayTypeMap[d.date];
       const status = d.status;
+      const isJoker = jokerDates.has(d.date);
       const typeIcon = dtype === 'training' ? `<i class="fas fa-dumbbell" style="font-size:.55rem;color:rgba(255,255,255,.5);margin-left:5px"></i>` : dtype === 'rest' ? `<i class="fas fa-bed" style="font-size:.55rem;color:rgba(255,255,255,.5);margin-left:5px"></i>` : '';
+      const jokerIcon = isJoker ? `<span style="font-size:.6rem;position:absolute;top:3px;right:4px;line-height:1">⭐</span>` : '';
       const cell = document.createElement('div');
+      cell.style.position = 'relative';
       let bg = cellBg(a);
       if (status === 'freeze') bg = 'rgba(96,165,250,0.2)';
       else if (status === 'sick') bg = 'rgba(251,191,36,0.2)';
-      cell.style.cssText = `background:${bg};border-radius:8px;padding:12px 4px;text-align:center;display:flex;align-items:center;justify-content:center`;
+      cell.style.cssText = `position:relative;background:${bg};border-radius:8px;padding:12px 4px;text-align:center;display:flex;align-items:center;justify-content:center`;
       let mainContent;
       if (status === 'freeze') {
         mainContent = `<i class="fas fa-snowflake" style="font-size:1.05rem;color:rgba(96,165,250,.9)"></i>`;
@@ -2088,8 +2094,8 @@ async function loadStats() {
       } else {
         mainContent = `<div style="font-family:'Bebas Neue',sans-serif;font-size:1.15rem;color:${a!==null?'#fff':'#444'}">${a !== null ? a+'%' : '–'}</div>`;
       }
-      const tipText = status === 'freeze' ? `${d.date}: Freeze` : status === 'sick' ? `${d.date}: Sick` : `${d.date}: ${a !== null ? a + '%' : 'N/A'}`;
-      cell.innerHTML = `${mainContent}${typeIcon}`;
+      const tipText = status === 'freeze' ? `${d.date}: Freeze` : status === 'sick' ? `${d.date}: Sick` : `${d.date}: ${a !== null ? a + '%' : 'N/A'}${isJoker ? ' · Joker ⭐' : ''}`;
+      cell.innerHTML = `${mainContent}${typeIcon}${jokerIcon}`;
       cell.setAttribute('data-tip', tipText);
       cwGrid.appendChild(cell);
     });
@@ -2112,6 +2118,7 @@ async function loadStats() {
       const a = d.adh;
       const dtype = dayTypeMap[d.date];
       const status = d.status;
+      const isJoker = jokerDates.has(d.date);
       const barColor = dtype === 'training' ? 'var(--orange)' : dtype === 'rest' ? 'var(--blue)' : null;
       const wrapper = document.createElement('div');
       wrapper.style.cssText = 'display:flex;flex-direction:column;gap:2px;width:100%';
@@ -2121,7 +2128,7 @@ async function loadStats() {
       if (status === 'freeze') bg = 'rgba(96,165,250,0.25)';
       else if (status === 'sick') bg = 'rgba(251,191,36,0.25)';
       cell.style.cssText = `border-radius:4px;background:${bg};height:20px;width:100%;display:flex;align-items:center;justify-content:center;overflow:hidden`;
-      const tipText = status === 'freeze' ? `${d.date}: Freeze` : status === 'sick' ? `${d.date}: Sick` : `${d.date}: ${a !== null ? a + '%' : 'N/A'}`;
+      const tipText = status === 'freeze' ? `${d.date}: Freeze` : status === 'sick' ? `${d.date}: Sick` : `${d.date}: ${a !== null ? a + '%' : 'N/A'}${isJoker ? ' · Joker ⭐' : ''}`;
       cell.setAttribute('data-tip', tipText);
       if (status === 'freeze') {
         cell.innerHTML = `<i class="fas fa-snowflake" style="font-size:.5rem;color:rgba(96,165,250,.9)"></i>`;
@@ -2134,6 +2141,11 @@ async function loadStats() {
         const bar = document.createElement('div');
         bar.style.cssText = `height:3px;border-radius:99px;background:${barColor};width:100%`;
         wrapper.appendChild(bar);
+      }
+      if (isJoker) {
+        const jokerBar = document.createElement('div');
+        jokerBar.style.cssText = `height:3px;border-radius:99px;background:var(--gold);width:100%`;
+        wrapper.appendChild(jokerBar);
       }
       grid.appendChild(wrapper);
     });
@@ -2796,7 +2808,7 @@ initTweaks();
     pill.className = 'meal-card weekly-treat-card dnd-treat-pill';
     pill.dataset.meal = WEEKLY_TREAT_MEAL;
     pill.innerHTML = `<div class="meal-title weekly-treat-title" style="border-bottom:none;padding:10px 14px">
-      <span class="weekly-treat-icon">🎯</span>
+      <span class="weekly-treat-icon">⭐</span>
       <div class="meal-name weekly-treat-name">Weekly Treat</div>
       <div class="dnd-treat-pill-hint">drop here</div>
     </div>`;
@@ -2996,7 +3008,7 @@ initTweaks();
       const idSet = new Set(ids);
       const existing = (weekTreats || []).filter(e => !idSet.has(String(e.id)));
       if (existing.length > 0) {
-        showToast('Weekly joker already used 🎯', 'error');
+        showToast('Weekly joker already used ⭐', 'error');
         return;
       }
     }
