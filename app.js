@@ -2717,6 +2717,7 @@ initTweaks();
   const MOVE_TOLERANCE = 8;
   let state = null;
   let lockedScrollY = 0;
+  let scrollRafId = null;
 
   // Swallows native touchmove while a drag is active so iOS
   // doesn't take over the touch stream for scrolling. Registered
@@ -2781,6 +2782,8 @@ initTweaks();
   function cancelDrag(restore = true) {
     if (!state) return;
     const wasStarted = state.started;
+    if (scrollRafId) { cancelAnimationFrame(scrollRafId); scrollRafId = null; }
+    hideTreatPill();
     document.removeEventListener('pointermove', onMove);
     document.removeEventListener('pointerup', onUp);
     document.removeEventListener('pointercancel', onUp);
@@ -2791,9 +2794,74 @@ initTweaks();
     document.querySelectorAll('.meal-card.dnd-hover').forEach(c => c.classList.remove('dnd-hover'));
     state = null;
     document.body.classList.remove('is-dragging');
-    // unlockBodyScroll removes .dnd-active AND restores scroll.
-    // Only needed if we actually locked (i.e. drag was started).
     if (wasStarted) unlockBodyScroll();
+  }
+
+  // ── rAF smooth edge-scroll ──────────────────────────────
+  // Body stays position:fixed during drag (Safari-safe), so we
+  // simulate scroll by adjusting lockedScrollY + body.style.top.
+  // Speed scales with distance into the edge zone (2–22 px/frame).
+  function tickScroll() {
+    if (!state || !state.started) { scrollRafId = null; return; }
+    const y   = state.lastClientY || 0;
+    const x   = state.lastClientX || 0;
+    const vh  = window.innerHeight;
+    const EDGE = 90;
+    const maxScroll = Math.max(0, document.documentElement.scrollHeight - vh);
+    let scrolled = false;
+    if (y < EDGE && lockedScrollY > 0) {
+      const t = 1 - y / EDGE;
+      lockedScrollY = Math.max(0, lockedScrollY - Math.round(2 + t * 20));
+      document.body.style.top = `-${lockedScrollY}px`;
+      scrolled = true;
+    } else if (y > vh - EDGE && lockedScrollY < maxScroll) {
+      const t = (y - (vh - EDGE)) / EDGE;
+      lockedScrollY = Math.min(maxScroll, lockedScrollY + Math.round(2 + t * 20));
+      document.body.style.top = `-${lockedScrollY}px`;
+      scrolled = true;
+    }
+    if (scrolled) updateDropTarget(x, y);
+    scrollRafId = requestAnimationFrame(tickScroll);
+  }
+
+  // ── Drop-target evaluation (shared by onMove + tickScroll) ──
+  function updateDropTarget(x, y) {
+    if (!state || !state.started) return;
+    const card = findMealCardAtPoint(x, y);
+    if (card && card.dataset.meal === state.src.dataset.meal) {
+      document.querySelectorAll('.meal-card.dnd-hover').forEach(c => c.classList.remove('dnd-hover'));
+      state.dropCard = card;
+      updateSameMealDropTarget(x, y, card);
+    } else {
+      if (state.dropLine) { state.dropLine.remove(); state.dropLine = null; state.dropInsertBefore = undefined; }
+      if (card !== state.dropCard) {
+        document.querySelectorAll('.meal-card.dnd-hover').forEach(c => c.classList.remove('dnd-hover'));
+        state.dropCard = card;
+        if (card) card.classList.add('dnd-hover');
+      }
+    }
+  }
+
+  // ── Floating Weekly Treat pill ───────────────────────────
+  // Fixed above the tab bar — always reachable without scrolling.
+  // Hidden when dragging from weekly treat itself (no-op drop).
+  function showTreatPill() {
+    if (document.getElementById('dndTreatPill')) return;
+    if (state && state.src && state.src.dataset.meal === WEEKLY_TREAT_MEAL) return;
+    const pill = document.createElement('div');
+    pill.id = 'dndTreatPill';
+    pill.className = 'meal-card weekly-treat-card dnd-treat-pill';
+    pill.dataset.meal = WEEKLY_TREAT_MEAL;
+    pill.innerHTML = `<div class="meal-title weekly-treat-title" style="border-bottom:none;padding:10px 14px">
+      <span class="weekly-treat-icon">🎯</span>
+      <div class="meal-name weekly-treat-name">Weekly Treat</div>
+      <div class="dnd-treat-pill-hint">drop here</div>
+    </div>`;
+    document.body.appendChild(pill);
+  }
+  function hideTreatPill() {
+    const pill = document.getElementById('dndTreatPill');
+    if (pill) pill.remove();
   }
 
   function beginDrag(src, clientX, clientY) {
@@ -2819,8 +2887,13 @@ initTweaks();
     state.baseTop = rect.top;
     state.offsetX = clientX - rect.left;
     state.offsetY = clientY - rect.top;
+    state.lastClientX = clientX;
+    state.lastClientY = clientY;
     state.started = true;
     document.body.classList.add('is-dragging');
+
+    scrollRafId = requestAnimationFrame(tickScroll);
+    showTreatPill();
 
     if (settings.haptics) { try { _safariPulse(1, 0); } catch(_){} if (navigator.vibrate) try { navigator.vibrate(12); } catch(_) {} }
     moveGhost(clientX, clientY);
@@ -2889,34 +2962,11 @@ initTweaks();
     if (!state || !state.started) return;
     ev.preventDefault();
 
+    state.lastClientX = ev.clientX;
+    state.lastClientY = ev.clientY;
+
     moveGhost(ev.clientX, ev.clientY);
-
-    const card = findMealCardAtPoint(ev.clientX, ev.clientY);
-    if (card && card.dataset.meal === state.src.dataset.meal) {
-      document.querySelectorAll('.meal-card.dnd-hover').forEach(c => c.classList.remove('dnd-hover'));
-      state.dropCard = card;
-      updateSameMealDropTarget(ev.clientX, ev.clientY, card);
-    } else {
-      if (state.dropLine) { state.dropLine.remove(); state.dropLine = null; state.dropInsertBefore = undefined; }
-      if (card !== state.dropCard) {
-        document.querySelectorAll('.meal-card.dnd-hover').forEach(c => c.classList.remove('dnd-hover'));
-        state.dropCard = card;
-        if (card) card.classList.add('dnd-hover');
-      }
-    }
-
-    const EDGE = 70, vh = window.innerHeight;
-    // Body ist gelockt (position:fixed), also kann window.scrollBy
-    // nicht wirken. Stattdessen die virtuelle Lock-Position anpassen
-    // und über body.style.top "scrollen".
-    const maxScroll = Math.max(0, document.documentElement.scrollHeight - vh);
-    if (ev.clientY < EDGE && lockedScrollY > 0) {
-      lockedScrollY = Math.max(0, lockedScrollY - 10);
-      document.body.style.top = `-${lockedScrollY}px`;
-    } else if (ev.clientY > vh - EDGE && lockedScrollY < maxScroll) {
-      lockedScrollY = Math.min(maxScroll, lockedScrollY + 10);
-      document.body.style.top = `-${lockedScrollY}px`;
-    }
+    updateDropTarget(ev.clientX, ev.clientY);
   }
 
   async function onUp(ev) {
