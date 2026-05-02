@@ -2085,7 +2085,7 @@ async function loadStats() {
       let bg = cellBg(a);
       if (status === 'freeze') bg = 'rgba(96,165,250,0.2)';
       else if (status === 'sick') bg = 'rgba(251,191,36,0.2)';
-      cell.style.cssText = `position:relative;background:${bg};border-radius:8px;padding:12px 4px;text-align:center;display:flex;align-items:center;justify-content:center`;
+      cell.style.cssText = `flex:1;position:relative;background:${bg};border-radius:8px;padding:12px 4px;text-align:center;display:flex;align-items:center;justify-content:center`;
       let mainContent;
       if (status === 'freeze') {
         mainContent = `<i class="fas fa-snowflake" style="font-size:1.05rem;color:rgba(96,165,250,.9)"></i>`;
