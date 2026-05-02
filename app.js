@@ -2157,6 +2157,16 @@ async function loadStats() {
     hm.appendChild(grid);
   }
 
+  const hmLegend = document.createElement('div');
+  hmLegend.className = 'chart-legend';
+  hmLegend.style.marginTop = '10px';
+  hmLegend.innerHTML = `
+    <span><i class="fas fa-circle" style="color:var(--muted);font-size:.55rem"></i> Normal</span>
+    <span><i class="fas fa-star" style="color:var(--gold);font-size:.55rem"></i> Joker</span>
+    <span><i class="fas fa-snowflake" style="color:rgba(96,165,250,.9);font-size:.55rem"></i> Freeze</span>
+    <span><i class="fas fa-thermometer-half" style="color:rgba(251,191,36,.9);font-size:.55rem"></i> Sick</span>`;
+  hm.appendChild(hmLegend);
+
   document.getElementById('statsContent').style.display = 'flex';
   renderStreak();
   const hmTitle = document.querySelector('#statsHeatmap').previousElementSibling;

@@ -1088,6 +1088,11 @@ body.is-dragging .meal-card-empty { display: block; }
 }
 .chart-title i { color: var(--accent); font-size: .75rem; }
 .chart-body { position: relative; }
+.chart-legend {
+  display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;
+  margin-top: 8px; font-size: .62rem; color: var(--muted);
+}
+.chart-legend span { display: flex; align-items: center; gap: 3px; }
 
 .heatmap-cell {
   border-radius: 5px; position: relative;
