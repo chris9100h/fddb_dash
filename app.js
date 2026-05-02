@@ -13,8 +13,10 @@ const WATER_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIs
 const dbWater = supabase.createClient(WATER_URL, WATER_KEY);
 
 const ORDER = ['frühstück','zwischenmahlzeit 1','mittagessen','zwischenmahlzeit 2','abendbrot','abendessen'];
-const LABELS = { 'frühstück':'Breakfast','zwischenmahlzeit 1':'Snack 1','mittagessen':'Lunch','zwischenmahlzeit 2':'Snack 2','abendbrot':'Dinner','abendessen':'Dinner','weekly_treat':'Weekly Treat' };
+const LABELS = { 'frühstück':'Breakfast','zwischenmahlzeit 1':'Snack 1','mittagessen':'Lunch','zwischenmahlzeit 2':'Snack 2','abendbrot':'Dinner','abendessen':'Dinner','weekly_treat':'Weekly Treat','meal_of_choice':'Meal of Choice' };
 const WEEKLY_TREAT_MEAL = 'weekly_treat';
+const MEAL_OF_CHOICE = 'meal_of_choice';
+const MOC_KCAL = 1200;
 
 let checkables = [];
 let totals = { kcal:0, p:0, c:0, f:0 };
@@ -31,6 +33,17 @@ let coachTargets = { training: {kcal:0,p:0,c:0,f:0}, rest: {kcal:0,p:0,c:0,f:0} 
 let currentDayType = 'training';
 let mergeServings = false;
 let waterData = { drunk: null, goal: null };
+let mocUsedThisWeek = null; // null = unknown, false = not used, string = date it was used
+
+function getWeekBounds(dateStr) {
+  const d = new Date(dateStr);
+  const dow = d.getDay();
+  const diffToMon = dow === 0 ? -6 : 1 - dow;
+  const mon = new Date(d); mon.setDate(d.getDate() + diffToMon);
+  const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+  const fmt = x => x.toISOString().split('T')[0];
+  return { monday: fmt(mon), sunday: fmt(sun) };
+}
 
 // ── Init ──
 // Hoisted cache for finalized-day rows (used by renderDateStrip on first paint).
@@ -461,13 +474,15 @@ async function loadDay() {
   document.getElementById('content').innerHTML = '<div class="spinner-wrap"><div class="spinner"></div></div>';
   checkables = [];
 
-  const [macroRes, statusRes, targetsRes, dayTypeRes, waterLogsRes, waterSettingsRes] = await Promise.all([
+  const { monday, sunday } = getWeekBounds(dateVal);
+  const [macroRes, statusRes, targetsRes, dayTypeRes, waterLogsRes, waterSettingsRes, mocWeekRes] = await Promise.all([
     db.from('fddb_daily_macros').select('*').eq('date', dateVal).order('meal'),
     db.from('fddb_checklist_status').select('item_key, checked').eq('date', dateVal),
     db.from('fddb_coach_targets').select('*').lte('valid_from', dateVal).order('valid_from', { ascending: false }),
     db.from('fddb_day_type').select('type').eq('date', dateVal).maybeSingle(),
     dbWater.from('water_logs').select('amount').eq('date', dateVal),
     dbWater.from('water_settings').select('goal').eq('id', 1).maybeSingle(),
+    db.from('fddb_daily_macros').select('date').eq('meal', MEAL_OF_CHOICE).gte('date', monday).lte('date', sunday).limit(1),
   ]);
 
   if (macroRes.error) {
@@ -488,6 +503,9 @@ async function loadDay() {
   const waterDrunk = (waterLogsRes.data || []).reduce((s, r) => s + (r.amount || 0), 0);
   const waterGoal = waterSettingsRes.data?.goal || null;
   waterData = { drunk: waterDrunk, goal: waterGoal };
+
+  const mocWeekRows = mocWeekRes.data || [];
+  mocUsedThisWeek = mocWeekRows.length > 0 ? mocWeekRows[0].date : false;
 
   currentDayType = dayTypeRes.data?.type || 'training';
   if (!dayTypeRes.data) {
@@ -871,6 +889,7 @@ function renderDashboard(entries) {
     content.innerHTML = '<div class="placeholder"><i class="fas fa-bowl-food"></i>No entries for this date</div>';
     totals = {kcal:0,p:0,c:0,f:0};
     renderWeeklyTreatCard([], content);
+    renderMealOfChoiceCard([], content);
     renderTargetBlock();
     updateChecked();
     return;
@@ -904,8 +923,8 @@ function renderDashboard(entries) {
   // Render every standard ORDER meal (even if empty) so drop targets stay available
   // after a meal is emptied. Custom meals outside ORDER are appended only if they have items.
   // Skip empty aliases whose label is already used by a non-empty meal (e.g. abendbrot/abendessen → "Dinner").
-  // weekly_treat is handled separately below — exclude from the standard loop.
-  const customMeals = Object.keys(grouped).filter(m => ORDER.indexOf(m) < 0 && m !== WEEKLY_TREAT_MEAL);
+  // weekly_treat and meal_of_choice are handled separately below — exclude from the standard loop.
+  const customMeals = Object.keys(grouped).filter(m => ORDER.indexOf(m) < 0 && m !== WEEKLY_TREAT_MEAL && m !== MEAL_OF_CHOICE);
   const orderedMeals = [...ORDER, ...customMeals.sort()];
   const usedLabels = new Set(
     orderedMeals.filter(m => (grouped[m] || []).length > 0).map(m => LABELS[m] || m)
@@ -1087,6 +1106,9 @@ function renderDashboard(entries) {
   // Items here are intentionally excluded from totals and checkables.
   renderWeeklyTreatCard(grouped[WEEKLY_TREAT_MEAL] || [], content);
 
+  // Meal of Choice card — counts toward macros, added via + button.
+  renderMealOfChoiceCard(grouped[MEAL_OF_CHOICE] || [], content);
+
   renderTargetBlock();
   updateChecked();
 }
@@ -1151,6 +1173,118 @@ function persistChecked(itemKey, checked) {
   pendingWrites[itemKey] = setTimeout(async () => {
     await db.from('fddb_checklist_status').upsert({ date: currentDate, item_key: itemKey, checked }, { onConflict: 'date,item_key' });
   }, 600);
+}
+
+function renderMealOfChoiceCard(items, container) {
+  const hasEntry = items.length > 0;
+  const tgt = coachTargets[currentDayType] || {};
+  const freeKcal = (tgt.kcal || 0) - totals.kcal;
+  const hasWeeklyTreatToday = currentDayEntries.some(e => e.meal === WEEKLY_TREAT_MEAL);
+
+  let blockReason = null;
+  if (!hasEntry) {
+    if (mocUsedThisWeek && mocUsedThisWeek !== currentDate) {
+      const d = new Date(mocUsedThisWeek + 'T00:00:00');
+      const label = `${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()]} ${d.getDate()} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]}`;
+      blockReason = `Already used this week (${label})`;
+    } else if (hasWeeklyTreatToday) {
+      blockReason = 'Not on the same day as Weekly Treat';
+    } else if (freeKcal < MOC_KCAL) {
+      blockReason = `Need ${MOC_KCAL} kcal free — only ${Math.round(freeKcal)} left`;
+    }
+  }
+
+  const card = document.createElement('div');
+  card.className = 'meal-card moc-card' + (!hasEntry ? ' moc-empty' : '');
+
+  const entry = hasEntry ? items[0] : null;
+  const m = entry ? { kcal: entry.kcal||0, p: parseFloat(entry.protein)||0, c: parseFloat(entry.carbs)||0, f: parseFloat(entry.fat)||0 } : null;
+
+  card.innerHTML = `<div class="meal-title moc-title">
+    <span class="moc-icon">🍽️</span>
+    <div class="meal-name moc-name">Meal of Choice</div>
+    ${hasEntry ? `<div class="moc-badge">1200 kcal</div>` : ''}
+  </div>`;
+
+  const body = document.createElement('div');
+  body.className = 'moc-body';
+
+  if (hasEntry) {
+    body.innerHTML = `<div class="macro-pills moc-pills">${pillsHTML(m)}</div>
+      <button class="moc-remove-btn" onclick="removeMealOfChoice('${entry.id}')"><i class="fas fa-trash-alt"></i></button>`;
+  } else {
+    const disabled = blockReason ? 'disabled' : '';
+    body.innerHTML = `<button class="moc-add-btn" ${disabled} onclick="addMealOfChoice()">
+        <i class="fas fa-utensils"></i> Add Meal of Choice
+      </button>
+      ${blockReason ? `<div class="moc-block-reason">${blockReason}</div>` : ''}`;
+  }
+
+  card.appendChild(body);
+  container.appendChild(card);
+}
+
+async function addMealOfChoice() {
+  closeActionChooser();
+
+  const { monday, sunday } = getWeekBounds(currentDate);
+  const { data: weekMoC } = await db.from('fddb_daily_macros')
+    .select('id, date').eq('meal', MEAL_OF_CHOICE).gte('date', monday).lte('date', sunday);
+
+  if (weekMoC && weekMoC.length > 0 && weekMoC[0].date !== currentDate) {
+    showToast('Meal of Choice already used this week', 'error'); return;
+  }
+  if (currentDayEntries.some(e => e.meal === WEEKLY_TREAT_MEAL)) {
+    showToast('Not on the same day as Weekly Treat', 'error'); return;
+  }
+
+  const tgt = coachTargets[currentDayType] || {};
+  const consumed = { kcal: 0, p: 0, c: 0, f: 0 };
+  currentDayEntries.forEach(e => {
+    if (e.meal === MEAL_OF_CHOICE) return;
+    consumed.kcal += e.kcal || 0;
+    consumed.p += parseFloat(e.protein) || 0;
+    consumed.c += parseFloat(e.carbs) || 0;
+    consumed.f += parseFloat(e.fat) || 0;
+  });
+
+  if ((tgt.kcal || 0) - consumed.kcal < MOC_KCAL) {
+    showToast(`Need ${MOC_KCAL} kcal free`, 'error'); return;
+  }
+
+  const remP = Math.max(0, (tgt.p || 0) - consumed.p);
+  const remC = Math.max(0, (tgt.c || 0) - consumed.c);
+  const remF = Math.max(0, (tgt.f || 0) - consumed.f);
+  const remKcal = remP * 4 + remC * 4 + remF * 9;
+
+  let finalP, finalC, finalF;
+  if (remKcal > 0) {
+    const k = MOC_KCAL / remKcal;
+    finalP = remP * k; finalC = remC * k; finalF = remF * k;
+  } else {
+    finalP = (MOC_KCAL * 0.30) / 4;
+    finalC = (MOC_KCAL * 0.40) / 4;
+    finalF = (MOC_KCAL * 0.30) / 9;
+  }
+
+  const { error } = await db.from('fddb_daily_macros').insert({
+    date: currentDate, meal: MEAL_OF_CHOICE, item_name: 'Meal of Choice',
+    kcal: MOC_KCAL,
+    protein: parseFloat(finalP.toFixed(1)),
+    carbs: parseFloat(finalC.toFixed(1)),
+    fat: parseFloat(finalF.toFixed(1)),
+  });
+
+  if (error) { showToast('Error adding Meal of Choice', 'error'); return; }
+  showToast('Meal of Choice added 🍽️');
+  await loadDay();
+}
+
+async function removeMealOfChoice(id) {
+  const { error } = await db.from('fddb_daily_macros').delete().eq('id', id);
+  if (error) { showToast('Error removing Meal of Choice', 'error'); return; }
+  showToast('Meal of Choice removed');
+  await loadDay();
 }
 
 /* ── Action chooser ── */
@@ -1890,17 +2024,19 @@ async function loadStats() {
   document.getElementById('statsContent').style.display = 'none';
   document.getElementById('statsEmpty').style.display = 'none';
 
-  const [macroRes, dayTypeRes, targetsRes, finalizedRes, jokerRes] = await Promise.all([
+  const [macroRes, dayTypeRes, targetsRes, finalizedRes, jokerRes, mocRes] = await Promise.all([
     db.from('fddb_daily_macros').select('date, kcal, protein, carbs, fat').gte('date', from).lte('date', to).neq('meal', WEEKLY_TREAT_MEAL),
     db.from('fddb_day_type').select('date, type').gte('date', from).lte('date', to),
     db.from('fddb_coach_targets').select('*').lte('valid_from', to).order('valid_from', { ascending: false }),
     db.from('fddb_day_finalized').select('date, status').gte('date', from).lte('date', to),
     db.from('fddb_daily_macros').select('date').eq('meal', WEEKLY_TREAT_MEAL).gte('date', from).lte('date', to),
+    db.from('fddb_daily_macros').select('date').eq('meal', MEAL_OF_CHOICE).gte('date', from).lte('date', to),
   ]);
 
   document.getElementById('statsLoading').style.display = 'none';
   const macros = macroRes.data || [];
   const jokerDates = new Set((jokerRes.data || []).map(r => r.date));
+  const mocDates = new Set((mocRes.data || []).map(r => r.date));
   const dayTypes = dayTypeRes.data || [];
   const allTgts = targetsRes.data || [];
   if (!macros.length) { document.getElementById('statsEmpty').style.display = 'block'; return; }
@@ -1953,6 +2089,7 @@ async function loadStats() {
   const restDays = dates.filter(d => dayTypeMap[d] === 'rest').length;
   const excludedDays = dayData.filter(d => d.status === 'freeze' || d.status === 'sick').length;
   const hasJoker = dayData.some(d => jokerDates.has(d.date));
+  const hasMoC = dayData.some(d => mocDates.has(d.date));
   const hasFreeze = dayData.some(d => d.status === 'freeze');
   const hasSick = dayData.some(d => d.status === 'sick');
 
@@ -1985,12 +2122,13 @@ async function loadStats() {
     if (d.status === 'freeze') return 'rgba(96,165,250,1)';
     if (d.status === 'sick') return 'rgba(251,191,36,1)';
     if (jokerDates.has(d.date)) return 'rgba(245,158,11,1)';
+    if (mocDates.has(d.date)) return 'rgba(167,139,250,1)';
     return devToColor(d.devAvg, 1);
   });
-  const ptStyles = dayData.map(d => d.status === 'freeze' ? 'rectRot' : d.status === 'sick' ? 'triangle' : jokerDates.has(d.date) ? 'star' : 'circle');
-  const ptRadii = dayData.map(d => (d.status === 'freeze' || d.status === 'sick') ? 6 : jokerDates.has(d.date) ? 6 : (dayData.length > 30 ? 0 : 4));
-  const ptBorderColors = dayData.map(d => jokerDates.has(d.date) ? 'rgba(245,158,11,1)' : 'transparent');
-  const ptBorderWidths = dayData.map(d => jokerDates.has(d.date) ? 2 : 0);
+  const ptStyles = dayData.map(d => d.status === 'freeze' ? 'rectRot' : d.status === 'sick' ? 'triangle' : jokerDates.has(d.date) ? 'star' : mocDates.has(d.date) ? 'rectRot' : 'circle');
+  const ptRadii = dayData.map(d => (d.status === 'freeze' || d.status === 'sick') ? 6 : (jokerDates.has(d.date) || mocDates.has(d.date)) ? 6 : (dayData.length > 30 ? 0 : 4));
+  const ptBorderColors = dayData.map(d => jokerDates.has(d.date) ? 'rgba(245,158,11,1)' : mocDates.has(d.date) ? 'rgba(167,139,250,1)' : 'transparent');
+  const ptBorderWidths = dayData.map(d => (jokerDates.has(d.date) || mocDates.has(d.date)) ? 2 : 0);
   const maxAbs = Math.max(...devValues.filter(v=>v!==null).map(Math.abs), 5);
   const yBound = Math.max(10, Math.ceil(maxAbs / 5) * 5);
 
@@ -2016,7 +2154,7 @@ async function loadStats() {
         legend: { display: false },
         tooltip: { callbacks: { label: ctx => {
           const d = dayData[ctx.dataIndex];
-          const statusLabel = d && d.status === 'freeze' ? ' · Freeze ❄' : d && d.status === 'sick' ? ' · Sick 🤒' : d && jokerDates.has(d.date) ? ' · Joker ⭐' : '';
+          const statusLabel = d && d.status === 'freeze' ? ' · Freeze ❄' : d && d.status === 'sick' ? ' · Sick 🤒' : d && jokerDates.has(d.date) ? ' · Joker ⭐' : d && mocDates.has(d.date) ? ' · Meal of Choice 🍽️' : '';
           return ctx.raw !== null ? 'Dev: ' + (ctx.raw > 0 ? '+' : '') + ctx.raw + '%' + statusLabel : 'N/A';
         }}}
       },
@@ -2097,6 +2235,7 @@ async function loadStats() {
       const dtype = dayTypeMap[d.date];
       const status = d.status;
       const isJoker = jokerDates.has(d.date);
+      const isMoC = mocDates.has(d.date);
       const typeIcon = dtype === 'training' ? `<i class="fas fa-dumbbell" style="font-size:.55rem;color:rgba(255,255,255,.5);margin-left:5px"></i>` : dtype === 'rest' ? `<i class="fas fa-bed" style="font-size:.55rem;color:rgba(255,255,255,.5);margin-left:5px"></i>` : '';
       const cell = document.createElement('div');
       let bg = cellBg(a);
@@ -2111,14 +2250,14 @@ async function loadStats() {
       } else {
         mainContent = `<div style="font-family:'Bebas Neue',sans-serif;font-size:1.15rem;color:${a!==null?'#fff':'#444'}">${a !== null ? a+'%' : '–'}</div>`;
       }
-      const tipText = status === 'freeze' ? `${d.date}: Freeze` : status === 'sick' ? `${d.date}: Sick` : `${d.date}: ${a !== null ? a + '%' : 'N/A'}${isJoker ? ' · Joker ⭐' : ''}`;
+      const tipText = status === 'freeze' ? `${d.date}: Freeze` : status === 'sick' ? `${d.date}: Sick` : `${d.date}: ${a !== null ? a + '%' : 'N/A'}${isJoker ? ' · Joker ⭐' : isMoC ? ' · Meal of Choice 🍽️' : ''}`;
       cell.innerHTML = `${mainContent}${typeIcon}`;
       cell.setAttribute('data-tip', tipText);
       const wrapper = document.createElement('div');
       wrapper.style.cssText = 'display:flex;flex-direction:column;gap:2px';
       wrapper.appendChild(cell);
       const weekBar = document.createElement('div');
-      weekBar.style.cssText = `height:3px;border-radius:99px;background:${isJoker ? 'var(--gold)' : 'transparent'};width:100%`;
+      weekBar.style.cssText = `height:3px;border-radius:99px;background:${isJoker ? 'var(--gold)' : isMoC ? 'var(--moc)' : 'transparent'};width:100%`;
       wrapper.appendChild(weekBar);
       cwGrid.appendChild(wrapper);
     });
@@ -2142,6 +2281,7 @@ async function loadStats() {
       const dtype = dayTypeMap[d.date];
       const status = d.status;
       const isJoker = jokerDates.has(d.date);
+      const isMoC = mocDates.has(d.date);
       const barColor = dtype === 'training' ? 'var(--orange)' : dtype === 'rest' ? 'var(--blue)' : null;
       const wrapper = document.createElement('div');
       wrapper.style.cssText = 'display:flex;flex-direction:column;gap:2px;width:100%';
@@ -2151,7 +2291,7 @@ async function loadStats() {
       if (status === 'freeze') bg = 'rgba(96,165,250,0.25)';
       else if (status === 'sick') bg = 'rgba(251,191,36,0.25)';
       cell.style.cssText = `border-radius:4px;background:${bg};height:20px;width:100%;display:flex;align-items:center;justify-content:center;overflow:hidden`;
-      const tipText = status === 'freeze' ? `${d.date}: Freeze` : status === 'sick' ? `${d.date}: Sick` : `${d.date}: ${a !== null ? a + '%' : 'N/A'}${isJoker ? ' · Joker ⭐' : ''}`;
+      const tipText = status === 'freeze' ? `${d.date}: Freeze` : status === 'sick' ? `${d.date}: Sick` : `${d.date}: ${a !== null ? a + '%' : 'N/A'}${isJoker ? ' · Joker ⭐' : isMoC ? ' · Meal of Choice 🍽️' : ''}`;
       cell.setAttribute('data-tip', tipText);
       if (status === 'freeze') {
         cell.innerHTML = `<i class="fas fa-snowflake" style="font-size:.5rem;color:rgba(96,165,250,.9)"></i>`;
@@ -2159,6 +2299,8 @@ async function loadStats() {
         cell.innerHTML = `<i class="fas fa-thermometer-half" style="font-size:.5rem;color:rgba(251,191,36,.9)"></i>`;
       } else if (isJoker) {
         cell.innerHTML = `<i class="fas fa-star" style="font-size:.5rem;color:var(--gold)"></i>`;
+      } else if (isMoC) {
+        cell.innerHTML = `<i class="fas fa-utensils" style="font-size:.5rem;color:var(--moc)"></i>`;
       }
       cell.className = 'heatmap-cell';
       wrapper.appendChild(cell);
@@ -2178,8 +2320,12 @@ async function loadStats() {
   const jokerHmItem = hasJoker ? (statsPeriod === 'week'
     ? `<span><span style="display:inline-block;width:14px;height:3px;border-radius:99px;background:var(--gold);vertical-align:middle"></span> Joker</span>`
     : `<span><i class="fas fa-star" style="color:var(--gold);font-size:.55rem"></i> Joker</span>`) : '';
+  const mocHmItem = hasMoC ? (statsPeriod === 'week'
+    ? `<span><span style="display:inline-block;width:14px;height:3px;border-radius:99px;background:var(--moc);vertical-align:middle"></span> Meal of Choice</span>`
+    : `<span><i class="fas fa-utensils" style="color:var(--moc);font-size:.55rem"></i> Meal of Choice</span>`) : '';
   hmLegend.innerHTML = [
     jokerHmItem,
+    mocHmItem,
     hasFreeze ? `<span><i class="fas fa-snowflake" style="color:rgba(96,165,250,.9);font-size:.55rem"></i> Freeze</span>` : '',
     hasSick ? `<span><i class="fas fa-thermometer-half" style="color:rgba(251,191,36,.9);font-size:.55rem"></i> Sick</span>` : '',
   ].filter(Boolean).join('');
