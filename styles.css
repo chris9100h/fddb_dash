@@ -1659,6 +1659,85 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
 .weekly-treat-pills .mp { opacity: .55; }
 
 /* ════════════════════════════════════════════════════════
+   MEAL OF CHOICE CARD
+   ════════════════════════════════════════════════════════ */
+:root { --moc: #a78bfa; --moc-soft: rgba(167,139,250,.14); --moc-glow: 0 0 20px rgba(167,139,250,.22); }
+
+.bg-purple { background: rgba(167,139,250,.14); color: var(--moc); }
+
+.moc-card {
+  border-color: rgba(167,139,250,.25);
+  background: linear-gradient(160deg, rgba(167,139,250,.06) 0%, var(--surface) 60%);
+  margin-top: 4px;
+}
+.moc-card.moc-empty {
+  opacity: .85;
+  transition: opacity .18s ease;
+}
+.moc-title {
+  background: linear-gradient(90deg, rgba(167,139,250,.12) 0%, transparent 70%) !important;
+  border-bottom: 1px solid rgba(167,139,250,.18);
+  gap: 8px;
+}
+.moc-icon { font-size: .95rem; flex-shrink: 0; }
+.moc-name { color: var(--moc) !important; }
+.moc-badge {
+  margin-left: auto;
+  font-size: .55rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--moc);
+  background: rgba(167,139,250,.15);
+  border: 1px solid rgba(167,139,250,.3);
+  border-radius: 999px;
+  padding: 2px 7px;
+}
+.moc-body {
+  padding: 10px 14px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.moc-add-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(167,139,250,.12);
+  color: var(--moc);
+  border: 1px solid rgba(167,139,250,.3);
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: .8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s, opacity .15s;
+}
+.moc-add-btn:hover:not(:disabled) { background: rgba(167,139,250,.22); }
+.moc-add-btn:disabled { opacity: .35; cursor: not-allowed; }
+.moc-block-reason {
+  font-size: .68rem;
+  color: var(--text-dim);
+  opacity: .8;
+  flex-basis: 100%;
+}
+.moc-pills { flex: 1; }
+.moc-remove-btn {
+  background: rgba(248,113,113,.1);
+  color: var(--red);
+  border: 1px solid rgba(248,113,113,.2);
+  border-radius: 7px;
+  width: 30px; height: 30px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .75rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background .15s;
+}
+.moc-remove-btn:hover { background: rgba(248,113,113,.2); }
+
+/* ════════════════════════════════════════════════════════
    LOGIN OVERLAY
    ════════════════════════════════════════════════════════ */
 .login-overlay {
