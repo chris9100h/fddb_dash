@@ -1946,6 +1946,9 @@ async function loadStats() {
   const trainingDays = dates.filter(d => (dayTypeMap[d] || 'training') === 'training').length;
   const restDays = dates.filter(d => dayTypeMap[d] === 'rest').length;
   const excludedDays = dayData.filter(d => d.status === 'freeze' || d.status === 'sick').length;
+  const hasJoker = dayData.some(d => jokerDates.has(d.date));
+  const hasFreeze = dayData.some(d => d.status === 'freeze');
+  const hasSick = dayData.some(d => d.status === 'sick');
 
   const adhColor = avgAdh !== null ? adherenceColor(avgAdh) : 'var(--muted)';
   document.getElementById('statsSummary').innerHTML = `
@@ -2047,6 +2050,14 @@ async function loadStats() {
       },
     },
   });
+
+  // Line chart legend (dynamic)
+  const lineLegendEl = document.getElementById('statsLineLegend');
+  lineLegendEl.innerHTML = [
+    hasJoker ? `<span style="color:var(--gold)">★ Joker</span>` : '',
+    hasFreeze ? `<span style="color:rgba(96,165,250,.9)">◆ Freeze</span>` : '',
+    hasSick ? `<span style="color:rgba(251,191,36,.9)">▲ Sick</span>` : '',
+  ].filter(Boolean).join('');
 
   // Heatmap
   const hm = document.getElementById('statsHeatmap');
@@ -2158,15 +2169,15 @@ async function loadStats() {
   const hmLegend = document.createElement('div');
   hmLegend.className = 'chart-legend';
   hmLegend.style.marginTop = '10px';
-  const jokerLegendItem = statsPeriod === 'week'
+  const jokerHmItem = hasJoker ? (statsPeriod === 'week'
     ? `<span><span style="display:inline-block;width:14px;height:3px;border-radius:99px;background:var(--gold);vertical-align:middle"></span> Joker</span>`
-    : `<span><i class="fas fa-star" style="color:var(--gold);font-size:.55rem"></i> Joker</span>`;
-  hmLegend.innerHTML = `
-    <span><i class="fas fa-circle" style="color:var(--muted);font-size:.55rem"></i> Normal</span>
-    ${jokerLegendItem}
-    <span><i class="fas fa-snowflake" style="color:rgba(96,165,250,.9);font-size:.55rem"></i> Freeze</span>
-    <span><i class="fas fa-thermometer-half" style="color:rgba(251,191,36,.9);font-size:.55rem"></i> Sick</span>`;
-  hm.appendChild(hmLegend);
+    : `<span><i class="fas fa-star" style="color:var(--gold);font-size:.55rem"></i> Joker</span>`) : '';
+  hmLegend.innerHTML = [
+    jokerHmItem,
+    hasFreeze ? `<span><i class="fas fa-snowflake" style="color:rgba(96,165,250,.9);font-size:.55rem"></i> Freeze</span>` : '',
+    hasSick ? `<span><i class="fas fa-thermometer-half" style="color:rgba(251,191,36,.9);font-size:.55rem"></i> Sick</span>` : '',
+  ].filter(Boolean).join('');
+  if (hmLegend.innerHTML) hm.appendChild(hmLegend);
 
   document.getElementById('statsContent').style.display = 'flex';
   renderStreak();
