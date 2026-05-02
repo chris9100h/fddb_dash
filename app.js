@@ -111,6 +111,7 @@ const SETTINGS_DEFAULTS = {
   sickSince: null,          // YYYY-MM-DD — date sick mode started
   freezePerWeek: 2,         // max freeze days allowed per Mon–Sun week
   weeklyTreatMaxKcal: 0,    // 0 = no limit; excess kcal above threshold count against totals
+  mocKcal: 1200,            // kcal budget for one Meal of Choice
 };
 let settings = { ...SETTINGS_DEFAULTS };
 
@@ -133,6 +134,7 @@ const SETTING_DB_KEYS = {
   sickSince:           'sick_since',
   freezePerWeek:       'freeze_per_week',
   weeklyTreatMaxKcal:  'weekly_treat_max_kcal',
+  mocKcal:             'moc_kcal',
 };
 
 async function writeSettingToDb(key, value) {
@@ -187,8 +189,10 @@ function applySettingsToUI() {
   }
   const freezePerWeekEl = document.getElementById('setFreezePerWeek');
   const treatMaxKcalEl  = document.getElementById('setTreatMaxKcal');
+  const mocKcalEl       = document.getElementById('setMocKcal');
   if (freezePerWeekEl) freezePerWeekEl.value = settings.freezePerWeek;
   if (treatMaxKcalEl)  treatMaxKcalEl.value  = settings.weeklyTreatMaxKcal;
+  if (mocKcalEl)       mocKcalEl.value       = settings.mocKcal;
   applySickModeOverlay();
 }
 
@@ -268,6 +272,15 @@ function initSettingsUI() {
       cacheSettings();
       writeSettingToDb('weeklyTreatMaxKcal', settings.weeklyTreatMaxKcal);
       if (currentDate) renderDashboard(currentDayEntries);
+    });
+  }
+
+  const mocKcalEl = document.getElementById('setMocKcal');
+  if (mocKcalEl) {
+    mocKcalEl.addEventListener('change', () => {
+      settings.mocKcal = parseInt(mocKcalEl.value, 10);
+      cacheSettings();
+      writeSettingToDb('mocKcal', settings.mocKcal);
     });
   }
 
@@ -1187,7 +1200,7 @@ function renderMealOfChoiceCard(items, container) {
   card.innerHTML = `<div class="meal-title moc-title">
     <span class="moc-icon">🍽️</span>
     <div class="meal-name moc-name">Meal of Choice</div>
-    <div class="moc-badge">1200 kcal</div>
+    <div class="moc-badge">${settings.mocKcal} kcal</div>
   </div>`;
 
   const body = document.createElement('div');
@@ -1223,8 +1236,9 @@ async function addMealOfChoice() {
     consumed.f += parseFloat(e.fat) || 0;
   });
 
-  if ((tgt.kcal || 0) - consumed.kcal < MOC_KCAL) {
-    showToast(`Need ${MOC_KCAL} kcal free`, 'error'); return;
+  const mocKcal = settings.mocKcal || MOC_KCAL;
+  if ((tgt.kcal || 0) - consumed.kcal < mocKcal) {
+    showToast(`Need ${mocKcal} kcal free`, 'error'); return;
   }
 
   const remP = Math.max(0, (tgt.p || 0) - consumed.p);
@@ -1234,17 +1248,17 @@ async function addMealOfChoice() {
 
   let finalP, finalC, finalF;
   if (remKcal > 0) {
-    const k = MOC_KCAL / remKcal;
+    const k = mocKcal / remKcal;
     finalP = remP * k; finalC = remC * k; finalF = remF * k;
   } else {
-    finalP = (MOC_KCAL * 0.30) / 4;
-    finalC = (MOC_KCAL * 0.40) / 4;
-    finalF = (MOC_KCAL * 0.30) / 9;
+    finalP = (mocKcal * 0.30) / 4;
+    finalC = (mocKcal * 0.40) / 4;
+    finalF = (mocKcal * 0.30) / 9;
   }
 
   const { error } = await db.from('fddb_daily_macros').insert({
     date: currentDate, meal: MEAL_OF_CHOICE, item_name: 'Meal of Choice',
-    kcal: MOC_KCAL,
+    kcal: mocKcal,
     protein: parseFloat(finalP.toFixed(1)),
     carbs: parseFloat(finalC.toFixed(1)),
     fat: parseFloat(finalF.toFixed(1)),
