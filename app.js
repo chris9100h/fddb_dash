@@ -536,7 +536,7 @@ function computeDayAdherence(totals, target) {
   );
 }
 
-async function writeFinalizedDay(date, adherence, goalUsed, status) {
+async function writeFinalizedDay(date, adherence, goalUsed, status, totals = null) {
   // NOTE: some older DB schemas have `adherence` as NOT NULL. For freeze/sick
   // (where adherence is conceptually N/A) we persist 0 as a placeholder and
   // rely on `status` to distinguish. Readers must check `status` first.
@@ -547,6 +547,10 @@ async function writeFinalizedDay(date, adherence, goalUsed, status) {
     counted: (status === 'counted' || status === 'freeze' || status === 'sick'),
     goal_used: goalUsed ?? null,
     status: status || 'counted',
+    kcal: totals ? Math.round(totals.kcal) : null,
+    protein: totals ? Math.round(totals.p * 10) / 10 : null,
+    carbs: totals ? Math.round(totals.c * 10) / 10 : null,
+    fat: totals ? Math.round(totals.f * 10) / 10 : null,
   };
   // Optimistic: update cache BEFORE the DB round-trip so other code paths
   // (auto-finalize, strip re-render) see the new status immediately and
@@ -577,7 +581,7 @@ async function deleteFinalizedDay(date) {
 // In-memory cache of finalized rows keyed by date (declared earlier, hoisted for init).
 async function loadFinalizedMap() {
   try {
-    const { data } = await db.from('fddb_day_finalized').select('date, counted, adherence, status, goal_used');
+    const { data } = await db.from('fddb_day_finalized').select('date, counted, adherence, status, goal_used, kcal, protein, carbs, fat');
     finalizedMap.clear();
     (data || []).forEach(r => finalizedMap.set(r.date, r));
   } catch (e) { /* silent */ }
@@ -668,7 +672,7 @@ function shouldAutoFinalize(date) {
   return new Date() >= cutoff;
 }
 
-async function ensureDayFinalized(date, adherence, force) {
+async function ensureDayFinalized(date, adherence, force, totals = null) {
   // Sick mode: while the global toggle is on, any day on/after sickSince
   // auto-marks as 'sick'. The toggle persists until the user turns it off —
   // you're usually sick for more than a day. Days *before* sickSince keep
@@ -694,15 +698,15 @@ async function ensureDayFinalized(date, adherence, force) {
   }
   if (adherence == null) return;
   const status = adherence >= settings.adherenceGoal ? 'counted' : 'failed';
-  await writeFinalizedDay(date, adherence, settings.adherenceGoal, status);
+  await writeFinalizedDay(date, adherence, settings.adherenceGoal, status, totals);
   renderDateStrip(currentDate);
 }
 
-async function manualFinalizeDay(date, adherence) {
+async function manualFinalizeDay(date, adherence, totals = null) {
   if (adherence == null) { showToast('No data for this day', 'error'); return; }
   const goalUsed = settings.adherenceGoal;
   const status = adherence >= goalUsed ? 'counted' : 'failed';
-  await writeFinalizedDay(date, adherence, goalUsed, status);
+  await writeFinalizedDay(date, adherence, goalUsed, status, totals);
   showToast(`Day finalized — ${adherence}% ${status === 'counted' ? 'counted ✓' : 'below goal'}`);
   renderDateStrip(document.getElementById('dateInput').value || todayStr);
   renderStreak();
@@ -808,7 +812,7 @@ function renderTargetBlock() {
     ringVal.style.color = adherenceColor(overallAdh);
 
     // Auto-finalize this day if past cutoff / past date.
-    ensureDayFinalized(currentDate, overallAdh);
+    ensureDayFinalized(currentDate, overallAdh, false, totals);
   } else {
     ringFg.style.strokeDashoffset = circ;
     ringVal.textContent = '–';
@@ -1766,25 +1770,27 @@ async function openDateMenu(date, x, y) {
   const freezesUsed = freezesThisWeek(date) + (fin && fin.status === 'freeze' ? 1 : 0);
 
   // Compute adherence for current day to allow Finalize.
-  let canFinalize = false, adhForFinalize = null;
+  let canFinalize = false, adhForFinalize = null, totalsForFinalize = null;
   if (!isFuture) {
     const [macroRes, dtRes, tgtRes] = await Promise.all([
-      db.from('fddb_daily_macros').select('protein, carbs, fat').eq('date', date).neq('meal', WEEKLY_TREAT_MEAL),
+      db.from('fddb_daily_macros').select('kcal, protein, carbs, fat').eq('date', date).neq('meal', WEEKLY_TREAT_MEAL),
       db.from('fddb_day_type').select('type').eq('date', date).maybeSingle(),
       db.from('fddb_coach_targets').select('*').lte('valid_from', date).order('valid_from', { ascending: false }),
     ]);
     const rows = macroRes.data || [];
     if (rows.length) {
-      const totals = rows.reduce((s, r) => ({
+      const menuTotals = rows.reduce((s, r) => ({
+        kcal: s.kcal + (r.kcal||0),
         p: s.p + (parseFloat(r.protein)||0),
         c: s.c + (parseFloat(r.carbs)||0),
         f: s.f + (parseFloat(r.fat)||0),
-      }), { p:0, c:0, f:0 });
+      }), { kcal:0, p:0, c:0, f:0 });
       const type = (dtRes.data && dtRes.data.type) || 'training';
       const match = (tgtRes.data || []).find(t => t.type === type);
       if (match) {
-        adhForFinalize = computeDayAdherence(totals, { p: match.protein, c: match.carbs, f: match.fat });
+        adhForFinalize = computeDayAdherence(menuTotals, { p: match.protein, c: match.carbs, f: match.fat });
         canFinalize = adhForFinalize != null;
+        totalsForFinalize = menuTotals;
       }
     }
   }
@@ -1818,7 +1824,7 @@ async function openDateMenu(date, x, y) {
     'Finalize now',
     canFinalize ? `${adhForFinalize}%` : (isFuture ? 'future' : 'no data'),
     !canFinalize || isFuture,
-    () => manualFinalizeDay(date, adhForFinalize)
+    () => manualFinalizeDay(date, adhForFinalize, totalsForFinalize)
   ));
 
   // Freeze (2 per week, can be retroactive, NOT for future)
