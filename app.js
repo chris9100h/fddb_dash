@@ -1176,49 +1176,24 @@ function persistChecked(itemKey, checked) {
 }
 
 function renderMealOfChoiceCard(items, container) {
-  const hasEntry = items.length > 0;
-  const tgt = coachTargets[currentDayType] || {};
-  const freeKcal = (tgt.kcal || 0) - totals.kcal;
-  const hasWeeklyTreatToday = currentDayEntries.some(e => e.meal === WEEKLY_TREAT_MEAL);
+  if (items.length === 0) return;
 
-  let blockReason = null;
-  if (!hasEntry) {
-    if (mocUsedThisWeek && mocUsedThisWeek !== currentDate) {
-      const d = new Date(mocUsedThisWeek + 'T00:00:00');
-      const label = `${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()]} ${d.getDate()} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]}`;
-      blockReason = `Already used this week (${label})`;
-    } else if (hasWeeklyTreatToday) {
-      blockReason = 'Not on the same day as Weekly Treat';
-    } else if (freeKcal < MOC_KCAL) {
-      blockReason = `Need ${MOC_KCAL} kcal free — only ${Math.round(freeKcal)} left`;
-    }
-  }
+  const entry = items[0];
+  const m = { kcal: entry.kcal||0, p: parseFloat(entry.protein)||0, c: parseFloat(entry.carbs)||0, f: parseFloat(entry.fat)||0 };
 
   const card = document.createElement('div');
-  card.className = 'meal-card moc-card' + (!hasEntry ? ' moc-empty' : '');
-
-  const entry = hasEntry ? items[0] : null;
-  const m = entry ? { kcal: entry.kcal||0, p: parseFloat(entry.protein)||0, c: parseFloat(entry.carbs)||0, f: parseFloat(entry.fat)||0 } : null;
+  card.className = 'meal-card moc-card';
 
   card.innerHTML = `<div class="meal-title moc-title">
     <span class="moc-icon">🍽️</span>
     <div class="meal-name moc-name">Meal of Choice</div>
-    ${hasEntry ? `<div class="moc-badge">1200 kcal</div>` : ''}
+    <div class="moc-badge">1200 kcal</div>
   </div>`;
 
   const body = document.createElement('div');
   body.className = 'moc-body';
-
-  if (hasEntry) {
-    body.innerHTML = `<div class="macro-pills moc-pills">${pillsHTML(m)}</div>
-      <button class="moc-remove-btn" onclick="removeMealOfChoice('${entry.id}')"><i class="fas fa-trash-alt"></i></button>`;
-  } else {
-    const disabled = blockReason ? 'disabled' : '';
-    body.innerHTML = `<button class="moc-add-btn" ${disabled} onclick="addMealOfChoice()">
-        <i class="fas fa-utensils"></i> Add Meal of Choice
-      </button>
-      ${blockReason ? `<div class="moc-block-reason">${blockReason}</div>` : ''}`;
-  }
+  body.innerHTML = `<div class="macro-pills moc-pills">${pillsHTML(m)}</div>
+    <button class="moc-remove-btn" onclick="removeMealOfChoice('${entry.id}')"><i class="fas fa-trash-alt"></i></button>`;
 
   card.appendChild(body);
   container.appendChild(card);
@@ -2199,6 +2174,7 @@ async function loadStats() {
   const lineLegendEl = document.getElementById('statsLineLegend');
   lineLegendEl.innerHTML = [
     hasJoker ? `<span style="color:var(--gold)">★ Joker</span>` : '',
+    hasMoC ? `<span style="color:rgba(167,139,250,1)">◆ Meal of Choice</span>` : '',
     hasFreeze ? `<span style="color:rgba(96,165,250,.9)">◆ Freeze</span>` : '',
     hasSick ? `<span style="color:rgba(251,191,36,.9)">▲ Sick</span>` : '',
   ].filter(Boolean).join('');
