@@ -303,8 +303,8 @@
         <div class="list-group">
           <div class="settings-row">
             <div class="settings-row-text">
-              <div class="settings-row-label">Freeze days per week</div>
-              <div class="settings-row-sub">Max freeze days allowed Mon–Sun</div>
+              <div class="settings-row-label">Freeze days</div>
+              <div class="settings-row-sub">Max freeze days allowed per window</div>
             </div>
             <div class="settings-row-control">
               <select id="setFreezePerWeek" class="settings-select">
@@ -315,6 +315,19 @@
                 <option value="5">5</option>
                 <option value="6">6</option>
                 <option value="7">7</option>
+              </select>
+            </div>
+          </div>
+          <div class="settings-row">
+            <div class="settings-row-text">
+              <div class="settings-row-label">Freeze window</div>
+              <div class="settings-row-sub">Rolling window for the freeze day limit</div>
+            </div>
+            <div class="settings-row-control">
+              <select id="setFreezeWindow" class="settings-select">
+                <option value="1">1 week</option>
+                <option value="2">2 weeks</option>
+                <option value="4">4 weeks</option>
               </select>
             </div>
           </div>
@@ -417,7 +430,7 @@
         </div>
       </div>
 
-      <div class="version-footer">FDDB · Check · v2.73</div>
+      <div class="version-footer">FDDB · Check · v2.74</div>
     </div>
   </section>
 
