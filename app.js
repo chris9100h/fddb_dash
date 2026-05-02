@@ -109,7 +109,8 @@ const SETTINGS_DEFAULTS = {
   adherenceCutoff: '22:00', // HH:MM — auto-finalize time
   sickModeActive: false,    // when true, every day (incl. today) is auto-marked 'sick'
   sickSince: null,          // YYYY-MM-DD — date sick mode started
-  freezePerWeek: 2,         // max freeze days allowed per Mon–Sun week
+  freezePerWeek: 2,         // max freeze days allowed per window
+  freezeWindow: 1,          // window size in weeks (1 / 2 / 4)
   weeklyTreatMaxKcal: 0,    // 0 = no limit; excess kcal above threshold count against totals
   mocKcal: 1200,            // kcal budget for one Meal of Choice
 };
@@ -133,6 +134,7 @@ const SETTING_DB_KEYS = {
   sickModeActive:      'sick_mode_active',
   sickSince:           'sick_since',
   freezePerWeek:       'freeze_per_week',
+  freezeWindow:        'freeze_window',
   weeklyTreatMaxKcal:  'weekly_treat_max_kcal',
   mocKcal:             'moc_kcal',
 };
@@ -188,9 +190,11 @@ function applySettingsToUI() {
       : 'Off';
   }
   const freezePerWeekEl = document.getElementById('setFreezePerWeek');
+  const freezeWindowEl  = document.getElementById('setFreezeWindow');
   const treatMaxKcalEl  = document.getElementById('setTreatMaxKcal');
   const mocKcalEl       = document.getElementById('setMocKcal');
   if (freezePerWeekEl) freezePerWeekEl.value = settings.freezePerWeek;
+  if (freezeWindowEl)  freezeWindowEl.value  = settings.freezeWindow;
   if (treatMaxKcalEl)  treatMaxKcalEl.value  = settings.weeklyTreatMaxKcal;
   if (mocKcalEl)       mocKcalEl.value       = settings.mocKcal;
   applySickModeOverlay();
@@ -262,6 +266,15 @@ function initSettingsUI() {
       settings.freezePerWeek = parseInt(freezePerWeekEl.value, 10);
       cacheSettings();
       writeSettingToDb('freezePerWeek', settings.freezePerWeek);
+    });
+  }
+
+  const freezeWindowEl = document.getElementById('setFreezeWindow');
+  if (freezeWindowEl) {
+    freezeWindowEl.addEventListener('change', () => {
+      settings.freezeWindow = parseInt(freezeWindowEl.value, 10);
+      cacheSettings();
+      writeSettingToDb('freezeWindow', settings.freezeWindow);
     });
   }
 
@@ -618,15 +631,18 @@ async function loadFinalizedMap() {
   } catch (e) { /* silent */ }
 }
 
-// Count freeze days used in the ISO week containing `date` (Mon-Sun).
-function freezesThisWeek(date) {
+// Count freeze days used in the configured window ending on the Sunday of date's week.
+// Window = settings.freezeWindow weeks (default 1). Excludes `date` itself.
+function freezesInWindow(date) {
+  const weeks = settings.freezeWindow || 1;
   const d = new Date(date + 'T00:00:00');
   const dow = (d.getDay() + 6) % 7; // 0=Mon
   const mon = new Date(d); mon.setDate(d.getDate() - dow);
+  const windowStart = new Date(mon); windowStart.setDate(mon.getDate() - (weeks - 1) * 7);
   const iso = dt => `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
   let n = 0;
-  for (let i = 0; i < 7; i++) {
-    const day = new Date(mon); day.setDate(mon.getDate() + i);
+  for (let i = 0; i < weeks * 7; i++) {
+    const day = new Date(windowStart); day.setDate(windowStart.getDate() + i);
     const k = iso(day);
     if (k === date) continue; // don't count self
     const row = finalizedMap.get(k);
@@ -749,8 +765,9 @@ async function setDayStatus(date, status) {
     await deleteFinalizedDay(date);
     showToast('Day status reset');
   } else if (status === 'freeze') {
-    if (freezesThisWeek(date) >= settings.freezePerWeek) {
-      showToast(`Freeze limit reached (${settings.freezePerWeek}/week)`, 'error');
+    if (freezesInWindow(date) >= settings.freezePerWeek) {
+      const wLabel = settings.freezeWindow > 1 ? `${settings.freezeWindow} weeks` : 'week';
+      showToast(`Freeze limit reached (${settings.freezePerWeek}/${wLabel})`, 'error');
       return;
     }
     await writeFinalizedDay(date, null, settings.adherenceGoal, 'freeze');
@@ -1890,7 +1907,8 @@ async function openDateMenu(date, x, y) {
   const d = new Date(date + 'T00:00:00');
   const isFuture = d > today;
   const isToday = date === todayStr;
-  const freezesUsed = freezesThisWeek(date) + (fin && fin.status === 'freeze' ? 1 : 0);
+  const freezesUsed = freezesInWindow(date) + (fin && fin.status === 'freeze' ? 1 : 0);
+  const freezeWLabel = (settings.freezeWindow || 1) > 1 ? `${settings.freezeWindow} weeks` : 'week';
 
   // Compute adherence for current day to allow Finalize.
   let canFinalize = false, adhForFinalize = null, totalsForFinalize = null;
@@ -1954,8 +1972,8 @@ async function openDateMenu(date, x, y) {
   menu.appendChild(item(
     'freeze', 'freeze', '<i class="fas fa-snowflake"></i>',
     'Freeze day',
-    `${freezesUsed}/${settings.freezePerWeek} this week`,
-    isFuture || freezesThisWeek(date) >= settings.freezePerWeek,
+    `${freezesUsed}/${settings.freezePerWeek} per ${freezeWLabel}`,
+    isFuture || freezesInWindow(date) >= settings.freezePerWeek,
     () => setDayStatus(date, 'freeze')
   ));
 
