@@ -2100,11 +2100,9 @@ async function loadStats() {
       const wrapper = document.createElement('div');
       wrapper.style.cssText = 'display:flex;flex-direction:column;gap:2px';
       wrapper.appendChild(cell);
-      if (isJoker) {
-        const jokerBar = document.createElement('div');
-        jokerBar.style.cssText = 'height:3px;border-radius:99px;background:var(--gold);width:100%';
-        wrapper.appendChild(jokerBar);
-      }
+      const weekBar = document.createElement('div');
+      weekBar.style.cssText = `height:3px;border-radius:99px;background:${isJoker ? 'var(--gold)' : 'transparent'};width:100%`;
+      wrapper.appendChild(weekBar);
       cwGrid.appendChild(wrapper);
     });
     hm.appendChild(cwGrid);
@@ -2160,9 +2158,12 @@ async function loadStats() {
   const hmLegend = document.createElement('div');
   hmLegend.className = 'chart-legend';
   hmLegend.style.marginTop = '10px';
+  const jokerLegendItem = statsPeriod === 'week'
+    ? `<span><span style="display:inline-block;width:14px;height:3px;border-radius:99px;background:var(--gold);vertical-align:middle"></span> Joker</span>`
+    : `<span><i class="fas fa-star" style="color:var(--gold);font-size:.55rem"></i> Joker</span>`;
   hmLegend.innerHTML = `
     <span><i class="fas fa-circle" style="color:var(--muted);font-size:.55rem"></i> Normal</span>
-    <span><i class="fas fa-star" style="color:var(--gold);font-size:.55rem"></i> Joker</span>
+    ${jokerLegendItem}
     <span><i class="fas fa-snowflake" style="color:rgba(96,165,250,.9);font-size:.55rem"></i> Freeze</span>
     <span><i class="fas fa-thermometer-half" style="color:rgba(251,191,36,.9);font-size:.55rem"></i> Sick</span>`;
   hm.appendChild(hmLegend);
