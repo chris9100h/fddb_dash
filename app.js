@@ -1226,6 +1226,7 @@ function renderMealOfChoiceCard(items, container) {
   row.className = 'food-item checked';
   row.innerHTML = `<div class="cb-box"><i class="fas fa-check"></i></div><div class="food-item-body"><div class="food-name">${displayName}</div><div class="macro-pills">${pillsHTML(m)}</div></div>`;
   card.appendChild(row);
+  checkables.push({ get checked() { return true; }, macros: m });
 
   container.appendChild(card);
 }
