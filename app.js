@@ -1210,13 +1210,14 @@ function renderMealOfChoiceCard(items, container) {
 
   const entry = items[0];
   const m = { kcal: entry.kcal||0, p: parseFloat(entry.protein)||0, c: parseFloat(entry.carbs)||0, f: parseFloat(entry.fat)||0 };
+  const customName = entry.item_name && entry.item_name !== 'Meal of Choice' ? entry.item_name : null;
 
   const card = document.createElement('div');
   card.className = 'meal-card moc-card';
 
   card.innerHTML = `<div class="meal-title moc-title">
     <span class="moc-icon">🍽️</span>
-    <div class="meal-name moc-name">Meal of Choice</div>
+    <div class="meal-name moc-name">Meal of Choice${customName ? `<div class="moc-restaurant">${customName}</div>` : ''}</div>
     <div class="moc-badge">${settings.mocKcal} kcal</div>
   </div>`;
 
@@ -1229,9 +1230,20 @@ function renderMealOfChoiceCard(items, container) {
   container.appendChild(card);
 }
 
-async function addMealOfChoice() {
-  closeActionChooser();
+function openMocNamePrompt() {
+  const el = document.getElementById('mocNameOverlay');
+  document.getElementById('mocNameInput').value = '';
+  el.classList.add('open');
+  setTimeout(() => document.getElementById('mocNameInput').focus(), 150);
+}
 
+async function confirmAddMealOfChoice() {
+  const name = document.getElementById('mocNameInput').value.trim();
+  document.getElementById('mocNameOverlay').classList.remove('open');
+  await addMealOfChoice(name);
+}
+
+async function addMealOfChoice(name) {
   const { monday, sunday } = getWeekBounds(currentDate);
   const { data: weekMoC } = await db.from('fddb_daily_macros')
     .select('id, date').eq('meal', MEAL_OF_CHOICE).gte('date', monday).lte('date', sunday);
@@ -1274,7 +1286,7 @@ async function addMealOfChoice() {
   }
 
   const { error } = await db.from('fddb_daily_macros').insert({
-    date: currentDate, meal: MEAL_OF_CHOICE, item_name: 'Meal of Choice',
+    date: currentDate, meal: MEAL_OF_CHOICE, item_name: name || 'Meal of Choice',
     kcal: mocKcal,
     protein: parseFloat(finalP.toFixed(1)),
     carbs: parseFloat(finalC.toFixed(1)),
@@ -2302,13 +2314,13 @@ async function loadStats() {
       const tipText = status === 'freeze' ? `${d.date}: Freeze` : status === 'sick' ? `${d.date}: Sick` : `${d.date}: ${a !== null ? a + '%' : 'N/A'}${isJoker ? ' · Joker ⭐' : isMoC ? ' · Meal of Choice 🍽️' : ''}`;
       cell.setAttribute('data-tip', tipText);
       if (status === 'freeze') {
-        cell.innerHTML = `<i class="fas fa-snowflake" style="font-size:.5rem;color:rgba(96,165,250,.9)"></i>`;
+        cell.innerHTML = `<i class="fas fa-snowflake" style="font-size:.5rem;color:#fff;filter:drop-shadow(0 0 3px rgba(96,165,250,1))"></i>`;
       } else if (status === 'sick') {
-        cell.innerHTML = `<i class="fas fa-thermometer-half" style="font-size:.5rem;color:rgba(251,191,36,.9)"></i>`;
+        cell.innerHTML = `<i class="fas fa-thermometer-half" style="font-size:.5rem;color:#fff;filter:drop-shadow(0 0 3px rgba(251,191,36,1))"></i>`;
       } else if (isJoker) {
-        cell.innerHTML = `<i class="fas fa-star" style="font-size:.5rem;color:#fff;filter:drop-shadow(0 0 2px var(--gold))"></i>`;
+        cell.innerHTML = `<i class="fas fa-star" style="font-size:.5rem;color:#fff;filter:drop-shadow(0 0 3px var(--gold))"></i>`;
       } else if (isMoC) {
-        cell.innerHTML = `<i class="fas fa-utensils" style="font-size:.5rem;color:#fff;filter:drop-shadow(0 0 2px var(--moc))"></i>`;
+        cell.innerHTML = `<i class="fas fa-utensils" style="font-size:.5rem;color:#fff;filter:drop-shadow(0 0 3px var(--moc))"></i>`;
       }
       cell.className = 'heatmap-cell';
       wrapper.appendChild(cell);
