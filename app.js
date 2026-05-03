@@ -2193,7 +2193,7 @@ async function loadStats() {
         scales: {
           x: { ticks: { color: '#6a6a72', font: { size: 10 }, maxTicksLimit: 10 }, grid: { color: '#1e1e1e' } },
           y: { min: wMin, max: wMax,
-            ticks: { color: '#6a6a72', font: { size: 10 }, callback: v => v + ' kg' },
+            ticks: { color: '#6a6a72', font: { size: 10 }, stepSize: 1, callback: v => v + ' kg' },
             grid: { color: '#1e1e1e' },
           },
         },
