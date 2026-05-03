@@ -113,6 +113,7 @@ const SETTINGS_DEFAULTS = {
   freezeWindow: 1,          // window size in weeks (1 / 2 / 4)
   weeklyTreatMaxKcal: 0,    // 0 = no limit; excess kcal above threshold count against totals
   mocKcal: 1200,            // kcal budget for one Meal of Choice
+  showWeightChart: true,    // overlay weight as secondary axis on deviation chart
 };
 let settings = { ...SETTINGS_DEFAULTS };
 
@@ -137,6 +138,7 @@ const SETTING_DB_KEYS = {
   freezeWindow:        'freeze_window',
   weeklyTreatMaxKcal:  'weekly_treat_max_kcal',
   mocKcal:             'moc_kcal',
+  showWeightChart:     'show_weight_chart',
 };
 
 async function writeSettingToDb(key, value) {
@@ -189,14 +191,16 @@ function applySettingsToUI() {
       ? `Active since ${settings.sickSince || '—'} · all days marked sick`
       : 'Off';
   }
-  const freezePerWeekEl = document.getElementById('setFreezePerWeek');
-  const freezeWindowEl  = document.getElementById('setFreezeWindow');
-  const treatMaxKcalEl  = document.getElementById('setTreatMaxKcal');
-  const mocKcalEl       = document.getElementById('setMocKcal');
-  if (freezePerWeekEl) freezePerWeekEl.value = settings.freezePerWeek;
-  if (freezeWindowEl)  freezeWindowEl.value  = settings.freezeWindow;
-  if (treatMaxKcalEl)  treatMaxKcalEl.value  = settings.weeklyTreatMaxKcal;
-  if (mocKcalEl)       mocKcalEl.value       = settings.mocKcal;
+  const freezePerWeekEl   = document.getElementById('setFreezePerWeek');
+  const freezeWindowEl    = document.getElementById('setFreezeWindow');
+  const treatMaxKcalEl    = document.getElementById('setTreatMaxKcal');
+  const mocKcalEl         = document.getElementById('setMocKcal');
+  const showWeightChartEl = document.getElementById('setShowWeightChart');
+  if (freezePerWeekEl)   freezePerWeekEl.value   = settings.freezePerWeek;
+  if (freezeWindowEl)    freezeWindowEl.value    = settings.freezeWindow;
+  if (treatMaxKcalEl)    treatMaxKcalEl.value    = settings.weeklyTreatMaxKcal;
+  if (mocKcalEl)         mocKcalEl.value         = settings.mocKcal;
+  if (showWeightChartEl) showWeightChartEl.checked = !!settings.showWeightChart;
   applySickModeOverlay();
 }
 
@@ -294,6 +298,15 @@ function initSettingsUI() {
       settings.mocKcal = parseInt(mocKcalEl.value, 10);
       cacheSettings();
       writeSettingToDb('mocKcal', settings.mocKcal);
+    });
+  }
+
+  const showWeightChartEl = document.getElementById('setShowWeightChart');
+  if (showWeightChartEl) {
+    showWeightChartEl.addEventListener('change', () => {
+      settings.showWeightChart = showWeightChartEl.checked;
+      cacheSettings();
+      writeSettingToDb('showWeightChart', settings.showWeightChart);
     });
   }
 
@@ -2044,13 +2057,14 @@ async function loadStats() {
   document.getElementById('statsContent').style.display = 'none';
   document.getElementById('statsEmpty').style.display = 'none';
 
-  const [macroRes, dayTypeRes, targetsRes, finalizedRes, jokerRes, mocRes] = await Promise.all([
+  const [macroRes, dayTypeRes, targetsRes, finalizedRes, jokerRes, mocRes, weightRes] = await Promise.all([
     db.from('fddb_daily_macros').select('date, kcal, protein, carbs, fat').gte('date', from).lte('date', to).neq('meal', WEEKLY_TREAT_MEAL),
     db.from('fddb_day_type').select('date, type').gte('date', from).lte('date', to),
     db.from('fddb_coach_targets').select('*').lte('valid_from', to).order('valid_from', { ascending: false }),
     db.from('fddb_day_finalized').select('date, status').gte('date', from).lte('date', to),
     db.from('fddb_daily_macros').select('date').eq('meal', WEEKLY_TREAT_MEAL).gte('date', from).lte('date', to),
     db.from('fddb_daily_macros').select('date').eq('meal', MEAL_OF_CHOICE).gte('date', from).lte('date', to),
+    db.from('weight_entries').select('date, weight').gte('date', from).lte('date', to).order('date', { ascending: true }),
   ]);
 
   document.getElementById('statsLoading').style.display = 'none';
@@ -2059,6 +2073,7 @@ async function loadStats() {
   const mocDates = new Set((mocRes.data || []).map(r => r.date));
   const dayTypes = dayTypeRes.data || [];
   const allTgts = targetsRes.data || [];
+  const weightByDate = Object.fromEntries((weightRes.data || []).map(r => [r.date, parseFloat(r.weight)]));
   if (!macros.length) { document.getElementById('statsEmpty').style.display = 'block'; return; }
 
   const byDate = {};
@@ -2152,12 +2167,26 @@ async function loadStats() {
   const maxAbs = Math.max(...devValues.filter(v=>v!==null).map(Math.abs), 5);
   const yBound = Math.max(10, Math.ceil(maxAbs / 5) * 5);
 
+  const weightValues = dayData.map(d => weightByDate[d.date] ?? null);
+  const hasWeight = settings.showWeightChart && weightValues.some(v => v !== null);
+  const weightDatasets = hasWeight ? [{
+    label: 'Weight', data: weightValues, yAxisID: 'yWeight',
+    borderColor: 'rgba(45,212,191,.8)', borderWidth: 1.5,
+    pointRadius: dayData.length > 60 ? 0 : 2,
+    pointBackgroundColor: 'rgba(45,212,191,.9)',
+    tension: .35, fill: false, spanGaps: true,
+  }] : [];
+
+  const weightVals = weightValues.filter(v => v !== null);
+  const wMin = hasWeight ? Math.floor(Math.min(...weightVals)) - 1 : 0;
+  const wMax = hasWeight ? Math.ceil(Math.max(...weightVals)) + 1 : 100;
+
   statsLineChart = new Chart(lineCtx, {
     type: 'line',
     data: {
       labels: dayData.map(d => d.date.slice(5)),
       datasets: [{
-        label: 'Deviation', data: devValues, borderWidth: 2,
+        label: 'Deviation', data: devValues, yAxisID: 'y', borderWidth: 2,
         pointRadius: ptRadii, pointStyle: ptStyles,
         pointBackgroundColor: ptColors, pointBorderColor: ptBorderColors, pointBorderWidth: ptBorderWidths,
         tension: .35, fill: 'origin',
@@ -2166,13 +2195,14 @@ async function loadStats() {
           borderColor: ctx => { const avg = (ctx.p0.parsed.y + ctx.p1.parsed.y) / 2; return devToColor(avg, 1); },
           backgroundColor: ctx => { const avg = (ctx.p0.parsed.y + ctx.p1.parsed.y) / 2; return devToColor(avg, 0.12); },
         },
-      }],
+      }, ...weightDatasets],
     },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
         tooltip: { callbacks: { label: ctx => {
+          if (ctx.dataset.label === 'Weight') return `Weight: ${ctx.raw} kg`;
           const d = dayData[ctx.dataIndex];
           const statusLabel = d && d.status === 'freeze' ? ' · Freeze ❄' : d && d.status === 'sick' ? ' · Sick 🤒' : d && jokerDates.has(d.date) ? ' · Joker ⭐' : d && mocDates.has(d.date) ? ' · Meal of Choice 🍽️' : '';
           return ctx.raw !== null ? 'Dev: ' + (ctx.raw > 0 ? '+' : '') + ctx.raw + '%' + statusLabel : 'N/A';
@@ -2184,6 +2214,11 @@ async function loadStats() {
           ticks: { color: '#6a6a72', font: { size: 10 }, callback: v => (v > 0 ? '+' : '') + v + '%' },
           grid: { color: ctx => ctx.tick.value === 0 ? 'rgba(255,255,255,.2)' : '#1e1e1e', lineWidth: ctx => ctx.tick.value === 0 ? 2 : 1 }
         },
+        ...(hasWeight ? { yWeight: {
+          position: 'right', min: wMin, max: wMax,
+          ticks: { color: 'rgba(45,212,191,.7)', font: { size: 10 }, callback: v => v + ' kg' },
+          grid: { display: false },
+        }} : {}),
       },
     },
   });
@@ -2222,6 +2257,7 @@ async function loadStats() {
     hasMoC ? `<span style="color:rgba(167,139,250,1)">◆ Meal of Choice</span>` : '',
     hasFreeze ? `<span style="color:rgba(96,165,250,.9)">◆ Freeze</span>` : '',
     hasSick ? `<span style="color:rgba(251,191,36,.9)">▲ Sick</span>` : '',
+    hasWeight ? `<span style="color:rgba(45,212,191,.9)">— Weight</span>` : '',
   ].filter(Boolean).join('');
 
   // Heatmap
