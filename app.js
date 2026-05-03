@@ -2308,7 +2308,7 @@ async function loadStats() {
       } else if (isJoker) {
         cell.innerHTML = `<i class="fas fa-star" style="font-size:.5rem;color:var(--gold)"></i>`;
       } else if (isMoC) {
-        cell.innerHTML = `<i class="fas fa-utensils" style="font-size:.5rem;color:var(--moc)"></i>`;
+        cell.innerHTML = `<i class="fas fa-utensils" style="font-size:.5rem;color:#fff;filter:drop-shadow(0 0 2px var(--moc))"></i>`;
       }
       cell.className = 'heatmap-cell';
       wrapper.appendChild(cell);
