@@ -1210,23 +1210,23 @@ function renderMealOfChoiceCard(items, container) {
 
   const entry = items[0];
   const m = { kcal: entry.kcal||0, p: parseFloat(entry.protein)||0, c: parseFloat(entry.carbs)||0, f: parseFloat(entry.fat)||0 };
-  const customName = entry.item_name && entry.item_name !== 'Meal of Choice' ? entry.item_name : null;
+  const displayName = entry.item_name || 'Meal of Choice';
 
   const card = document.createElement('div');
   card.className = 'meal-card moc-card';
 
   card.innerHTML = `<div class="meal-title moc-title">
     <span class="moc-icon">🍽️</span>
-    <div class="meal-name moc-name">Meal of Choice${customName ? `<div class="moc-restaurant">${customName}</div>` : ''}</div>
+    <div class="meal-name moc-name">Meal of Choice</div>
     <div class="moc-badge">${settings.mocKcal} kcal</div>
+    <button class="moc-remove-btn" onclick="removeMealOfChoice('${entry.id}')"><i class="fas fa-trash-alt"></i></button>
   </div>`;
 
-  const body = document.createElement('div');
-  body.className = 'moc-body';
-  body.innerHTML = `<div class="macro-pills moc-pills">${pillsHTML(m)}</div>
-    <button class="moc-remove-btn" onclick="removeMealOfChoice('${entry.id}')"><i class="fas fa-trash-alt"></i></button>`;
+  const row = document.createElement('div');
+  row.className = 'food-item checked';
+  row.innerHTML = `<div class="cb-box"><i class="fas fa-check"></i></div><div class="food-item-body"><div class="food-name">${displayName}</div><div class="macro-pills">${pillsHTML(m)}</div></div>`;
+  card.appendChild(row);
 
-  card.appendChild(body);
   container.appendChild(card);
 }
 
@@ -2314,13 +2314,13 @@ async function loadStats() {
       const tipText = status === 'freeze' ? `${d.date}: Freeze` : status === 'sick' ? `${d.date}: Sick` : `${d.date}: ${a !== null ? a + '%' : 'N/A'}${isJoker ? ' · Joker ⭐' : isMoC ? ' · Meal of Choice 🍽️' : ''}`;
       cell.setAttribute('data-tip', tipText);
       if (status === 'freeze') {
-        cell.innerHTML = `<i class="fas fa-snowflake" style="font-size:.5rem;color:#fff;filter:drop-shadow(0 0 3px rgba(96,165,250,1))"></i>`;
+        cell.innerHTML = `<span style="display:inline-flex;background:rgba(96,165,250,.45);border-radius:3px;padding:2px 3px;line-height:1"><i class="fas fa-snowflake" style="font-size:.5rem;color:#fff"></i></span>`;
       } else if (status === 'sick') {
-        cell.innerHTML = `<i class="fas fa-thermometer-half" style="font-size:.5rem;color:#fff;filter:drop-shadow(0 0 3px rgba(251,191,36,1))"></i>`;
+        cell.innerHTML = `<span style="display:inline-flex;background:rgba(251,191,36,.45);border-radius:3px;padding:2px 3px;line-height:1"><i class="fas fa-thermometer-half" style="font-size:.5rem;color:#fff"></i></span>`;
       } else if (isJoker) {
-        cell.innerHTML = `<i class="fas fa-star" style="font-size:.5rem;color:#fff;filter:drop-shadow(0 0 3px var(--gold))"></i>`;
+        cell.innerHTML = `<span style="display:inline-flex;background:rgba(245,158,11,.55);border-radius:3px;padding:2px 3px;line-height:1"><i class="fas fa-star" style="font-size:.5rem;color:#fff"></i></span>`;
       } else if (isMoC) {
-        cell.innerHTML = `<i class="fas fa-utensils" style="font-size:.5rem;color:#fff;filter:drop-shadow(0 0 3px var(--moc))"></i>`;
+        cell.innerHTML = `<span style="display:inline-flex;background:rgba(167,139,250,.55);border-radius:3px;padding:2px 3px;line-height:1"><i class="fas fa-utensils" style="font-size:.5rem;color:#fff"></i></span>`;
       }
       cell.className = 'heatmap-cell';
       wrapper.appendChild(cell);

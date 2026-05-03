@@ -1681,7 +1681,6 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
 }
 .moc-icon { font-size: .95rem; flex-shrink: 0; }
 .moc-name { color: var(--moc) !important; }
-.moc-restaurant { font-size: .7rem; font-weight: 400; color: var(--text-secondary); margin-top: 1px; }
 .moc-badge {
   margin-left: auto;
   font-size: .55rem;
