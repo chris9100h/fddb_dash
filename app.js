@@ -2129,12 +2129,7 @@ async function loadStats() {
   const hasSick = dayData.some(d => d.status === 'sick');
 
   const adhColor = avgAdh !== null ? adherenceColor(avgAdh) : 'var(--muted)';
-  document.getElementById('statsSummary').innerHTML = `
-    <div class="stats-summary-card" style="grid-column:1/-1">
-      <div class="stats-summary-label">Ø Overall Adherence</div>
-      <div class="stats-summary-val" style="color:${adhColor}">${avgAdh !== null ? avgAdh + '%' : '–'}</div>
-      <div class="stats-summary-sub">${withAdh.length} of ${dates.length} days counted${excludedDays > 0 ? ` · ${excludedDays} excluded (sick/freeze)` : ''}</div>
-    </div>
+  document.getElementById('statsTrainingRest').innerHTML = `
     <div class="stats-summary-card">
       <div class="stats-summary-label">Training Days</div>
       <div class="stats-summary-val" style="color:var(--orange)">${trainingDays}</div>
@@ -2142,6 +2137,12 @@ async function loadStats() {
     <div class="stats-summary-card">
       <div class="stats-summary-label">Rest Days</div>
       <div class="stats-summary-val" style="color:var(--blue)">${restDays}</div>
+    </div>`;
+  document.getElementById('statsOverallAdh').innerHTML = `
+    <div class="stats-summary-card" style="margin:10px 0 2px;background:none;border:none;padding:0 2px">
+      <div class="stats-summary-label">Ø Overall Adherence</div>
+      <div class="stats-summary-val" style="color:${adhColor}">${avgAdh !== null ? avgAdh + '%' : '–'}</div>
+      <div class="stats-summary-sub">${withAdh.length} of ${dates.length} days counted${excludedDays > 0 ? ` · ${excludedDays} excluded (sick/freeze)` : ''}</div>
     </div>`;
 
   if (statsLineChart) { statsLineChart.destroy(); statsLineChart = null; }

@@ -202,28 +202,46 @@
       </div>
 
       <div id="statsContent" style="display:none;flex-direction:column;gap:14px">
-        <div class="stats-summary-grid" id="statsSummary"></div>
 
+        <!-- 1. Training / Rest Days -->
+        <div class="stats-summary-grid" id="statsTrainingRest"></div>
+
+        <!-- 2. Body Weight -->
         <div class="chart-card" id="weightChartCard">
           <div class="chart-title"><i class="fas fa-weight-scale"></i>Body Weight</div>
           <div class="chart-body" style="height:100px"><canvas id="statsWeightChart"></canvas></div>
         </div>
 
+        <!-- 3. Adherence scale + Avg Overall Adherence -->
+        <div class="chart-card">
+          <div class="chart-title"><i class="fas fa-bullseye"></i>Adherence</div>
+          <div class="adh-scale">
+            <span class="adh-scale-lbl">0%</span>
+            <div class="adh-scale-bar"></div>
+            <span class="adh-scale-lbl">100%</span>
+          </div>
+          <div id="statsOverallAdh"></div>
+        </div>
+
+        <!-- 4. Daily Deviation -->
         <div class="chart-card">
           <div class="chart-title"><i class="fas fa-wave-square"></i>Daily Deviation (kcal)</div>
           <div class="chart-body" style="height:150px"><canvas id="statsLineChart"></canvas></div>
           <div id="statsLineLegend" class="chart-legend"></div>
         </div>
 
+        <!-- 5. Adherence Heatmap -->
         <div class="chart-card">
           <div class="chart-title"><i class="fas fa-th"></i>Adherence Heatmap</div>
           <div class="chart-body" id="statsHeatmap"></div>
         </div>
 
+        <!-- 6. Macro Deviation -->
         <div class="chart-card">
           <div class="chart-title"><i class="fas fa-chart-bar"></i>Ø Macro Deviation</div>
           <div class="chart-body" style="height:140px"><canvas id="statsBarChart"></canvas></div>
         </div>
+
       </div>
     </div>
   </section>
@@ -454,7 +472,7 @@
         </div>
       </div>
 
-      <div class="version-footer">FDDB · Check · v2.83</div>
+      <div class="version-footer">FDDB · Check · v2.84</div>
     </div>
   </section>
 
