@@ -1884,7 +1884,7 @@ async function saveTargets() {
    STATISTICS (preserved)
    ══════════════════════════════════════ */
 let statsPeriod = 'week';
-let statsLineChart = null, statsBarChart = null;
+let statsLineChart = null, statsBarChart = null, statsWeightChart = null;
 
 function setStatsPeriod(p) {
   statsPeriod = p;
@@ -2169,24 +2169,44 @@ async function loadStats() {
 
   const weightValues = dayData.map(d => weightByDate[d.date] ?? null);
   const hasWeight = settings.showWeightChart && weightValues.some(v => v !== null);
-  const weightDatasets = hasWeight ? [{
-    label: 'Weight', data: weightValues, yAxisID: 'yWeight',
-    borderColor: 'rgba(45,212,191,.8)', borderWidth: 1.5,
-    pointRadius: dayData.length > 60 ? 0 : 2,
-    pointBackgroundColor: 'rgba(45,212,191,.9)',
-    tension: .35, fill: false, spanGaps: true,
-  }] : [];
 
-  const weightVals = weightValues.filter(v => v !== null);
-  const wMin = hasWeight ? Math.floor(Math.min(...weightVals)) - 1 : 0;
-  const wMax = hasWeight ? Math.ceil(Math.max(...weightVals)) + 1 : 100;
+  // Weight chart
+  const weightChartCard = document.getElementById('weightChartCard');
+  if (statsWeightChart) { statsWeightChart.destroy(); statsWeightChart = null; }
+  if (weightChartCard) weightChartCard.style.display = hasWeight ? '' : 'none';
+  if (hasWeight) {
+    const weightVals = weightValues.filter(v => v !== null);
+    const wMin = Math.floor(Math.min(...weightVals)) - 1;
+    const wMax = Math.ceil(Math.max(...weightVals)) + 1;
+    const wCtx = document.getElementById('statsWeightChart').getContext('2d');
+    statsWeightChart = new Chart(wCtx, {
+      type: 'line',
+      data: {
+        labels: dayData.map(d => d.date.slice(5)),
+        datasets: [{ data: weightValues, borderColor: 'rgba(45,212,191,.85)', borderWidth: 2,
+          pointRadius: dayData.length > 60 ? 0 : 3, pointBackgroundColor: 'rgba(45,212,191,.9)',
+          tension: .35, fill: false, spanGaps: true }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ctx.raw !== null ? ctx.raw + ' kg' : 'N/A' } } },
+        scales: {
+          x: { ticks: { color: '#6a6a72', font: { size: 10 }, maxTicksLimit: 10 }, grid: { color: '#1e1e1e' } },
+          y: { min: wMin, max: wMax,
+            ticks: { color: '#6a6a72', font: { size: 10 }, callback: v => v + ' kg' },
+            grid: { color: '#1e1e1e' },
+          },
+        },
+      },
+    });
+  }
 
   statsLineChart = new Chart(lineCtx, {
     type: 'line',
     data: {
       labels: dayData.map(d => d.date.slice(5)),
       datasets: [{
-        label: 'Deviation', data: devValues, yAxisID: 'y', borderWidth: 2,
+        label: 'Deviation', data: devValues, borderWidth: 2,
         pointRadius: ptRadii, pointStyle: ptStyles,
         pointBackgroundColor: ptColors, pointBorderColor: ptBorderColors, pointBorderWidth: ptBorderWidths,
         tension: .35, fill: 'origin',
@@ -2195,14 +2215,13 @@ async function loadStats() {
           borderColor: ctx => { const avg = (ctx.p0.parsed.y + ctx.p1.parsed.y) / 2; return devToColor(avg, 1); },
           backgroundColor: ctx => { const avg = (ctx.p0.parsed.y + ctx.p1.parsed.y) / 2; return devToColor(avg, 0.12); },
         },
-      }, ...weightDatasets],
+      }],
     },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
         tooltip: { callbacks: { label: ctx => {
-          if (ctx.dataset.label === 'Weight') return `Weight: ${ctx.raw} kg`;
           const d = dayData[ctx.dataIndex];
           const statusLabel = d && d.status === 'freeze' ? ' · Freeze ❄' : d && d.status === 'sick' ? ' · Sick 🤒' : d && jokerDates.has(d.date) ? ' · Joker ⭐' : d && mocDates.has(d.date) ? ' · Meal of Choice 🍽️' : '';
           return ctx.raw !== null ? 'Dev: ' + (ctx.raw > 0 ? '+' : '') + ctx.raw + '%' + statusLabel : 'N/A';
@@ -2214,11 +2233,6 @@ async function loadStats() {
           ticks: { color: '#6a6a72', font: { size: 10 }, callback: v => (v > 0 ? '+' : '') + v + '%' },
           grid: { color: ctx => ctx.tick.value === 0 ? 'rgba(255,255,255,.2)' : '#1e1e1e', lineWidth: ctx => ctx.tick.value === 0 ? 2 : 1 }
         },
-        ...(hasWeight ? { yWeight: {
-          position: 'right', min: wMin, max: wMax,
-          ticks: { color: 'rgba(45,212,191,.7)', font: { size: 10 }, callback: v => v + ' kg' },
-          grid: { display: false },
-        }} : {}),
       },
     },
   });
@@ -2257,7 +2271,6 @@ async function loadStats() {
     hasMoC ? `<span style="color:rgba(167,139,250,1)">◆ Meal of Choice</span>` : '',
     hasFreeze ? `<span style="color:rgba(96,165,250,.9)">◆ Freeze</span>` : '',
     hasSick ? `<span style="color:rgba(251,191,36,.9)">▲ Sick</span>` : '',
-    hasWeight ? `<span style="color:rgba(45,212,191,.9)">— Weight</span>` : '',
   ].filter(Boolean).join('');
 
   // Heatmap
