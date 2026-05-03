@@ -2181,8 +2181,8 @@ async function loadStats() {
       type: 'line',
       data: {
         labels: dayData.map(d => d.date.slice(5)),
-        datasets: [{ data: weightValues, borderColor: 'rgba(45,212,191,.85)', borderWidth: 2,
-          pointRadius: dayData.length > 60 ? 0 : 3, pointBackgroundColor: 'rgba(45,212,191,.9)',
+        datasets: [{ data: weightValues, borderColor: 'rgba(148,163,184,.9)', borderWidth: 2,
+          pointRadius: dayData.length > 60 ? 0 : 3, pointBackgroundColor: 'rgba(148,163,184,.95)',
           tension: .35, fill: false, spanGaps: true }],
       },
       options: {
