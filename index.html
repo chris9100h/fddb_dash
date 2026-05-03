@@ -430,7 +430,7 @@
         </div>
       </div>
 
-      <div class="version-footer">FDDB · Check · v2.76</div>
+      <div class="version-footer">FDDB · Check · v2.77</div>
     </div>
   </section>
 
@@ -479,7 +479,7 @@
         </div>
         <i class="fas fa-chevron-right"></i>
       </button>
-      <button class="action-tile" onclick="closeActionChooser(); addMealOfChoice()">
+      <button class="action-tile" onclick="closeActionChooser(); openMocNamePrompt()">
         <div class="action-tile-icon bg-purple"><i class="fas fa-utensils"></i></div>
         <div class="action-tile-text">
           <div class="action-tile-label">Meal of Choice</div>
@@ -511,6 +511,24 @@
         </div>
         <i class="fas fa-chevron-right"></i>
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ MEAL OF CHOICE NAME ═══════════════════════════ -->
+<div class="modal-overlay" id="mocNameOverlay" onclick="if(event.target===this) this.classList.remove('open')">
+  <div class="modal sheet-sm">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title">Meal of Choice</div>
+      <button class="modal-close" onclick="document.getElementById('mocNameOverlay').classList.remove('open')"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <input class="text-input" id="mocNameInput" placeholder="Where are you eating? (optional)" autocomplete="off" onkeydown="if(event.key==='Enter') confirmAddMealOfChoice()">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="document.getElementById('mocNameOverlay').classList.remove('open')">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmAddMealOfChoice()">Add</button>
     </div>
   </div>
 </div>
