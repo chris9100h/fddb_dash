@@ -1267,8 +1267,8 @@ async function addMealOfChoice(name) {
   });
 
   const mocKcal = settings.mocKcal || MOC_KCAL;
-  if ((tgt.kcal || 0) - consumed.kcal < mocKcal) {
-    showToast(`Need ${mocKcal} kcal free`, 'error'); return;
+  if ((tgt.kcal || 0) - consumed.kcal < mocKcal - 100) {
+    showToast(`Need ${mocKcal - 100} kcal free`, 'error'); return;
   }
 
   const remP = Math.max(0, (tgt.p || 0) - consumed.p);
