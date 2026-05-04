@@ -919,9 +919,12 @@ function updateChecked() {
   document.getElementById('checkedPills').innerHTML = statPillsHTML(ck);
   const pKcal = ck.p * 4, cKcal = ck.c * 4, fKcal = ck.f * 9;
   const totalMacroKcal = pKcal + cKcal + fKcal || 1;
-  document.getElementById('embP').style.width = (pKcal / totalMacroKcal * 100) + '%';
-  document.getElementById('embC').style.width = (cKcal / totalMacroKcal * 100) + '%';
-  document.getElementById('embF').style.width = (fKcal / totalMacroKcal * 100) + '%';
+  [['embP', pKcal],['embC', cKcal],['embF', fKcal]].forEach(([id, val]) => {
+    const el = document.getElementById(id);
+    const pct = val / totalMacroKcal * 100;
+    el.style.width = pct + '%';
+    el.style.display = pct > 0 ? '' : 'none';
+  });
   document.getElementById('checkedBlock').classList.toggle('has-data', ch.length > 0);
 }
 

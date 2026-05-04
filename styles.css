@@ -434,16 +434,21 @@ body {
 .hero-top-bar .hero-title { margin-right: auto; }
 .eaten-macro-bar-wrap { flex: 1; }
 .eaten-macro-bar {
-  display: flex; height: 8px; border-radius: 99px; overflow: hidden;
-  background: rgba(255,255,255,.06);
+  display: flex; height: 28px; gap: 4px;
 }
 .emb-seg {
-  height: 100%; width: 0%;
+  height: 100%; width: 0%; min-width: 0;
+  border-radius: 99px; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
   transition: width .4s cubic-bezier(.22,.68,0,1.2);
 }
 .emb-p { background: var(--blue); }
 .emb-c { background: var(--yellow); }
 .emb-f { background: var(--red); }
+.emb-lbl {
+  font-size: .65rem; font-weight: 700; letter-spacing: .08em;
+  color: rgba(0,0,0,.55); white-space: nowrap; pointer-events: none;
+}
 
 .eaten-pills { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 .stat-pill {
