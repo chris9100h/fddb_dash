@@ -599,29 +599,52 @@ function renderTimelineDashboard(entries) {
   wrap.appendChild(buildTlRow('null', bySlot['null'] || []));
   for (let m = 180; m <= 1320; m += 30) wrap.appendChild(buildTlRow(m, bySlot[m] || []));
 
-  // Mark the 4 hours after insulin (inclusive of the insulin slot) with golden highlight
-  // and append a macro summary footer after the last gold row.
+  // Build insulin block: a visual box wrapping the header chip row, all window
+  // rows with items, and the macro summary footer.
   if (insulinSlot != null) {
     const endSlot = Math.min(insulinSlot + 4 * 60, 1320);
-    for (let m = insulinSlot; m <= endSlot; m += 30) {
-      const row = wrap.querySelector(`[data-hour="${m}"]`);
-      if (row) row.classList.add('tl-insulin-range');
-    }
     const wm = allBlocks.find(b => b.type === 'insulin')?.windowMacros;
-    const lastRow = wrap.querySelector(`[data-hour="${endSlot}"]`);
-    if (lastRow && wm) {
-      const summary = document.createElement('div');
-      summary.className = 'tl-insulin-summary';
-      summary.innerHTML =
-        `<span class="tl-insulin-summary-label">4h window</span>` +
-        `<span class="tl-insulin-summary-vals">` +
-          `<span>${Math.round(wm.kcal)}<small>kcal</small></span>` +
-          `<span>${Math.round(wm.p)}<small>P</small></span>` +
-          `<span>${Math.round(wm.c)}<small>C</small></span>` +
-          `<span>${Math.round(wm.f)}<small>F</small></span>` +
-        `</span>`;
-      lastRow.after(summary);
+
+    // Create the wrapper card and insert it where the insulin row sits
+    const insulinRow = wrap.querySelector(`[data-hour="${insulinSlot}"]`);
+    const block = document.createElement('div');
+    block.className = 'tl-insulin-block';
+    wrap.insertBefore(block, insulinRow);
+
+    // Move insulin header row into block (hide its time label)
+    insulinRow.classList.add('tl-insulin-range', 'tl-insulin-header-row');
+    block.appendChild(insulinRow);
+
+    // Move window rows that have items into block; track if any exist
+    let hasItems = false;
+    for (let m = insulinSlot + 30; m <= endSlot; m += 30) {
+      const row = wrap.querySelector(`[data-hour="${m}"]`);
+      if (!row) continue;
+      row.classList.add('tl-insulin-range');
+      if (row.classList.contains('tl-has-items')) {
+        block.appendChild(row);
+        hasItems = true;
+      }
     }
+    // If window is empty, show a slim spacer so header and footer don't collapse
+    if (!hasItems) {
+      const spacer = document.createElement('div');
+      spacer.className = 'tl-insulin-spacer';
+      block.appendChild(spacer);
+    }
+
+    // Append macro summary footer
+    const summary = document.createElement('div');
+    summary.className = 'tl-insulin-summary';
+    summary.innerHTML =
+      `<span class="tl-insulin-summary-label">4h window</span>` +
+      `<span class="tl-insulin-summary-vals">` +
+        `<span>${Math.round(wm?.kcal ?? 0)}<small>kcal</small></span>` +
+        `<span>${Math.round(wm?.p ?? 0)}<small>P</small></span>` +
+        `<span>${Math.round(wm?.c ?? 0)}<small>C</small></span>` +
+        `<span>${Math.round(wm?.f ?? 0)}<small>F</small></span>` +
+      `</span>`;
+    block.appendChild(summary);
   }
 
   content.appendChild(wrap);
