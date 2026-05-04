@@ -2100,17 +2100,17 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   border-left: none;
 }
 
+/* Standalone chip-bar: insulin chip header, not a tl-row */
+.tl-insulin-chip-bar {
+  display: flex;
+}
+.tl-insulin-chip-bar .tl-chip {
+  flex: 1;
+}
+
 /* First window slot always visible as droppable target */
 .tl-insulin-block .tl-row.tl-insulin-window-start {
   display: flex;
-}
-
-/* Header row: hide time label, zero padding so chip spans full width */
-.tl-row.tl-insulin-header-row {
-  padding: 0;
-}
-.tl-row.tl-insulin-header-row .tl-time-label {
-  display: none;
 }
 
 /* Window rows inside the block: amber time label */
