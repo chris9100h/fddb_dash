@@ -661,14 +661,18 @@ function makeTlChip(block) {
     chip.dataset.checkKeys = 'insulin::novorapid';
     chip.dataset.dragKind = 'item';
     chip.dataset.meal = 'insulin';
-    chip.innerHTML = `
-      <div class="tl-chip-grip"><i class="fas fa-grip-lines"></i></div>
-      <i class="fas fa-syringe tl-chip-insulin-icon"></i>
-      <div class="tl-chip-body">
-        <div class="tl-chip-name-row">
-          <span class="tl-chip-name">Insulin – Novorapid</span>
-        </div>
-      </div>`;
+    chip.innerHTML = placed
+      ? `<span class="tl-insulin-summary-label">
+           <i class="fas fa-syringe" style="margin-right:5px"></i>Insulin – Novorapid
+         </span>
+         <div class="tl-chip-grip"><i class="fas fa-grip-lines"></i></div>`
+      : `<div class="tl-chip-grip"><i class="fas fa-grip-lines"></i></div>
+         <i class="fas fa-syringe tl-chip-insulin-icon"></i>
+         <div class="tl-chip-body">
+           <div class="tl-chip-name-row">
+             <span class="tl-chip-name">Insulin – Novorapid</span>
+           </div>
+         </div>`;
     return chip;
   }
 
