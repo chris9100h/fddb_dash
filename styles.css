@@ -30,6 +30,8 @@
   --red:            #f87171;
   --green:          #4ade80;
   --cyan:           #22d3ee;
+  --gold:           #F5C418;
+  --gold-glow:      0 0 20px rgba(245,196,24,.45);
 
   --radius:         18px;
   --radius-sm:      12px;
@@ -1235,6 +1237,43 @@ body.is-dragging .meal-card-empty { display: block; }
 /* ════════════════════════════════════════════════════════
    SYNC & TOAST
    ════════════════════════════════════════════════════════ */
+
+/* Sync ring around button */
+.sync-ring-wrap { position: relative; display: inline-flex; }
+.sync-ring-svg {
+  position: absolute; inset: -5px;
+  width: calc(100% + 10px); height: calc(100% + 10px);
+  pointer-events: none; opacity: 0;
+  transform: rotate(-90deg);
+  transition: opacity .25s;
+}
+.sync-ring-wrap.syncing .sync-ring-svg { opacity: 1; }
+.sync-ring-track { fill: none; stroke: rgba(255,255,255,.1); stroke-width: 3; }
+.sync-ring-fill {
+  fill: none; stroke: #fff; stroke-width: 3; stroke-linecap: round;
+  stroke-dasharray: 131.95;
+  stroke-dashoffset: 131.95;
+}
+@keyframes syncRingProgress {
+  from { stroke-dashoffset: 131.95; }
+  to   { stroke-dashoffset: 0; }
+}
+.sync-ring-wrap.syncing .sync-ring-fill {
+  animation: syncRingProgress 30s linear forwards;
+}
+
+/* Gold ring for adherence goal */
+.hero-ring-wrap.ring-gold .ring-fg { stroke: var(--gold) !important; }
+.hero-ring-wrap.ring-perfect .ring-fg {
+  stroke: var(--gold) !important;
+  filter: drop-shadow(0 0 8px rgba(245,196,24,.7));
+}
+@keyframes goldPulse {
+  0%, 100% { filter: drop-shadow(0 0 6px rgba(245,196,24,.5)); }
+  50%       { filter: drop-shadow(0 0 14px rgba(245,196,24,.95)); }
+}
+.hero-ring-wrap.ring-perfect { animation: goldPulse 2.2s ease-in-out infinite; }
+
 .sync-overlay {
   display: none; position: fixed; inset: 0;
   background: rgba(0,0,0,.85); backdrop-filter: blur(12px);
