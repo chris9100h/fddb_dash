@@ -32,6 +32,8 @@ let currentDate = '';
 let coachTargets = { training: {kcal:0,p:0,c:0,f:0}, rest: {kcal:0,p:0,c:0,f:0} };
 let currentDayType = 'training';
 let mergeServings = false;
+let timelineMode = false;
+let itemTimeMap = {};
 let waterData = { drunk: null, goal: null };
 let currentAdherence = null;
 let mocUsedThisWeek = null; // null = unknown, false = not used, string = date it was used
@@ -434,6 +436,176 @@ function toggleMergeServings() {
   document.getElementById('checkedBlock').style.display = mergeServings ? 'none' : '';
   document.getElementById('content').classList.toggle('merge-active', mergeServings);
   renderDashboard(currentDayEntries);
+}
+
+/* ── Timeline toggle ── */
+function toggleTimeline() {
+  timelineMode = !timelineMode;
+  document.getElementById('timelineBtn').classList.toggle('active', timelineMode);
+  if (timelineMode) {
+    loadItemTimes(currentDate);
+    document.getElementById('checkedBlock').style.display = 'none';
+  } else {
+    document.getElementById('checkedBlock').style.display = mergeServings ? 'none' : '';
+  }
+  renderDashboard(currentDayEntries);
+}
+
+function loadItemTimes(date) {
+  try { itemTimeMap = JSON.parse(localStorage.getItem(`fddb.timeline.${date}`) || '{}'); }
+  catch { itemTimeMap = {}; }
+}
+
+function saveItemTime(entryId, hour) {
+  const k = String(entryId);
+  if (hour === null) delete itemTimeMap[k];
+  else itemTimeMap[k] = hour;
+  localStorage.setItem(`fddb.timeline.${currentDate}`, JSON.stringify(itemTimeMap));
+}
+
+const TL_COLORS = {
+  'frühstück':'#a78bfa','zwischenmahlzeit 1':'#4ade80','mittagessen':'#60a5fa',
+  'zwischenmahlzeit 2':'#f97316','abendbrot':'#f472b6','abendessen':'#f472b6',
+};
+
+function renderTimelineDashboard(entries) {
+  const content = document.getElementById('content');
+  content.innerHTML = '';
+  checkables = [];
+  applySickModeOverlay();
+
+  totals = {kcal:0,p:0,c:0,f:0};
+  entries.forEach(e => {
+    if (e.meal !== WEEKLY_TREAT_MEAL) {
+      totals.kcal += e.kcal||0; totals.p += parseFloat(e.protein)||0;
+      totals.c += parseFloat(e.carbs)||0; totals.f += parseFloat(e.fat)||0;
+    }
+  });
+  const treatItems = entries.filter(e => e.meal === WEEKLY_TREAT_MEAL);
+  if (treatItems.length && settings.weeklyTreatMaxKcal > 0) {
+    const treatKcal = treatItems.reduce((s,e) => s+(e.kcal||0), 0);
+    if (treatKcal > settings.weeklyTreatMaxKcal) {
+      const f = (treatKcal - settings.weeklyTreatMaxKcal) / treatKcal;
+      treatItems.forEach(e => {
+        totals.kcal += (e.kcal||0)*f; totals.p += (parseFloat(e.protein)||0)*f;
+        totals.c += (parseFloat(e.carbs)||0)*f; totals.f += (parseFloat(e.fat)||0)*f;
+      });
+    }
+  }
+
+  if (!entries.length) {
+    content.innerHTML = '<div class="placeholder"><i class="fas fa-bowl-food"></i>No entries for this date</div>';
+    renderTargetBlock(); updateChecked();
+    return;
+  }
+
+  const tlEntries = entries.filter(e => e.meal !== WEEKLY_TREAT_MEAL && e.meal !== MEAL_OF_CHOICE);
+  const byHour = {};
+  tlEntries.forEach(e => {
+    const h = itemTimeMap[String(e.id)] ?? null;
+    const key = h == null ? 'null' : h;
+    (byHour[key] = byHour[key] || []).push(e);
+  });
+
+  const wrap = document.createElement('div');
+  wrap.className = 'timeline-view';
+  wrap.appendChild(buildTlRow('null', byHour['null'] || []));
+  for (let h = 3; h <= 22; h++) wrap.appendChild(buildTlRow(h, byHour[h] || []));
+  content.appendChild(wrap);
+  initTlDrag(wrap);
+
+  renderTargetBlock(); updateChecked();
+}
+
+function buildTlRow(hour, items) {
+  const isNull = hour === 'null';
+  const row = document.createElement('div');
+  row.className = 'tl-row' + (isNull ? ' tl-unassigned' : '') + (items.length ? ' tl-has-items' : '');
+  row.dataset.hour = hour;
+
+  const lbl = document.createElement('div');
+  lbl.className = 'tl-time-label';
+  lbl.textContent = isNull ? '–' : `${String(hour).padStart(2,'0')}:00`;
+
+  const slot = document.createElement('div');
+  slot.className = 'tl-slot';
+  if (isNull && !items.length) {
+    slot.innerHTML = '<div class="tl-empty-hint">Drag items here to unassign</div>';
+  }
+  items.forEach(e => slot.appendChild(makeTlChip(e)));
+
+  row.appendChild(lbl);
+  row.appendChild(slot);
+  return row;
+}
+
+function makeTlChip(e) {
+  const chip = document.createElement('div');
+  chip.className = 'tl-chip';
+  chip.dataset.entryId = e.id;
+  const color = TL_COLORS[e.meal] || 'var(--muted)';
+  chip.innerHTML = `
+    <div class="tl-chip-grip"><i class="fas fa-grip-lines"></i></div>
+    <div class="tl-chip-dot" style="background:${color}"></div>
+    <div class="tl-chip-body">
+      <div class="tl-chip-name">${e.item_name}</div>
+      <div class="tl-chip-meta">
+        <span class="tl-chip-cat">${LABELS[e.meal]||e.meal}</span>
+        <span class="tl-chip-kcal">${Math.round(e.kcal||0)} kcal</span>
+      </div>
+    </div>`;
+  return chip;
+}
+
+/* ── Timeline DnD ── */
+let tlDrag = null;
+
+function initTlDrag(wrap) {
+  wrap.addEventListener('pointerdown', e => {
+    const chip = e.target.closest('.tl-chip');
+    if (!chip) return;
+    e.preventDefault();
+    const rect = chip.getBoundingClientRect();
+    const ghost = chip.cloneNode(true);
+    ghost.classList.add('tl-ghost');
+    ghost.style.cssText = `position:fixed;top:${rect.top}px;left:${rect.left}px;width:${rect.width}px;z-index:9999;pointer-events:none;`;
+    document.body.appendChild(ghost);
+    chip.classList.add('tl-dragging');
+    tlDrag = { chip, ghost, entryId: chip.dataset.entryId, origTop: rect.top, startY: e.clientY, wrap, targetHour: null };
+    document.addEventListener('pointermove', onTlMove, { passive: false });
+    document.addEventListener('pointerup', onTlUp, { once: true });
+    document.addEventListener('pointercancel', onTlUp, { once: true });
+  }, { passive: false });
+}
+
+function onTlMove(e) {
+  if (!tlDrag) return;
+  e.preventDefault();
+  tlDrag.ghost.style.top = `${tlDrag.origTop + e.clientY - tlDrag.startY}px`;
+  const rows = tlDrag.wrap.querySelectorAll('.tl-row');
+  let found = null;
+  rows.forEach(r => {
+    r.classList.remove('tl-drop-target');
+    const b = r.getBoundingClientRect();
+    if (e.clientY >= b.top && e.clientY < b.bottom) found = r;
+  });
+  if (found) { found.classList.add('tl-drop-target'); tlDrag.targetHour = found.dataset.hour; }
+  else tlDrag.targetHour = null;
+}
+
+function onTlUp() {
+  if (!tlDrag) return;
+  document.removeEventListener('pointermove', onTlMove);
+  const { chip, ghost, entryId, targetHour, wrap } = tlDrag;
+  tlDrag = null;
+  ghost.remove();
+  chip.classList.remove('tl-dragging');
+  wrap.querySelectorAll('.tl-drop-target').forEach(r => r.classList.remove('tl-drop-target'));
+  if (targetHour !== null) {
+    const h = targetHour === 'null' ? null : parseInt(targetHour, 10);
+    saveItemTime(entryId, h);
+    renderTimelineDashboard(currentDayEntries);
+  }
 }
 
 /* ── View switching ── */
@@ -961,6 +1133,7 @@ function updateChecked() {
 }
 
 function renderDashboard(entries) {
+  if (timelineMode) { renderTimelineDashboard(entries); return; }
   const content = document.getElementById('content');
   content.innerHTML = '';
   checkables = [];
