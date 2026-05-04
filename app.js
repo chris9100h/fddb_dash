@@ -615,19 +615,14 @@ function renderTimelineDashboard(entries) {
     insulinRow.classList.add('tl-insulin-range', 'tl-insulin-header-row');
     block.appendChild(insulinRow);
 
-    // Always include the first window row (droppable even when empty);
-    // subsequent rows only if they have items.
-    let firstWindowMoved = false;
+    // Move all window rows into block so they're droppable during drag.
+    // First row gets tl-insulin-window-start so it stays visible at rest too.
     for (let m = insulinSlot + 30; m <= endSlot; m += 30) {
       const row = wrap.querySelector(`[data-hour="${m}"]`);
       if (!row) continue;
       row.classList.add('tl-insulin-range');
-      if (!firstWindowMoved) {
-        block.appendChild(row);
-        firstWindowMoved = true;
-      } else if (row.classList.contains('tl-has-items')) {
-        block.appendChild(row);
-      }
+      if (m === insulinSlot + 30) row.classList.add('tl-insulin-window-start');
+      block.appendChild(row);
     }
 
     // Append macro summary footer

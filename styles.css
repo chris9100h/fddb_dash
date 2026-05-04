@@ -2094,14 +2094,18 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   margin: 4px 0;
 }
 
-/* Rows inside the block: always visible, subtle amber tint, no individual border-left */
+/* Rows inside the block: amber tint, no individual left border */
 .tl-insulin-block .tl-row {
-  display: flex;
   background: rgba(245,158,11,.04);
   border-left: none;
 }
 
-/* Header row: hide the time label completely so chip fills full row width */
+/* First window slot always visible as droppable target */
+.tl-insulin-block .tl-row.tl-insulin-window-start {
+  display: flex;
+}
+
+/* Header row: hide time label, zero padding so chip spans full width */
 .tl-row.tl-insulin-header-row {
   padding: 0;
 }
