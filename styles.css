@@ -432,6 +432,26 @@ body {
   margin-bottom: 14px;
 }
 .hero-top-bar .hero-title { margin-right: auto; }
+.hero-badge {
+  font-size: .6rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .1em; border-radius: 99px; padding: 3px 8px;
+  display: none; align-items: center; gap: 4px; flex-shrink: 0;
+}
+.hero-badge.badge-goal {
+  display: flex; color: var(--green);
+  background: rgba(74,222,128,.1); border: 1px solid rgba(74,222,128,.28);
+}
+.hero-badge.badge-perfect {
+  display: flex; color: var(--gold);
+  background: var(--gold-soft); border: 1px solid rgba(245,158,11,.35);
+}
+.hero-card.hero-goal-met {
+  border-color: rgba(245,158,11,.25);
+}
+.hero-card.hero-goal-perfect {
+  border-color: rgba(245,158,11,.38);
+  background: linear-gradient(145deg, rgba(245,158,11,.05) 0%, var(--bg-elev) 100%);
+}
 .eaten-macro-bar-wrap { flex: 1; }
 .eaten-macro-bar {
   display: flex; height: 6px; gap: 3px;
