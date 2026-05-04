@@ -1904,7 +1904,7 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
 }
 
 .tl-row {
-  display: flex;
+  display: none;
   align-items: flex-start;
   gap: 12px;
   padding: 4px 0;
@@ -1912,6 +1912,11 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   min-height: 32px;
   position: relative;
   transition: background .12s;
+}
+
+.tl-row.tl-has-items,
+.timeline-view.tl-drag-active .tl-row {
+  display: flex;
 }
 
 .tl-row.tl-has-items {
@@ -2026,6 +2031,13 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   min-width: 0;
 }
 
+.tl-chip-name-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
 .tl-chip-name {
   font-size: .82rem;
   font-weight: 500;
@@ -2033,25 +2045,37 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.tl-chip-meta {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  margin-top: 2px;
+  flex: 1;
+  min-width: 0;
 }
 
 .tl-chip-cat {
-  font-size: .65rem;
+  flex-shrink: 0;
+  font-size: .62rem;
   font-weight: 700;
   letter-spacing: .05em;
   text-transform: uppercase;
   color: var(--muted);
 }
 
-.tl-chip-kcal {
-  font-size: .68rem;
-  color: var(--text-dim);
+.tl-chip-portion {
+  font-size: .65rem;
+  color: var(--muted);
+  background: var(--surface-2);
+  border-radius: 4px;
+  padding: 1px 4px;
+}
+
+.tl-chip-pills .mp {
+  padding: 3px 5px;
+  min-width: 36px;
+}
+
+.tl-chip-pills .mp-val {
+  font-size: .78rem;
+}
+
+.tl-chip-pills .mp-lbl {
+  font-size: .4rem;
 }
 
