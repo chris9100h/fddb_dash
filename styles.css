@@ -415,6 +415,9 @@ body {
   border-radius: inherit;
 }
 .eaten-border-rect {
+  x: 0.75px; y: 0.75px;
+  width: calc(100% - 1.5px); height: calc(100% - 1.5px);
+  rx: 17.5px;
   fill: none; stroke-width: 1.5; stroke-linecap: round;
   stroke-dasharray: 1; stroke-dashoffset: 1;
   opacity: 0;
