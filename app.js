@@ -917,9 +917,11 @@ function updateChecked() {
   const ch = checkables.filter(c => c.checked);
   const ck = ch.reduce((a,c) => ({ kcal:a.kcal+c.macros.kcal, p:a.p+c.macros.p, c:a.c+c.macros.c, f:a.f+c.macros.f }), {kcal:0,p:0,c:0,f:0});
   document.getElementById('checkedPills').innerHTML = statPillsHTML(ck);
-  const pct = checkables.length > 0 ? (ch.length/checkables.length)*100 : 0;
-  document.getElementById('progressFill').style.width = pct+'%';
-  document.getElementById('progressLabel').textContent = `${ch.length} / ${checkables.length}`;
+  const pKcal = ck.p * 4, cKcal = ck.c * 4, fKcal = ck.f * 9;
+  const totalMacroKcal = pKcal + cKcal + fKcal || 1;
+  document.getElementById('embP').style.width = (pKcal / totalMacroKcal * 100) + '%';
+  document.getElementById('embC').style.width = (cKcal / totalMacroKcal * 100) + '%';
+  document.getElementById('embF').style.width = (fKcal / totalMacroKcal * 100) + '%';
   document.getElementById('checkedBlock').classList.toggle('has-data', ch.length > 0);
 }
 
