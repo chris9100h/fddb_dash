@@ -2734,6 +2734,11 @@ async function takeFullScreenshot() {
     #__screenshotStage .hero-card::before {
       display: none !important;
     }
+    /* Without ::before the gold bg tint bleeds strongly in canvas; reset
+       to standard surface background, keep only the border accent */
+    #__screenshotStage .hero-card.hero-goal-perfect {
+      background: linear-gradient(145deg, var(--surface) 0%, var(--bg-elev) 100%) !important;
+    }
     /* Ring filter drop-shadow creates a glow that bleeds; keep ring
        color but drop the filter for cleaner capture */
     #__screenshotStage .ring-fg {
