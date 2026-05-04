@@ -948,7 +948,10 @@ function updateChecked() {
     el.style.width = pct + '%';
     el.style.display = pct > 0 ? '' : 'none';
   });
-  document.getElementById('checkedBlock').classList.toggle('has-data', ch.length > 0);
+  const block = document.getElementById('checkedBlock');
+  block.classList.toggle('has-data', ch.length > 0);
+  const fillPct = totals.kcal > 0 ? Math.min(ck.kcal / totals.kcal, 1) : 0;
+  block.style.setProperty('--eaten-deg', (fillPct * 360) + 'deg');
 }
 
 function renderDashboard(entries) {
