@@ -2089,35 +2089,33 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   padding: 6px 12px 6px 14px;
 }
 
-/* Insulin block – visual card wrapping header chip, window rows, footer */
+/* Insulin block – groups header chip, window rows, footer */
 .tl-insulin-block {
-  border: 1.5px solid rgba(245,158,11,.35);
-  border-radius: 12px;
-  overflow: hidden;
   margin: 4px 0;
 }
 
-/* Rows inside the block: subtle amber tint, no individual border-left */
+/* Rows inside the block: amber tint, no individual left border */
 .tl-insulin-block .tl-row {
-  display: flex;
   background: rgba(245,158,11,.04);
   border-left: none;
 }
 
-/* Header row: hide the time label (chip is its own header) */
+/* First window slot always visible as droppable target */
+.tl-insulin-block .tl-row.tl-insulin-window-start {
+  display: flex;
+}
+
+/* Header row: hide time label, zero padding so chip spans full width */
+.tl-row.tl-insulin-header-row {
+  padding: 0;
+}
 .tl-row.tl-insulin-header-row .tl-time-label {
-  visibility: hidden;
+  display: none;
 }
 
 /* Window rows inside the block: amber time label */
 .tl-insulin-block .tl-row .tl-time-label {
   color: #f59e0b;
-}
-
-/* Spacer shown when no items are in the window */
-.tl-insulin-spacer {
-  height: 32px;
-  background: rgba(245,158,11,.03);
 }
 
 /* Insulin window summary footer */
