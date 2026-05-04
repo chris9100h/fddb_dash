@@ -605,23 +605,31 @@ function renderTimelineDashboard(entries) {
     const endSlot = Math.min(insulinSlot + 4 * 60, 1320);
     const wm = allBlocks.find(b => b.type === 'insulin')?.windowMacros;
 
-    // Create the wrapper card and insert it where the insulin row sits
+    // Create the wrapper and insert it where the insulin row sits
     const insulinRow = wrap.querySelector(`[data-hour="${insulinSlot}"]`);
     const block = document.createElement('div');
     block.className = 'tl-insulin-block';
     wrap.insertBefore(block, insulinRow);
 
-    // Move insulin header row into block (hide its time label)
-    insulinRow.classList.add('tl-insulin-range', 'tl-insulin-header-row');
-    block.appendChild(insulinRow);
+    // Extract the insulin chip into a standalone chip-bar header (not a tl-row)
+    // so the insulin slot row itself becomes the first droppable window slot.
+    const chipBar = document.createElement('div');
+    chipBar.className = 'tl-insulin-chip-bar';
+    const insulinChip = insulinRow.querySelector('.tl-chip-insulin');
+    if (insulinChip) chipBar.appendChild(insulinChip);
+    block.appendChild(chipBar);
 
-    // Move all window rows into block so they're droppable during drag.
-    // First row gets tl-insulin-window-start so it stays visible at rest too.
-    for (let m = insulinSlot + 30; m <= endSlot; m += 30) {
+    // Move all window rows into block starting at insulinSlot (not +30).
+    // First row gets tl-insulin-window-start so it stays visible at rest.
+    for (let m = insulinSlot; m <= endSlot; m += 30) {
       const row = wrap.querySelector(`[data-hour="${m}"]`);
       if (!row) continue;
       row.classList.add('tl-insulin-range');
-      if (m === insulinSlot + 30) row.classList.add('tl-insulin-window-start');
+      if (m === insulinSlot) {
+        row.classList.add('tl-insulin-window-start');
+        // If we pulled the only chip out, the row is now empty
+        if (!row.querySelector('.tl-chip')) row.classList.remove('tl-has-items');
+      }
       block.appendChild(row);
     }
 
