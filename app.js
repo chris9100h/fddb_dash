@@ -859,24 +859,26 @@ function renderTargetBlock() {
       ringFg.style.strokeDashoffset = off;
       ringFg.style.strokeLinecap = 'round';
     }
-    const goalMet = overallAdh >= settings.adherenceGoal;
-    const perfect = overallAdh >= 97;
-    const ringColor = goalMet ? 'var(--gold)' : adherenceColor(overallAdh);
+    const ringColor = adherenceColor(overallAdh);
     ringFg.style.stroke = ringColor;
     ringVal.textContent = overallAdh + '%';
     ringVal.style.color = ringColor;
+    const ringGold = document.getElementById('heroRingGold');
+    ringGold.style.strokeDashoffset = ringFg.style.strokeDashoffset;
+    ringGold.style.strokeLinecap = ringFg.style.strokeLinecap;
+    const goalMet = overallAdh >= settings.adherenceGoal;
     const ringWrap = ringFg.closest('.hero-ring-wrap');
-    ringWrap.classList.toggle('ring-gold', goalMet && !perfect);
-    ringWrap.classList.toggle('ring-perfect', perfect);
+    ringWrap.classList.toggle('ring-gold', goalMet && overallAdh < 97);
+    ringWrap.classList.toggle('ring-perfect', overallAdh >= 97);
 
     // Auto-finalize this day if past cutoff / past date.
     ensureDayFinalized(currentDate, overallAdh, false, totals);
   } else {
     ringFg.style.strokeDashoffset = circ;
+    document.getElementById('heroRingGold').style.strokeDashoffset = circ;
     ringVal.textContent = '–';
     ringVal.style.color = 'var(--muted)';
-    const ringWrap = ringFg.closest('.hero-ring-wrap');
-    ringWrap.classList.remove('ring-gold', 'ring-perfect');
+    ringFg.closest('.hero-ring-wrap').classList.remove('ring-gold', 'ring-perfect');
   }
 
   // Ratio pill: Plan vs Ziel
