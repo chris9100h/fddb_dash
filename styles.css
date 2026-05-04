@@ -1263,16 +1263,13 @@ body.is-dragging .meal-card-empty { display: block; }
 }
 
 /* Gold ring for adherence goal */
-.hero-ring-wrap.ring-gold .ring-fg { stroke: var(--gold) !important; }
+.hero-ring-wrap.ring-gold .ring-fg,
 .hero-ring-wrap.ring-perfect .ring-fg {
   stroke: var(--gold) !important;
-  filter: drop-shadow(0 0 8px rgba(245,196,24,.7));
 }
-@keyframes goldPulse {
-  0%, 100% { filter: drop-shadow(0 0 6px rgba(245,196,24,.5)); }
-  50%       { filter: drop-shadow(0 0 14px rgba(245,196,24,.95)); }
+.hero-ring-wrap.ring-perfect .hero-ring {
+  filter: drop-shadow(0 0 6px rgba(245,196,24,.55));
 }
-.hero-ring-wrap.ring-perfect { animation: goldPulse 2.2s ease-in-out infinite; }
 
 .sync-overlay {
   display: none; position: fixed; inset: 0;
