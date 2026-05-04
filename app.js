@@ -3323,10 +3323,12 @@ initTweaks();
   }
 
   function beginDrag(src, clientX, clientY) {
-    // Lock body scroll FIRST so subsequent rect measurements
-    // reflect the pinned layout. position:fixed + top:-scrollY
-    // keeps visible content in place, so viewport-relative
-    // coordinates remain valid.
+    // Reveal all timeline rows BEFORE locking scroll so
+    // lockBodyScroll() captures the full expanded scrollHeight.
+    if (timelineMode) document.querySelector('.timeline-view')?.classList.add('tl-drag-active');
+    // Lock body scroll so subsequent rect measurements reflect the
+    // pinned layout. position:fixed + top:-scrollY keeps visible
+    // content in place and viewport-relative coords stay valid.
     lockBodyScroll();
 
     const rect = src.getBoundingClientRect();
@@ -3349,7 +3351,6 @@ initTweaks();
     state.lastClientY = clientY;
     state.started = true;
     document.body.classList.add('is-dragging');
-    if (timelineMode) document.querySelector('.timeline-view')?.classList.add('tl-drag-active');
 
     scrollRafId = requestAnimationFrame(tickScroll);
     if (!timelineMode) showTreatPill();
