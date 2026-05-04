@@ -575,11 +575,11 @@ function renderTimelineDashboard(entries) {
   wrap.appendChild(buildTlRow('null', bySlot['null'] || []));
   for (let m = 180; m <= 1320; m += 30) wrap.appendChild(buildTlRow(m, bySlot[m] || []));
 
-  // Mark the 4 hours after insulin with golden highlight
+  // Mark the 4 hours after insulin (inclusive of the insulin slot) with golden highlight
   const insulinSlot = settings.showInsulinChip ? (itemTimeMap['insulin::novorapid'] ?? null) : null;
   if (insulinSlot != null) {
     const endSlot = Math.min(insulinSlot + 4 * 60, 1320);
-    for (let m = insulinSlot + 30; m <= endSlot; m += 30) {
+    for (let m = insulinSlot; m <= endSlot; m += 30) {
       const row = wrap.querySelector(`[data-hour="${m}"]`);
       if (row) row.classList.add('tl-insulin-range');
     }
@@ -3370,14 +3370,23 @@ initTweaks();
   }
 
   function beginDrag(src, clientX, clientY) {
-    // In timeline mode: expand all hour rows first so lockBodyScroll
-    // captures the full height. Then scroll the source chip back into
-    // view (row expansion can shift it) so the ghost lands in the right spot.
+    // In timeline mode: pre-measure the expanded scroll height by adding/removing
+    // tl-drag-active synchronously (forces reflow but no paint). Then lock the body
+    // at the current scroll, override lockedScrollMax with the pre-measured value,
+    // create the ghost at the chip's current (unexpanded) position, and THEN add
+    // tl-drag-active so rows expand after the body is fixed and the ghost is placed.
+    // This avoids scrollIntoView() which fires pointercancel on iOS touch.
+    let expandedMax = null;
     if (timelineMode) {
-      document.querySelector('.timeline-view')?.classList.add('tl-drag-active');
-      src.scrollIntoView({ block: 'nearest' });
+      const tlView = document.querySelector('.timeline-view');
+      if (tlView) {
+        tlView.classList.add('tl-drag-active');
+        expandedMax = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+        tlView.classList.remove('tl-drag-active');
+      }
     }
     lockBodyScroll();
+    if (expandedMax !== null) lockedScrollMax = expandedMax;
 
     const rect = src.getBoundingClientRect();
     const ghost = src.cloneNode(true);
@@ -3402,6 +3411,10 @@ initTweaks();
 
     scrollRafId = requestAnimationFrame(tickScroll);
     if (!timelineMode) showTreatPill();
+
+    // Expand all rows after ghost is placed and body is locked so row insertion
+    // doesn't affect the ghost's initial coordinates.
+    if (timelineMode) document.querySelector('.timeline-view')?.classList.add('tl-drag-active');
 
     moveGhost(clientX, clientY);
   }
