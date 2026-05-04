@@ -447,16 +447,15 @@ function toggleTimeline() {
 }
 
 const tlTimePending = {};
-function saveItemTime(entryId, hour) {
-  const k = String(entryId);
-  if (hour === null) delete itemTimeMap[k];
-  else itemTimeMap[k] = hour;
-  clearTimeout(tlTimePending[k]);
-  tlTimePending[k] = setTimeout(async () => {
+function saveItemTime(itemKey, hour) {
+  if (hour === null) delete itemTimeMap[itemKey];
+  else itemTimeMap[itemKey] = hour;
+  clearTimeout(tlTimePending[itemKey]);
+  tlTimePending[itemKey] = setTimeout(async () => {
     if (hour === null) {
-      await db.from('fddb_item_times').delete().eq('entry_id', entryId);
+      await db.from('fddb_item_times').delete().eq('date', currentDate).eq('item_key', itemKey);
     } else {
-      await db.from('fddb_item_times').upsert({ entry_id: parseInt(entryId), date: currentDate, hour }, { onConflict: 'entry_id' });
+      await db.from('fddb_item_times').upsert({ date: currentDate, item_key: itemKey, hour }, { onConflict: 'date,item_key' });
     }
   }, 400);
 }
@@ -489,10 +488,15 @@ function buildTlRenderBlocks(meal, items) {
     }
     if (allFound && matchIndices.length > 0) {
       matchIndices.forEach(idx => { remaining[idx].used = true; });
-      renderBlocks.push({ type: 'recipe', recipe, entries: matchIndices.map(idx => items[idx]), firstIdx: Math.min(...matchIndices), meal });
+      const servings = recipe.servings || 1;
+      const recEntries = matchIndices.map(idx => items[idx]);
+      const baseIdx = Math.min(...matchIndices);
+      for (let s = 0; s < servings; s++) {
+        renderBlocks.push({ type: 'recipe', recipe, entries: recEntries, serving: s, servings, firstIdx: baseIdx + s * 0.001, meal, tlKey: `${meal}::${recipe.name}::${s}` });
+      }
     }
   });
-  remaining.filter(r => !r.used).forEach(r => renderBlocks.push({ type: 'item', entry: r.item, firstIdx: r.idx, meal }));
+  remaining.filter(r => !r.used).forEach(r => renderBlocks.push({ type: 'item', entry: r.item, firstIdx: r.idx, meal, tlKey: `${meal}::${r.item.item_name}` }));
   renderBlocks.sort((a, b) => a.firstIdx - b.firstIdx);
   return renderBlocks;
 }
@@ -541,8 +545,7 @@ function renderTimelineDashboard(entries) {
 
   const byHour = {};
   allBlocks.forEach(block => {
-    const tlKey = String(block.type === 'recipe' ? block.entries[0].id : block.entry.id);
-    const h = itemTimeMap[tlKey] ?? null;
+    const h = itemTimeMap[block.tlKey] ?? null;
     const key = h == null ? 'null' : h;
     (byHour[key] = byHour[key] || []).push(block);
   });
@@ -586,28 +589,31 @@ function makeTlChip(block) {
 
   if (block.type === 'item') {
     const e = block.entry;
+    const m = { kcal: e.kcal||0, p: parseFloat(e.protein)||0, c: parseFloat(e.carbs)||0, f: parseFloat(e.fat)||0 };
     chip.dataset.entryIds = String(e.id);
-    chip.dataset.checkKeys = `${meal}::${e.item_name}`;
+    chip.dataset.checkKeys = block.tlKey;
     chip.dataset.dragKind = 'item';
     chip.dataset.meal = meal;
     chip.innerHTML = `
       <div class="tl-chip-grip"><i class="fas fa-grip-lines"></i></div>
       <div class="tl-chip-dot" style="background:${color}"></div>
       <div class="tl-chip-body">
-        <div class="tl-chip-name">${e.item_name}</div>
-        <div class="tl-chip-meta">
+        <div class="tl-chip-name-row">
+          <span class="tl-chip-name">${e.item_name}</span>
           <span class="tl-chip-cat">${LABELS[meal]||meal}</span>
-          <span class="tl-chip-kcal">${Math.round(e.kcal||0)} kcal</span>
         </div>
+        <div class="macro-pills tl-chip-pills">${pillsHTML(m)}</div>
       </div>`;
   } else {
-    const { recipe, entries } = block;
-    const totalKcal = entries.reduce((s, e) => s + (e.kcal||0), 0);
+    const { recipe, entries, serving, servings } = block;
+    const totalM = macroSum(entries);
+    const portionM = { kcal: totalM.kcal/servings, p: totalM.p/servings, c: totalM.c/servings, f: totalM.f/servings };
     const displayName = recipe.templateId
       ? ((allRecipes.find(r => r.id === recipe.templateId)?.name ?? '') + ' · ' + recipe.name)
       : recipe.name;
+    const portionLabel = servings > 1 ? ` <span class="tl-chip-portion">${serving+1}/${servings}</span>` : '';
     chip.dataset.entryIds = entries.map(e => e.id).join(',');
-    chip.dataset.checkKeys = entries.map(e => `${meal}::${e.item_name}`).join('|');
+    chip.dataset.checkKeys = block.tlKey;
     chip.dataset.dragKind = 'recipe';
     chip.dataset.meal = meal;
     chip.dataset.recipeName = recipe.name;
@@ -615,11 +621,11 @@ function makeTlChip(block) {
       <div class="tl-chip-grip"><i class="fas fa-grip-lines"></i></div>
       <div class="tl-chip-dot" style="background:${color}"></div>
       <div class="tl-chip-body">
-        <div class="tl-chip-name">${displayName}</div>
-        <div class="tl-chip-meta">
+        <div class="tl-chip-name-row">
+          <span class="tl-chip-name">${displayName}${portionLabel}</span>
           <span class="tl-chip-cat">${LABELS[meal]||meal}</span>
-          <span class="tl-chip-kcal">${Math.round(totalKcal)} kcal</span>
         </div>
+        <div class="macro-pills tl-chip-pills">${pillsHTML(portionM)}</div>
       </div>`;
   }
   return chip;
@@ -703,7 +709,7 @@ async function loadDay() {
     dbWater.from('water_logs').select('amount').eq('date', dateVal),
     dbWater.from('water_settings').select('goal').eq('id', 1).maybeSingle(),
     db.from('fddb_daily_macros').select('date').eq('meal', MEAL_OF_CHOICE).gte('date', monday).lte('date', sunday).limit(1),
-    db.from('fddb_item_times').select('entry_id,hour').eq('date', dateVal),
+    db.from('fddb_item_times').select('item_key,hour').eq('date', dateVal),
   ]);
 
   if (macroRes.error) {
@@ -713,7 +719,7 @@ async function loadDay() {
 
   currentDayEntries = macroRes.data || [];
   currentCheckedMap = Object.fromEntries((statusRes.data || []).map(r => [r.item_key, r.checked]));
-  itemTimeMap = Object.fromEntries((timesRes.data || []).map(r => [r.entry_id, r.hour]));
+  itemTimeMap = Object.fromEntries((timesRes.data || []).map(r => [r.item_key, r.hour]));
   currentDate = dateVal;
 
   const rows = targetsRes.data || [];
@@ -3230,6 +3236,7 @@ initTweaks();
     if (state.src && restore) state.src.classList.remove('dnd-source');
     document.querySelectorAll('.meal-card.dnd-hover').forEach(c => c.classList.remove('dnd-hover'));
     document.querySelectorAll('.tl-row.tl-drop-target').forEach(r => r.classList.remove('tl-drop-target'));
+    document.querySelector('.timeline-view')?.classList.remove('tl-drag-active');
     state = null;
     document.body.classList.remove('is-dragging');
     if (wasStarted) unlockBodyScroll();
@@ -3342,6 +3349,7 @@ initTweaks();
     state.lastClientY = clientY;
     state.started = true;
     document.body.classList.add('is-dragging');
+    if (timelineMode) document.querySelector('.timeline-view')?.classList.add('tl-drag-active');
 
     scrollRafId = requestAnimationFrame(tickScroll);
     if (!timelineMode) showTreatPill();
@@ -3442,7 +3450,7 @@ initTweaks();
       document.addEventListener('click', swallow, { capture: true, once: true });
       setTimeout(() => document.removeEventListener('click', swallow, { capture: true }), 80);
       cancelDrag(false);
-      ids.forEach(id => saveItemTime(id, hour));
+      src.dataset.checkKeys.split('|').filter(Boolean).forEach(k => saveItemTime(k, hour));
       renderTimelineDashboard(currentDayEntries);
       return;
     }
