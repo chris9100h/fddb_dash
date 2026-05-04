@@ -880,6 +880,18 @@ function renderTargetBlock() {
     ringVal.style.color = 'var(--muted)';
   }
 
+  // Ratio pill: Plan vs Ziel
+  const planSegs = [totals.p * 4, totals.c * 4, totals.f * 9];
+  const tgtSegs  = [tgt.p * 4,    tgt.c * 4,    tgt.f * 9];
+  const planTotal = planSegs.reduce((s, v) => s + v, 0) || 1;
+  const tgtTotal  = tgtSegs.reduce((s, v) => s + v, 0) || 1;
+  [['hrpP','hrzP'],['hrpC','hrzC'],['hrpF','hrzF']].forEach(([pId, zId], i) => {
+    const pp = planSegs[i] / planTotal * 100, zp = tgtSegs[i] / tgtTotal * 100;
+    const pe = document.getElementById(pId), ze = document.getElementById(zId);
+    pe.style.width = pp + '%'; pe.style.display = pp > 0 ? '' : 'none';
+    ze.style.width = zp + '%'; ze.style.display = zp > 0 ? '' : 'none';
+  });
+
   // Macro rows
   document.getElementById('heroMacroRows').innerHTML = macros.map(m => {
     const rawPct = m.goal > 0 ? Math.round((parseFloat(m.val) / m.goal) * 100) : 0;
