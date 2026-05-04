@@ -3297,7 +3297,6 @@ initTweaks();
   function cancelDrag(restore = true) {
     if (!state) return;
     const wasStarted = state.started;
-    const wasTimeline = state.isTimeline;
     if (scrollRafId) { cancelAnimationFrame(scrollRafId); scrollRafId = null; }
     hideTreatPill();
     document.removeEventListener('pointermove', onMove);
@@ -3312,9 +3311,13 @@ initTweaks();
     document.querySelector('.timeline-view')?.classList.remove('tl-drag-active');
     state = null;
     document.body.classList.remove('is-dragging');
-    if (wasStarted && !wasTimeline) unlockBodyScroll();
+    if (wasStarted) unlockBodyScroll();
   }
 
+  // ── rAF smooth edge-scroll ──────────────────────────────
+  // Body stays position:fixed during drag (Safari-safe), so we
+  // simulate scroll by adjusting lockedScrollY + body.style.top.
+  // Speed scales with distance into the edge zone (2–22 px/frame).
   // ── rAF smooth edge-scroll ──────────────────────────────
   // Body stays position:fixed during drag (Safari-safe), so we
   // simulate scroll by adjusting lockedScrollY + body.style.top.
@@ -3326,32 +3329,16 @@ initTweaks();
     const vh  = window.innerHeight;
     const EDGE = 90;
     let scrolled = false;
-    if (state.isTimeline) {
-      // Body is not locked for timeline; edge-scroll via window.scrollBy
-      // (mouse only — programmatic scroll fires pointercancel on iOS touch).
-      if (state.pointerType === 'mouse') {
-        if (y < EDGE && window.scrollY > 0) {
-          const t = 1 - y / EDGE;
-          window.scrollBy(0, -Math.round(2 + t * 20));
-          scrolled = true;
-        } else if (y > vh - EDGE) {
-          const t = (y - (vh - EDGE)) / EDGE;
-          window.scrollBy(0, Math.round(2 + t * 20));
-          scrolled = true;
-        }
-      }
-    } else {
-      if (y < EDGE && lockedScrollY > 0) {
-        const t = 1 - y / EDGE;
-        lockedScrollY = Math.max(0, lockedScrollY - Math.round(2 + t * 20));
-        document.body.style.top = `-${lockedScrollY}px`;
-        scrolled = true;
-      } else if (y > vh - EDGE && lockedScrollY < lockedScrollMax) {
-        const t = (y - (vh - EDGE)) / EDGE;
-        lockedScrollY = Math.min(lockedScrollMax, lockedScrollY + Math.round(2 + t * 20));
-        document.body.style.top = `-${lockedScrollY}px`;
-        scrolled = true;
-      }
+    if (y < EDGE && lockedScrollY > 0) {
+      const t = 1 - y / EDGE;
+      lockedScrollY = Math.max(0, lockedScrollY - Math.round(2 + t * 20));
+      document.body.style.top = `-${lockedScrollY}px`;
+      scrolled = true;
+    } else if (y > vh - EDGE && lockedScrollY < lockedScrollMax) {
+      const t = (y - (vh - EDGE)) / EDGE;
+      lockedScrollY = Math.min(lockedScrollMax, lockedScrollY + Math.round(2 + t * 20));
+      document.body.style.top = `-${lockedScrollY}px`;
+      scrolled = true;
     }
     if (scrolled) updateDropTarget(x, y);
     scrollRafId = requestAnimationFrame(tickScroll);
@@ -3412,21 +3399,32 @@ initTweaks();
   }
 
   function beginDrag(src, clientX, clientY) {
-    // For timeline drags we skip lockBodyScroll() entirely: setting
-    // position:fixed + overflow:hidden on body during an active touch
-    // causes iOS/Safari to fire pointercancel, killing the drag.
-    // Instead we expand rows immediately, keep natural page scroll, and
-    // use the rect captured at onDown (before any DOM changes) for the ghost.
+    // For timeline: pre-measure the expanded scrollHeight so lockBodyScroll
+    // captures the full draggable range. Add/remove tl-drag-active synchronously
+    // (forced reflow, no paint, no scroll API) so no pointercancel fires.
+    // Then lock the body, override lockedScrollMax, and THEN expand rows –
+    // by which point body is position:fixed so rows expanding doesn't scroll.
+    // Use rect captured at onDown (state.downRect) so the ghost starts at the
+    // exact touch/click point before any DOM changes shift the chip.
+    let expandedMax = null;
     if (timelineMode) {
-      document.querySelector('.timeline-view')?.classList.add('tl-drag-active');
-      state.isTimeline = true;
-    } else {
-      lockBodyScroll();
+      const tlView = document.querySelector('.timeline-view');
+      if (tlView) {
+        tlView.classList.add('tl-drag-active');
+        expandedMax = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+        tlView.classList.remove('tl-drag-active');
+      }
     }
+    lockBodyScroll();
+    if (expandedMax !== null) lockedScrollMax = expandedMax;
 
     const rect = (state && state.downRect) || src.getBoundingClientRect();
     const ghost = src.cloneNode(true);
     ghost.classList.add('dnd-ghost');
+    // Cancel any CSS animation inherited from the source element (e.g. slideUp
+    // on .tl-chip) – a running animation overrides inline style.transform and
+    // would prevent moveGhost from actually moving the ghost.
+    ghost.style.animation = 'none';
     ghost.style.width = rect.width + 'px';
     ghost.style.height = rect.height + 'px';
     ghost.style.left = rect.left + 'px';
@@ -3447,6 +3445,10 @@ initTweaks();
 
     scrollRafId = requestAnimationFrame(tickScroll);
     if (!timelineMode) showTreatPill();
+
+    // Expand all rows after body is locked so row expansion can't scroll the
+    // viewport or change the ghost's initial coordinates.
+    if (timelineMode) document.querySelector('.timeline-view')?.classList.add('tl-drag-active');
 
     moveGhost(clientX, clientY);
   }
@@ -3478,7 +3480,6 @@ initTweaks();
       dropInsertBefore: undefined,
       dropTlRow: null,
       downRect: src.getBoundingClientRect(),
-      isTimeline: false,
     };
 
     document.addEventListener('pointermove', onMove, { passive: false });
