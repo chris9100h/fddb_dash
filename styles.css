@@ -456,6 +456,30 @@ body {
 .eaten-card:not(.has-data) .stat-val { opacity: .2; transition: opacity .25s; }
 .eaten-card.has-data .stat-val { opacity: 1; }
 
+/* ── Hero Ratio Pill ── */
+.hratio-pill {
+  margin-top: 14px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.hratio-row { display: flex; align-items: center; gap: 10px; }
+.hratio-lbl {
+  font-size: .65rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--muted);
+  width: 28px; flex-shrink: 0;
+}
+.hratio-bar { flex: 1; height: 6px; display: flex; gap: 3px; }
+.hratio-seg {
+  height: 100%; width: 0%; border-radius: 99px;
+  transition: width .5s cubic-bezier(.22,.68,0,1.2);
+}
+.hratio-p { background: var(--blue); }
+.hratio-c { background: var(--yellow); }
+.hratio-f { background: var(--red); }
+
 /* ── Meal List ── */
 .meal-list { display: flex; flex-direction: column; gap: 12px; }
 .meal-card {
