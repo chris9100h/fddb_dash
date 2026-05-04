@@ -56,9 +56,15 @@
           <button class="pill-btn" id="mergeBtn" onclick="toggleMergeServings()" title="Merge Servings">
             <i class="fas fa-layer-group"></i>
           </button>
-          <button class="pill-btn accent" id="syncBtn" onclick="triggerScraper()" title="Sync FDDB">
-            <i class="fas fa-arrows-rotate"></i>
-          </button>
+          <div class="sync-ring-wrap" id="syncRingWrap">
+            <svg class="sync-ring-svg" viewBox="0 0 48 48" aria-hidden="true">
+              <circle class="sync-ring-track" cx="24" cy="24" r="21"/>
+              <circle class="sync-ring-fill" id="syncRingFill" cx="24" cy="24" r="21"/>
+            </svg>
+            <button class="pill-btn accent" id="syncBtn" onclick="triggerScraper()" title="Sync FDDB">
+              <i class="fas fa-arrows-rotate"></i>
+            </button>
+          </div>
         </div>
       </div>
       <div class="date-strip-wrap">

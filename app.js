@@ -481,21 +481,12 @@ async function triggerScraper() {
       body: JSON.stringify({ ref: 'main' }),
     });
     if (res.status === 204) {
-      const overlay = document.getElementById('syncCountdown');
-      const countEl = document.getElementById('syncCountdownNum');
-      overlay.style.display = 'flex';
-      let remaining = 30;
-      countEl.textContent = remaining;
-      const interval = setInterval(() => {
-        remaining--;
-        countEl.textContent = remaining;
-        if (remaining <= 0) {
-          clearInterval(interval);
-          overlay.style.display = 'none';
-          btn.classList.remove('syncing'); btn.disabled = false;
-          loadDay();
-        }
-      }, 1000);
+      document.getElementById('syncRingWrap').classList.add('syncing');
+      setTimeout(() => {
+        document.getElementById('syncRingWrap').classList.remove('syncing');
+        btn.classList.remove('syncing'); btn.disabled = false;
+        loadDay();
+      }, 30000);
     } else {
       showToast('GitHub error: ' + res.status, 'error');
       btn.classList.remove('syncing'); btn.disabled = false;
@@ -868,9 +859,15 @@ function renderTargetBlock() {
       ringFg.style.strokeDashoffset = off;
       ringFg.style.strokeLinecap = 'round';
     }
-    ringFg.style.stroke = adherenceColor(overallAdh);
+    const goalMet = overallAdh >= settings.adherenceGoal;
+    const perfect = overallAdh >= 97;
+    const ringColor = goalMet ? 'var(--gold)' : adherenceColor(overallAdh);
+    ringFg.style.stroke = ringColor;
     ringVal.textContent = overallAdh + '%';
-    ringVal.style.color = adherenceColor(overallAdh);
+    ringVal.style.color = ringColor;
+    const ringWrap = ringFg.closest('.hero-ring-wrap');
+    ringWrap.classList.toggle('ring-gold', goalMet && !perfect);
+    ringWrap.classList.toggle('ring-perfect', perfect);
 
     // Auto-finalize this day if past cutoff / past date.
     ensureDayFinalized(currentDate, overallAdh, false, totals);
@@ -878,6 +875,8 @@ function renderTargetBlock() {
     ringFg.style.strokeDashoffset = circ;
     ringVal.textContent = '–';
     ringVal.style.color = 'var(--muted)';
+    const ringWrap = ringFg.closest('.hero-ring-wrap');
+    ringWrap.classList.remove('ring-gold', 'ring-perfect');
   }
 
   // Ratio pill: Plan vs Ziel
