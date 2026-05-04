@@ -2066,6 +2066,29 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   padding: 1px 4px;
 }
 
+/* Insulin chip */
+.tl-chip-insulin {
+  border-color: rgba(245,158,11,.35);
+  background: linear-gradient(135deg, rgba(245,158,11,.1) 0%, var(--card) 60%);
+}
+
+.tl-chip-insulin-icon {
+  color: var(--yellow);
+  font-size: .9rem;
+  flex-shrink: 0;
+}
+
+/* Insulin window rows (4 h after injection) */
+.tl-row.tl-insulin-range {
+  display: flex;
+  background: rgba(245,158,11,.05);
+  border-left: 2px solid rgba(245,158,11,.3);
+}
+
+.tl-row.tl-insulin-range .tl-time-label {
+  color: #f59e0b;
+}
+
 .tl-chip-pills .mp {
   padding: 3px 5px;
   min-width: 36px;
