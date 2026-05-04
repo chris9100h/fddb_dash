@@ -1264,12 +1264,8 @@ body.is-dragging .meal-card-empty { display: block; }
 
 /* Gold ring for adherence goal */
 .hero-ring-wrap.ring-gold .ring-fg,
-.hero-ring-wrap.ring-perfect .ring-fg {
-  stroke: var(--gold) !important;
-}
-.hero-ring-wrap.ring-perfect .hero-ring {
-  filter: drop-shadow(0 0 6px rgba(245,196,24,.55));
-}
+.hero-ring-wrap.ring-perfect .ring-fg { stroke: var(--gold) !important; }
+.hero-ring-wrap.ring-perfect .ring-bg { stroke: rgba(245,196,24,.15); }
 
 .sync-overlay {
   display: none; position: fixed; inset: 0;
