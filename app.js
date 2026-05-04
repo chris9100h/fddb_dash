@@ -863,12 +863,32 @@ function renderTargetBlock() {
     ringVal.textContent = overallAdh + '%';
     ringVal.style.color = adherenceColor(overallAdh);
 
+    const perfect = overallAdh >= 97;
+    const goalMet = overallAdh >= settings.adherenceGoal;
+    const badge = document.getElementById('heroBadge');
+    const heroCard = document.getElementById('heroCard');
+    if (perfect) {
+      badge.className = 'hero-badge badge-perfect';
+      badge.innerHTML = '<i class="fas fa-star"></i> Perfect';
+    } else if (goalMet) {
+      badge.className = 'hero-badge badge-goal';
+      badge.innerHTML = '<i class="fas fa-check"></i> Goal';
+    } else {
+      badge.className = 'hero-badge';
+      badge.innerHTML = '';
+    }
+    heroCard.classList.toggle('hero-goal-met', goalMet && !perfect);
+    heroCard.classList.toggle('hero-goal-perfect', perfect);
+
     // Auto-finalize this day if past cutoff / past date.
     ensureDayFinalized(currentDate, overallAdh, false, totals);
   } else {
     ringFg.style.strokeDashoffset = circ;
     ringVal.textContent = '–';
     ringVal.style.color = 'var(--muted)';
+    document.getElementById('heroBadge').className = 'hero-badge';
+    document.getElementById('heroBadge').innerHTML = '';
+    document.getElementById('heroCard').classList.remove('hero-goal-met', 'hero-goal-perfect');
   }
 
   // Ratio pill: Plan vs Ziel
