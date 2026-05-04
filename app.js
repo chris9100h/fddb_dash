@@ -116,7 +116,8 @@ const SETTINGS_DEFAULTS = {
   freezeWindow: 1,          // window size in weeks (1 / 2 / 4)
   weeklyTreatMaxKcal: 0,    // 0 = no limit; excess kcal above threshold count against totals
   mocKcal: 1200,            // kcal budget for one Meal of Choice
-  showWeightChart: true,    // overlay weight as secondary axis on deviation chart
+  showWeightChart:  true,   // overlay weight as secondary axis on deviation chart
+  showInsulinChip:  false,  // show synthetic Insulin – Novorapid chip in timeline
 };
 let settings = { ...SETTINGS_DEFAULTS };
 
@@ -142,6 +143,7 @@ const SETTING_DB_KEYS = {
   weeklyTreatMaxKcal:  'weekly_treat_max_kcal',
   mocKcal:             'moc_kcal',
   showWeightChart:     'show_weight_chart',
+  showInsulinChip:     'show_insulin_chip',
 };
 
 async function writeSettingToDb(key, value) {
@@ -313,6 +315,17 @@ function initSettingsUI() {
     });
   }
 
+  const showInsulinEl = document.getElementById('setShowInsulinChip');
+  if (showInsulinEl) {
+    showInsulinEl.checked = !!settings.showInsulinChip;
+    showInsulinEl.addEventListener('change', () => {
+      settings.showInsulinChip = showInsulinEl.checked;
+      cacheSettings();
+      writeSettingToDb('showInsulinChip', settings.showInsulinChip);
+      if (timelineMode) renderDashboard(currentDayEntries);
+    });
+  }
+
   // Background refresh from server — overrides cache if newer values exist.
   loadSettingsFromDb();
 }
@@ -447,17 +460,21 @@ function toggleTimeline() {
 }
 
 const tlTimePending = {};
-function saveItemTime(itemKey, hour) {
-  if (hour === null) delete itemTimeMap[itemKey];
-  else itemTimeMap[itemKey] = hour;
+function saveItemTime(itemKey, minutes) {
+  if (minutes === null) delete itemTimeMap[itemKey];
+  else itemTimeMap[itemKey] = minutes;
   clearTimeout(tlTimePending[itemKey]);
   tlTimePending[itemKey] = setTimeout(async () => {
-    if (hour === null) {
+    if (minutes === null) {
       await db.from('fddb_item_times').delete().eq('date', currentDate).eq('item_key', itemKey);
     } else {
-      await db.from('fddb_item_times').upsert({ date: currentDate, item_key: itemKey, hour }, { onConflict: 'date,item_key' });
+      await db.from('fddb_item_times').upsert({ date: currentDate, item_key: itemKey, minutes }, { onConflict: 'date,item_key' });
     }
   }, 400);
+}
+
+function formatSlot(minutes) {
+  return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${minutes % 60 === 0 ? '00' : '30'}`;
 }
 
 const TL_COLORS = {
@@ -532,42 +549,56 @@ function renderTimelineDashboard(entries) {
     return;
   }
 
-  // Build recipe-grouped blocks per meal, then group by assigned hour
+  // Build recipe-grouped blocks per meal, then group by assigned slot (minutes)
   const tlEntries = entries.filter(e => e.meal !== WEEKLY_TREAT_MEAL && e.meal !== MEAL_OF_CHOICE);
   const grouped = {};
   tlEntries.forEach(e => (grouped[e.meal] = grouped[e.meal] || []).push(e));
 
   const allBlocks = [];
+  if (settings.showInsulinChip) {
+    allBlocks.push({ type: 'insulin', tlKey: 'insulin::novorapid', meal: null });
+  }
   for (const meal of Object.keys(grouped)) {
     const items = (grouped[meal] || []).slice().sort((a, b) => (a.sort_order ?? Infinity) - (b.sort_order ?? Infinity));
     allBlocks.push(...buildTlRenderBlocks(meal, items));
   }
 
-  const byHour = {};
+  const bySlot = {};
   allBlocks.forEach(block => {
-    const h = itemTimeMap[block.tlKey] ?? null;
-    const key = h == null ? 'null' : h;
-    (byHour[key] = byHour[key] || []).push(block);
+    const m = itemTimeMap[block.tlKey] ?? null;
+    const key = m == null ? 'null' : m;
+    (bySlot[key] = bySlot[key] || []).push(block);
   });
 
   const wrap = document.createElement('div');
   wrap.className = 'timeline-view';
-  wrap.appendChild(buildTlRow('null', byHour['null'] || []));
-  for (let h = 3; h <= 22; h++) wrap.appendChild(buildTlRow(h, byHour[h] || []));
+  wrap.appendChild(buildTlRow('null', bySlot['null'] || []));
+  for (let m = 180; m <= 1320; m += 30) wrap.appendChild(buildTlRow(m, bySlot[m] || []));
+
+  // Mark the 4 hours after insulin with golden highlight
+  const insulinSlot = settings.showInsulinChip ? (itemTimeMap['insulin::novorapid'] ?? null) : null;
+  if (insulinSlot != null) {
+    const endSlot = Math.min(insulinSlot + 4 * 60, 1320);
+    for (let m = insulinSlot + 30; m <= endSlot; m += 30) {
+      const row = wrap.querySelector(`[data-hour="${m}"]`);
+      if (row) row.classList.add('tl-insulin-range');
+    }
+  }
+
   content.appendChild(wrap);
 
   renderTargetBlock(); updateChecked();
 }
 
-function buildTlRow(hour, blocks) {
-  const isNull = hour === 'null';
+function buildTlRow(minutes, blocks) {
+  const isNull = minutes === 'null';
   const row = document.createElement('div');
   row.className = 'tl-row' + (isNull ? ' tl-unassigned' : '') + (blocks.length ? ' tl-has-items' : '');
-  row.dataset.hour = hour;
+  row.dataset.hour = minutes;
 
   const lbl = document.createElement('div');
   lbl.className = 'tl-time-label';
-  lbl.textContent = isNull ? '–' : `${String(hour).padStart(2,'0')}:00`;
+  lbl.textContent = isNull ? '–' : formatSlot(minutes);
 
   const slot = document.createElement('div');
   slot.className = 'tl-slot';
@@ -583,6 +614,24 @@ function buildTlRow(hour, blocks) {
 
 function makeTlChip(block) {
   const chip = document.createElement('div');
+
+  if (block.type === 'insulin') {
+    chip.className = 'tl-chip tl-chip-insulin';
+    chip.dataset.entryIds = '';
+    chip.dataset.checkKeys = 'insulin::novorapid';
+    chip.dataset.dragKind = 'item';
+    chip.dataset.meal = 'insulin';
+    chip.innerHTML = `
+      <div class="tl-chip-grip"><i class="fas fa-grip-lines"></i></div>
+      <i class="fas fa-syringe tl-chip-insulin-icon"></i>
+      <div class="tl-chip-body">
+        <div class="tl-chip-name-row">
+          <span class="tl-chip-name">Insulin – Novorapid</span>
+        </div>
+      </div>`;
+    return chip;
+  }
+
   chip.className = 'tl-chip';
   const meal = block.meal;
   const color = TL_COLORS[meal] || 'var(--muted)';
@@ -600,7 +649,6 @@ function makeTlChip(block) {
       <div class="tl-chip-body">
         <div class="tl-chip-name-row">
           <span class="tl-chip-name">${e.item_name}</span>
-          <span class="tl-chip-cat">${LABELS[meal]||meal}</span>
         </div>
         <div class="macro-pills tl-chip-pills">${pillsHTML(m)}</div>
       </div>`;
@@ -623,7 +671,6 @@ function makeTlChip(block) {
       <div class="tl-chip-body">
         <div class="tl-chip-name-row">
           <span class="tl-chip-name">${displayName}${portionLabel}</span>
-          <span class="tl-chip-cat">${LABELS[meal]||meal}</span>
         </div>
         <div class="macro-pills tl-chip-pills">${pillsHTML(portionM)}</div>
       </div>`;
@@ -709,7 +756,7 @@ async function loadDay() {
     dbWater.from('water_logs').select('amount').eq('date', dateVal),
     dbWater.from('water_settings').select('goal').eq('id', 1).maybeSingle(),
     db.from('fddb_daily_macros').select('date').eq('meal', MEAL_OF_CHOICE).gte('date', monday).lte('date', sunday).limit(1),
-    db.from('fddb_item_times').select('item_key,hour').eq('date', dateVal),
+    db.from('fddb_item_times').select('item_key,minutes').eq('date', dateVal),
   ]);
 
   if (macroRes.error) {
@@ -719,7 +766,7 @@ async function loadDay() {
 
   currentDayEntries = macroRes.data || [];
   currentCheckedMap = Object.fromEntries((statusRes.data || []).map(r => [r.item_key, r.checked]));
-  itemTimeMap = Object.fromEntries((timesRes.data || []).map(r => [r.item_key, r.hour]));
+  itemTimeMap = Object.fromEntries((timesRes.data || []).map(r => [r.item_key, r.minutes]));
   currentDate = dateVal;
 
   const rows = targetsRes.data || [];
@@ -3323,12 +3370,13 @@ initTweaks();
   }
 
   function beginDrag(src, clientX, clientY) {
-    // Reveal all timeline rows BEFORE locking scroll so
-    // lockBodyScroll() captures the full expanded scrollHeight.
-    if (timelineMode) document.querySelector('.timeline-view')?.classList.add('tl-drag-active');
-    // Lock body scroll so subsequent rect measurements reflect the
-    // pinned layout. position:fixed + top:-scrollY keeps visible
-    // content in place and viewport-relative coords stay valid.
+    // In timeline mode: expand all hour rows first so lockBodyScroll
+    // captures the full height. Then scroll the source chip back into
+    // view (row expansion can shift it) so the ghost lands in the right spot.
+    if (timelineMode) {
+      document.querySelector('.timeline-view')?.classList.add('tl-drag-active');
+      src.scrollIntoView({ block: 'nearest' });
+    }
     lockBodyScroll();
 
     const rect = src.getBoundingClientRect();
