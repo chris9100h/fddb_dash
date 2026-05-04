@@ -432,16 +432,18 @@ body {
   margin-bottom: 14px;
 }
 .hero-top-bar .hero-title { margin-right: auto; }
-.eaten-progress-wrap { flex: 1; display: flex; align-items: center; gap: 8px; }
-.eaten-progress-track {
-  flex: 1; height: 5px;
-  background: rgba(255,255,255,.06); border-radius: 99px; overflow: hidden;
+.eaten-macro-bar-wrap { flex: 1; }
+.eaten-macro-bar {
+  display: flex; height: 8px; border-radius: 99px; overflow: hidden;
+  background: rgba(255,255,255,.06);
 }
-.eaten-progress-fill {
-  height: 100%; background: var(--accent); border-radius: 99px;
-  width: 0%; transition: width .35s cubic-bezier(.22,.68,0,1.2);
+.emb-seg {
+  height: 100%; width: 0%;
+  transition: width .4s cubic-bezier(.22,.68,0,1.2);
 }
-.eaten-progress-lbl { font-size: .72rem; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+.emb-p { background: var(--blue); }
+.emb-c { background: var(--yellow); }
+.emb-f { background: var(--red); }
 
 .eaten-pills { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 .stat-pill {
