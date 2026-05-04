@@ -2088,6 +2088,46 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   color: #f59e0b;
 }
 
+/* Insulin window summary footer */
+.tl-insulin-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 12px 6px 14px;
+  border-left: 2px solid rgba(245,158,11,.5);
+  background: rgba(245,158,11,.08);
+  border-radius: 0 8px 8px 0;
+  margin: 2px 0 8px;
+}
+.tl-insulin-summary-label {
+  font-size: .6rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: #f59e0b;
+  flex-shrink: 0;
+}
+.tl-insulin-summary-vals {
+  display: flex;
+  gap: 10px;
+}
+.tl-insulin-summary-vals span {
+  font-size: .8rem;
+  font-weight: 700;
+  color: #f59e0b;
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+.tl-insulin-summary-vals small {
+  font-size: .55rem;
+  font-weight: 600;
+  opacity: .7;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
 .tl-chip-pills .mp {
   padding: 3px 5px;
   min-width: 36px;
