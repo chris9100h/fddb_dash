@@ -466,6 +466,37 @@ const TL_COLORS = {
   'zwischenmahlzeit 2':'#f97316','abendbrot':'#f472b6','abendessen':'#f472b6',
 };
 
+function buildTlRenderBlocks(meal, items) {
+  const remaining = items.map((item, idx) => ({ item, idx, used: false }));
+  const renderBlocks = [];
+  const recipeTemplateMap = new Map(allRecipes.map(r => [r.id, r]));
+  const recipesByLength = [...allRecipes].map(r => {
+    if (r.templateId) {
+      const tmpl = recipeTemplateMap.get(r.templateId);
+      if (tmpl) return { ...r, effectiveItems: [...new Set([...tmpl.items, ...r.items])] };
+    }
+    return { ...r, effectiveItems: r.items };
+  }).sort((a, b) => b.effectiveItems.length - a.effectiveItems.length);
+  recipesByLength.forEach(recipe => {
+    if (recipe.effectiveItems.length === 0) return;
+    const matchIndices = [];
+    const workingPool = remaining.filter(r => !r.used);
+    let allFound = true;
+    for (const rName of recipe.effectiveItems) {
+      const found = workingPool.find(r => !matchIndices.includes(r.idx) && stripAmount(r.item.item_name) === rName);
+      if (found) matchIndices.push(found.idx);
+      else { allFound = false; break; }
+    }
+    if (allFound && matchIndices.length > 0) {
+      matchIndices.forEach(idx => { remaining[idx].used = true; });
+      renderBlocks.push({ type: 'recipe', recipe, entries: matchIndices.map(idx => items[idx]), firstIdx: Math.min(...matchIndices), meal });
+    }
+  });
+  remaining.filter(r => !r.used).forEach(r => renderBlocks.push({ type: 'item', entry: r.item, firstIdx: r.idx, meal }));
+  renderBlocks.sort((a, b) => a.firstIdx - b.firstIdx);
+  return renderBlocks;
+}
+
 function renderTimelineDashboard(entries) {
   const content = document.getElementById('content');
   content.innerHTML = '';
@@ -497,12 +528,23 @@ function renderTimelineDashboard(entries) {
     return;
   }
 
+  // Build recipe-grouped blocks per meal, then group by assigned hour
   const tlEntries = entries.filter(e => e.meal !== WEEKLY_TREAT_MEAL && e.meal !== MEAL_OF_CHOICE);
+  const grouped = {};
+  tlEntries.forEach(e => (grouped[e.meal] = grouped[e.meal] || []).push(e));
+
+  const allBlocks = [];
+  for (const meal of Object.keys(grouped)) {
+    const items = (grouped[meal] || []).slice().sort((a, b) => (a.sort_order ?? Infinity) - (b.sort_order ?? Infinity));
+    allBlocks.push(...buildTlRenderBlocks(meal, items));
+  }
+
   const byHour = {};
-  tlEntries.forEach(e => {
-    const h = itemTimeMap[String(e.id)] ?? null;
+  allBlocks.forEach(block => {
+    const tlKey = String(block.type === 'recipe' ? block.entries[0].id : block.entry.id);
+    const h = itemTimeMap[tlKey] ?? null;
     const key = h == null ? 'null' : h;
-    (byHour[key] = byHour[key] || []).push(e);
+    (byHour[key] = byHour[key] || []).push(block);
   });
 
   const wrap = document.createElement('div');
@@ -510,15 +552,14 @@ function renderTimelineDashboard(entries) {
   wrap.appendChild(buildTlRow('null', byHour['null'] || []));
   for (let h = 3; h <= 22; h++) wrap.appendChild(buildTlRow(h, byHour[h] || []));
   content.appendChild(wrap);
-  initTlDrag(wrap);
 
   renderTargetBlock(); updateChecked();
 }
 
-function buildTlRow(hour, items) {
+function buildTlRow(hour, blocks) {
   const isNull = hour === 'null';
   const row = document.createElement('div');
-  row.className = 'tl-row' + (isNull ? ' tl-unassigned' : '') + (items.length ? ' tl-has-items' : '');
+  row.className = 'tl-row' + (isNull ? ' tl-unassigned' : '') + (blocks.length ? ' tl-has-items' : '');
   row.dataset.hour = hour;
 
   const lbl = document.createElement('div');
@@ -527,83 +568,61 @@ function buildTlRow(hour, items) {
 
   const slot = document.createElement('div');
   slot.className = 'tl-slot';
-  if (isNull && !items.length) {
+  if (isNull && !blocks.length) {
     slot.innerHTML = '<div class="tl-empty-hint">Drag items here to unassign</div>';
   }
-  items.forEach(e => slot.appendChild(makeTlChip(e)));
+  blocks.forEach(b => slot.appendChild(makeTlChip(b)));
 
   row.appendChild(lbl);
   row.appendChild(slot);
   return row;
 }
 
-function makeTlChip(e) {
+function makeTlChip(block) {
   const chip = document.createElement('div');
   chip.className = 'tl-chip';
-  chip.dataset.entryId = e.id;
-  const color = TL_COLORS[e.meal] || 'var(--muted)';
-  chip.innerHTML = `
-    <div class="tl-chip-grip"><i class="fas fa-grip-lines"></i></div>
-    <div class="tl-chip-dot" style="background:${color}"></div>
-    <div class="tl-chip-body">
-      <div class="tl-chip-name">${e.item_name}</div>
-      <div class="tl-chip-meta">
-        <span class="tl-chip-cat">${LABELS[e.meal]||e.meal}</span>
-        <span class="tl-chip-kcal">${Math.round(e.kcal||0)} kcal</span>
-      </div>
-    </div>`;
-  return chip;
-}
+  const meal = block.meal;
+  const color = TL_COLORS[meal] || 'var(--muted)';
 
-/* ── Timeline DnD ── */
-let tlDrag = null;
-
-function initTlDrag(wrap) {
-  wrap.addEventListener('pointerdown', e => {
-    const chip = e.target.closest('.tl-chip');
-    if (!chip) return;
-    e.preventDefault();
-    const rect = chip.getBoundingClientRect();
-    const ghost = chip.cloneNode(true);
-    ghost.classList.add('tl-ghost');
-    ghost.style.cssText = `position:fixed;top:${rect.top}px;left:${rect.left}px;width:${rect.width}px;z-index:9999;pointer-events:none;`;
-    document.body.appendChild(ghost);
-    chip.classList.add('tl-dragging');
-    tlDrag = { chip, ghost, entryId: chip.dataset.entryId, origTop: rect.top, startY: e.clientY, wrap, targetHour: null };
-    document.addEventListener('pointermove', onTlMove, { passive: false });
-    document.addEventListener('pointerup', onTlUp, { once: true });
-    document.addEventListener('pointercancel', onTlUp, { once: true });
-  }, { passive: false });
-}
-
-function onTlMove(e) {
-  if (!tlDrag) return;
-  e.preventDefault();
-  tlDrag.ghost.style.top = `${tlDrag.origTop + e.clientY - tlDrag.startY}px`;
-  const rows = tlDrag.wrap.querySelectorAll('.tl-row');
-  let found = null;
-  rows.forEach(r => {
-    r.classList.remove('tl-drop-target');
-    const b = r.getBoundingClientRect();
-    if (e.clientY >= b.top && e.clientY < b.bottom) found = r;
-  });
-  if (found) { found.classList.add('tl-drop-target'); tlDrag.targetHour = found.dataset.hour; }
-  else tlDrag.targetHour = null;
-}
-
-function onTlUp() {
-  if (!tlDrag) return;
-  document.removeEventListener('pointermove', onTlMove);
-  const { chip, ghost, entryId, targetHour, wrap } = tlDrag;
-  tlDrag = null;
-  ghost.remove();
-  chip.classList.remove('tl-dragging');
-  wrap.querySelectorAll('.tl-drop-target').forEach(r => r.classList.remove('tl-drop-target'));
-  if (targetHour !== null) {
-    const h = targetHour === 'null' ? null : parseInt(targetHour, 10);
-    saveItemTime(entryId, h);
-    renderTimelineDashboard(currentDayEntries);
+  if (block.type === 'item') {
+    const e = block.entry;
+    chip.dataset.entryIds = String(e.id);
+    chip.dataset.checkKeys = `${meal}::${e.item_name}`;
+    chip.dataset.dragKind = 'item';
+    chip.dataset.meal = meal;
+    chip.innerHTML = `
+      <div class="tl-chip-grip"><i class="fas fa-grip-lines"></i></div>
+      <div class="tl-chip-dot" style="background:${color}"></div>
+      <div class="tl-chip-body">
+        <div class="tl-chip-name">${e.item_name}</div>
+        <div class="tl-chip-meta">
+          <span class="tl-chip-cat">${LABELS[meal]||meal}</span>
+          <span class="tl-chip-kcal">${Math.round(e.kcal||0)} kcal</span>
+        </div>
+      </div>`;
+  } else {
+    const { recipe, entries } = block;
+    const totalKcal = entries.reduce((s, e) => s + (e.kcal||0), 0);
+    const displayName = recipe.templateId
+      ? ((allRecipes.find(r => r.id === recipe.templateId)?.name ?? '') + ' · ' + recipe.name)
+      : recipe.name;
+    chip.dataset.entryIds = entries.map(e => e.id).join(',');
+    chip.dataset.checkKeys = entries.map(e => `${meal}::${e.item_name}`).join('|');
+    chip.dataset.dragKind = 'recipe';
+    chip.dataset.meal = meal;
+    chip.dataset.recipeName = recipe.name;
+    chip.innerHTML = `
+      <div class="tl-chip-grip"><i class="fas fa-grip-lines"></i></div>
+      <div class="tl-chip-dot" style="background:${color}"></div>
+      <div class="tl-chip-body">
+        <div class="tl-chip-name">${displayName}</div>
+        <div class="tl-chip-meta">
+          <span class="tl-chip-cat">${LABELS[meal]||meal}</span>
+          <span class="tl-chip-kcal">${Math.round(totalKcal)} kcal</span>
+        </div>
+      </div>`;
   }
+  return chip;
 }
 
 /* ── View switching ── */
@@ -3210,6 +3229,7 @@ initTweaks();
     if (state.dropLine) state.dropLine.remove();
     if (state.src && restore) state.src.classList.remove('dnd-source');
     document.querySelectorAll('.meal-card.dnd-hover').forEach(c => c.classList.remove('dnd-hover'));
+    document.querySelectorAll('.tl-row.tl-drop-target').forEach(r => r.classList.remove('tl-drop-target'));
     state = null;
     document.body.classList.remove('is-dragging');
     if (wasStarted) unlockBodyScroll();
@@ -3241,9 +3261,23 @@ initTweaks();
     scrollRafId = requestAnimationFrame(tickScroll);
   }
 
+  // ── Timeline drop-target evaluation ──
+  function updateTlDropTarget(x, y) {
+    const rows = document.querySelectorAll('.tl-row');
+    let found = null;
+    rows.forEach(r => {
+      r.classList.remove('tl-drop-target');
+      const b = r.getBoundingClientRect();
+      if (y >= b.top && y < b.bottom) found = r;
+    });
+    if (found) { found.classList.add('tl-drop-target'); state.dropTlRow = found; }
+    else state.dropTlRow = null;
+  }
+
   // ── Drop-target evaluation (shared by onMove + tickScroll) ──
   function updateDropTarget(x, y) {
     if (!state || !state.started) return;
+    if (timelineMode) { updateTlDropTarget(x, y); return; }
     const card = findMealCardAtPoint(x, y);
     if (card && card.dataset.meal === state.src.dataset.meal) {
       document.querySelectorAll('.meal-card.dnd-hover').forEach(c => c.classList.remove('dnd-hover'));
@@ -3310,7 +3344,7 @@ initTweaks();
     document.body.classList.add('is-dragging');
 
     scrollRafId = requestAnimationFrame(tickScroll);
-    showTreatPill();
+    if (!timelineMode) showTreatPill();
 
     moveGhost(clientX, clientY);
   }
@@ -3340,6 +3374,7 @@ initTweaks();
       dropCard: null,
       dropLine: null,
       dropInsertBefore: undefined,
+      dropTlRow: null,
     };
 
     document.addEventListener('pointermove', onMove, { passive: false });
@@ -3395,6 +3430,20 @@ initTweaks();
 
     if (!wasStarted) {
       cancelDrag(true);
+      return;
+    }
+
+    if (timelineMode && state && state.dropTlRow) {
+      const hour = state.dropTlRow.dataset.hour === 'null' ? null : parseInt(state.dropTlRow.dataset.hour, 10);
+      const ids = src.dataset.entryIds.split(',').map(s => s.trim()).filter(Boolean);
+      ghost.style.transition = 'opacity .15s ease';
+      ghost.style.opacity = '0';
+      const swallow = e => { e.stopPropagation(); e.preventDefault(); };
+      document.addEventListener('click', swallow, { capture: true, once: true });
+      setTimeout(() => document.removeEventListener('click', swallow, { capture: true }), 80);
+      cancelDrag(false);
+      ids.forEach(id => saveItemTime(id, hour));
+      renderTimelineDashboard(currentDayEntries);
       return;
     }
 
