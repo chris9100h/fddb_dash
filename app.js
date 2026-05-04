@@ -33,6 +33,7 @@ let coachTargets = { training: {kcal:0,p:0,c:0,f:0}, rest: {kcal:0,p:0,c:0,f:0} 
 let currentDayType = 'training';
 let mergeServings = false;
 let waterData = { drunk: null, goal: null };
+let currentAdherence = null;
 let mocUsedThisWeek = null; // null = unknown, false = not used, string = date it was used
 
 function getWeekBounds(dateStr) {
@@ -841,6 +842,7 @@ function renderTargetBlock() {
   const overallAdh = validAdh.length > 0
     ? Math.round(validAdh.reduce((s, m) => s + adherenceScore(Math.round((parseFloat(m.val) / m.goal) * 100)), 0) / validAdh.length)
     : null;
+  currentAdherence = overallAdh;
 
   // Hero ring
   const ringFg = document.getElementById('heroRingFg');
@@ -951,7 +953,11 @@ function updateChecked() {
   const block = document.getElementById('checkedBlock');
   block.classList.toggle('has-data', ch.length > 0);
   const fillPct = totals.kcal > 0 ? Math.min(ck.kcal / totals.kcal, 1) : 0;
-  block.style.setProperty('--eaten-deg', (fillPct * 360) + 'deg');
+  const rect = document.getElementById('eatenBorderRect');
+  const goalMet = currentAdherence !== null && currentAdherence >= settings.adherenceGoal;
+  rect.style.stroke = goalMet ? 'var(--gold)' : adherenceColor(currentAdherence ?? 0);
+  rect.style.strokeDashoffset = 1 - fillPct;
+  rect.style.opacity = fillPct > 0 ? 1 : 0;
 }
 
 function renderDashboard(entries) {
