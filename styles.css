@@ -2078,9 +2078,8 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   flex-shrink: 0;
 }
 
-/* Insulin window rows (4 h after injection) */
+/* Insulin window rows (4 h after injection) – visibility follows normal rules */
 .tl-row.tl-insulin-range {
-  display: flex;
   background: rgba(245,158,11,.05);
   border-left: 2px solid rgba(245,158,11,.3);
 }
