@@ -2085,10 +2085,8 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   background: rgba(245,158,11,.08);
   border-radius: 0 8px 8px 0;
   align-self: stretch;
-}
-.tl-chip-insulin.tl-chip-insulin-placed .tl-chip-insulin-icon,
-.tl-chip-insulin.tl-chip-insulin-placed .tl-chip-name {
-  color: #f59e0b;
+  justify-content: space-between;
+  padding: 6px 12px 6px 14px;
 }
 
 /* Insulin window rows (4 h after injection) – visibility follows normal rules */
