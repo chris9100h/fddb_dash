@@ -442,25 +442,23 @@ function toggleMergeServings() {
 function toggleTimeline() {
   timelineMode = !timelineMode;
   document.getElementById('timelineBtn').classList.toggle('active', timelineMode);
-  if (timelineMode) {
-    loadItemTimes(currentDate);
-    document.getElementById('checkedBlock').style.display = 'none';
-  } else {
-    document.getElementById('checkedBlock').style.display = mergeServings ? 'none' : '';
-  }
+  document.getElementById('checkedBlock').style.display = (timelineMode || mergeServings) ? 'none' : '';
   renderDashboard(currentDayEntries);
 }
 
-function loadItemTimes(date) {
-  try { itemTimeMap = JSON.parse(localStorage.getItem(`fddb.timeline.${date}`) || '{}'); }
-  catch { itemTimeMap = {}; }
-}
-
+const tlTimePending = {};
 function saveItemTime(entryId, hour) {
   const k = String(entryId);
   if (hour === null) delete itemTimeMap[k];
   else itemTimeMap[k] = hour;
-  localStorage.setItem(`fddb.timeline.${currentDate}`, JSON.stringify(itemTimeMap));
+  clearTimeout(tlTimePending[k]);
+  tlTimePending[k] = setTimeout(async () => {
+    if (hour === null) {
+      await db.from('fddb_item_times').delete().eq('entry_id', entryId);
+    } else {
+      await db.from('fddb_item_times').upsert({ entry_id: parseInt(entryId), date: currentDate, hour }, { onConflict: 'entry_id' });
+    }
+  }, 400);
 }
 
 const TL_COLORS = {
@@ -678,7 +676,7 @@ async function loadDay() {
   checkables = [];
 
   const { monday, sunday } = getWeekBounds(dateVal);
-  const [macroRes, statusRes, targetsRes, dayTypeRes, waterLogsRes, waterSettingsRes, mocWeekRes] = await Promise.all([
+  const [macroRes, statusRes, targetsRes, dayTypeRes, waterLogsRes, waterSettingsRes, mocWeekRes, timesRes] = await Promise.all([
     db.from('fddb_daily_macros').select('*').eq('date', dateVal).order('meal'),
     db.from('fddb_checklist_status').select('item_key, checked').eq('date', dateVal),
     db.from('fddb_coach_targets').select('*').lte('valid_from', dateVal).order('valid_from', { ascending: false }),
@@ -686,6 +684,7 @@ async function loadDay() {
     dbWater.from('water_logs').select('amount').eq('date', dateVal),
     dbWater.from('water_settings').select('goal').eq('id', 1).maybeSingle(),
     db.from('fddb_daily_macros').select('date').eq('meal', MEAL_OF_CHOICE).gte('date', monday).lte('date', sunday).limit(1),
+    db.from('fddb_item_times').select('entry_id,hour').eq('date', dateVal),
   ]);
 
   if (macroRes.error) {
@@ -695,6 +694,7 @@ async function loadDay() {
 
   currentDayEntries = macroRes.data || [];
   currentCheckedMap = Object.fromEntries((statusRes.data || []).map(r => [r.item_key, r.checked]));
+  itemTimeMap = Object.fromEntries((timesRes.data || []).map(r => [r.entry_id, r.hour]));
   currentDate = dateVal;
 
   const rows = targetsRes.data || [];
