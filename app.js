@@ -600,11 +600,27 @@ function renderTimelineDashboard(entries) {
   for (let m = 180; m <= 1320; m += 30) wrap.appendChild(buildTlRow(m, bySlot[m] || []));
 
   // Mark the 4 hours after insulin (inclusive of the insulin slot) with golden highlight
+  // and append a macro summary footer after the last gold row.
   if (insulinSlot != null) {
     const endSlot = Math.min(insulinSlot + 4 * 60, 1320);
     for (let m = insulinSlot; m <= endSlot; m += 30) {
       const row = wrap.querySelector(`[data-hour="${m}"]`);
       if (row) row.classList.add('tl-insulin-range');
+    }
+    const wm = allBlocks.find(b => b.type === 'insulin')?.windowMacros;
+    const lastRow = wrap.querySelector(`[data-hour="${endSlot}"]`);
+    if (lastRow && wm) {
+      const summary = document.createElement('div');
+      summary.className = 'tl-insulin-summary';
+      summary.innerHTML =
+        `<span class="tl-insulin-summary-label">4h window</span>` +
+        `<span class="tl-insulin-summary-vals">` +
+          `<span>${Math.round(wm.kcal)}<small>kcal</small></span>` +
+          `<span>${Math.round(wm.p)}<small>P</small></span>` +
+          `<span>${Math.round(wm.c)}<small>C</small></span>` +
+          `<span>${Math.round(wm.f)}<small>F</small></span>` +
+        `</span>`;
+      lastRow.after(summary);
     }
   }
 
@@ -644,7 +660,6 @@ function makeTlChip(block) {
     chip.dataset.checkKeys = 'insulin::novorapid';
     chip.dataset.dragKind = 'item';
     chip.dataset.meal = 'insulin';
-    const wm = block.windowMacros;
     chip.innerHTML = `
       <div class="tl-chip-grip"><i class="fas fa-grip-lines"></i></div>
       <i class="fas fa-syringe tl-chip-insulin-icon"></i>
@@ -652,14 +667,12 @@ function makeTlChip(block) {
         <div class="tl-chip-name-row">
           <span class="tl-chip-name">Insulin – Novorapid</span>
         </div>
-        ${wm ? `<div class="macro-pills tl-chip-pills">${pillsHTML(wm)}</div>` : ''}
       </div>`;
     return chip;
   }
 
   chip.className = 'tl-chip';
   const meal = block.meal;
-  const color = TL_COLORS[meal] || 'var(--muted)';
 
   if (block.type === 'item') {
     const e = block.entry;
@@ -670,7 +683,6 @@ function makeTlChip(block) {
     chip.dataset.meal = meal;
     chip.innerHTML = `
       <div class="tl-chip-grip"><i class="fas fa-grip-lines"></i></div>
-      <div class="tl-chip-dot" style="background:${color}"></div>
       <div class="tl-chip-body">
         <div class="tl-chip-name-row">
           <span class="tl-chip-name">${e.item_name}</span>
@@ -692,7 +704,6 @@ function makeTlChip(block) {
     chip.dataset.recipeName = recipe.name;
     chip.innerHTML = `
       <div class="tl-chip-grip"><i class="fas fa-grip-lines"></i></div>
-      <div class="tl-chip-dot" style="background:${color}"></div>
       <div class="tl-chip-body">
         <div class="tl-chip-name-row">
           <span class="tl-chip-name">${displayName}${portionLabel}</span>
