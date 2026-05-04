@@ -570,13 +570,36 @@ function renderTimelineDashboard(entries) {
     (bySlot[key] = bySlot[key] || []).push(block);
   });
 
+  // Compute insulin window macro sum before rendering so the chip can display it
+  const insulinSlot = settings.showInsulinChip ? (itemTimeMap['insulin::novorapid'] ?? null) : null;
+  if (insulinSlot != null) {
+    const endSlot = Math.min(insulinSlot + 4 * 60, 1320);
+    const wm = { kcal: 0, p: 0, c: 0, f: 0 };
+    allBlocks.forEach(block => {
+      if (block.type === 'insulin') return;
+      const m = itemTimeMap[block.tlKey] ?? null;
+      if (m != null && m >= insulinSlot && m <= endSlot) {
+        if (block.type === 'item') {
+          const e = block.entry;
+          wm.kcal += e.kcal||0; wm.p += parseFloat(e.protein)||0;
+          wm.c += parseFloat(e.carbs)||0; wm.f += parseFloat(e.fat)||0;
+        } else {
+          const pm = macroSum(block.entries);
+          wm.kcal += pm.kcal/block.servings; wm.p += pm.p/block.servings;
+          wm.c += pm.c/block.servings; wm.f += pm.f/block.servings;
+        }
+      }
+    });
+    const insulinBlock = allBlocks.find(b => b.type === 'insulin');
+    if (insulinBlock) insulinBlock.windowMacros = wm;
+  }
+
   const wrap = document.createElement('div');
   wrap.className = 'timeline-view';
   wrap.appendChild(buildTlRow('null', bySlot['null'] || []));
   for (let m = 180; m <= 1320; m += 30) wrap.appendChild(buildTlRow(m, bySlot[m] || []));
 
   // Mark the 4 hours after insulin (inclusive of the insulin slot) with golden highlight
-  const insulinSlot = settings.showInsulinChip ? (itemTimeMap['insulin::novorapid'] ?? null) : null;
   if (insulinSlot != null) {
     const endSlot = Math.min(insulinSlot + 4 * 60, 1320);
     for (let m = insulinSlot; m <= endSlot; m += 30) {
@@ -621,6 +644,7 @@ function makeTlChip(block) {
     chip.dataset.checkKeys = 'insulin::novorapid';
     chip.dataset.dragKind = 'item';
     chip.dataset.meal = 'insulin';
+    const wm = block.windowMacros;
     chip.innerHTML = `
       <div class="tl-chip-grip"><i class="fas fa-grip-lines"></i></div>
       <i class="fas fa-syringe tl-chip-insulin-icon"></i>
@@ -628,6 +652,7 @@ function makeTlChip(block) {
         <div class="tl-chip-name-row">
           <span class="tl-chip-name">Insulin – Novorapid</span>
         </div>
+        ${wm ? `<div class="macro-pills tl-chip-pills">${pillsHTML(wm)}</div>` : ''}
       </div>`;
     return chip;
   }
