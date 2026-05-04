@@ -30,8 +30,6 @@
   --red:            #f87171;
   --green:          #4ade80;
   --cyan:           #22d3ee;
-  --gold:           #F5C418;
-  --gold-glow:      0 0 20px rgba(245,196,24,.45);
 
   --radius:         18px;
   --radius-sm:      12px;
@@ -1262,16 +1260,6 @@ body.is-dragging .meal-card-empty { display: block; }
   animation: syncRingProgress 30s linear forwards;
 }
 
-/* Gold ring outline for adherence goal */
-.ring-fg-gold {
-  fill: none; stroke: var(--gold); stroke-width: 15; stroke-linecap: round;
-  stroke-dasharray: 326.73; stroke-dashoffset: 326.73;
-  opacity: 0; transition: opacity .3s, stroke-dashoffset .7s cubic-bezier(.22,.68,0,1.2);
-}
-.hero-ring-wrap.ring-gold .ring-fg-gold,
-.hero-ring-wrap.ring-perfect .ring-fg-gold { opacity: 1; }
-.hero-ring-wrap.ring-gold .hero-ring-val,
-.hero-ring-wrap.ring-perfect .hero-ring-val { -webkit-text-stroke: 0.6px var(--gold); }
 
 .sync-overlay {
   display: none; position: fixed; inset: 0;
