@@ -659,7 +659,6 @@ function makeTlChip(block) {
 
   chip.className = 'tl-chip';
   const meal = block.meal;
-  const color = TL_COLORS[meal] || 'var(--muted)';
 
   if (block.type === 'item') {
     const e = block.entry;
@@ -670,7 +669,6 @@ function makeTlChip(block) {
     chip.dataset.meal = meal;
     chip.innerHTML = `
       <div class="tl-chip-grip"><i class="fas fa-grip-lines"></i></div>
-      <div class="tl-chip-dot" style="background:${color}"></div>
       <div class="tl-chip-body">
         <div class="tl-chip-name-row">
           <span class="tl-chip-name">${e.item_name}</span>
@@ -692,7 +690,6 @@ function makeTlChip(block) {
     chip.dataset.recipeName = recipe.name;
     chip.innerHTML = `
       <div class="tl-chip-grip"><i class="fas fa-grip-lines"></i></div>
-      <div class="tl-chip-dot" style="background:${color}"></div>
       <div class="tl-chip-body">
         <div class="tl-chip-name-row">
           <span class="tl-chip-name">${displayName}${portionLabel}</span>
