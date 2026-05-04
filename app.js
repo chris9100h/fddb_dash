@@ -655,7 +655,8 @@ function makeTlChip(block) {
   const chip = document.createElement('div');
 
   if (block.type === 'insulin') {
-    chip.className = 'tl-chip tl-chip-insulin';
+    const placed = itemTimeMap['insulin::novorapid'] != null;
+    chip.className = 'tl-chip tl-chip-insulin' + (placed ? ' tl-chip-insulin-placed' : '');
     chip.dataset.entryIds = '';
     chip.dataset.checkKeys = 'insulin::novorapid';
     chip.dataset.dragKind = 'item';
