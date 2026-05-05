@@ -2116,7 +2116,13 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   color: var(--muted);
   font-size: .68rem;
   flex-shrink: 0;
+  cursor: pointer;
+  padding: 4px 2px;
+  margin: -4px -2px;
+  border-radius: 5px;
+  transition: background .12s, color .12s;
 }
+.tl-chip-grip:active { background: rgba(255,255,255,.08); color: var(--text-dim); }
 
 .tl-chip-dot {
   width: 8px;
