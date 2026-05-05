@@ -2493,12 +2493,12 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   opacity: .35;
   text-transform: uppercase;
   letter-spacing: .05em;
-  text-align: right;
+  text-align: center;
 }
 .tl-day-summary-grid span:not(.tl-ds-lbl):not(.tl-ds-hdr) {
   font-size: .8rem;
   font-weight: 700;
-  text-align: right;
+  text-align: center;
 }
 .tl-ds-kcal { color: var(--orange); }
 .tl-ds-p    { color: var(--blue); }
@@ -2512,5 +2512,6 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   border-top: 1px solid rgba(255,107,0,.3);
   margin-top: 8px;
   padding-top: 7px;
+  text-align: center;
 }
 
