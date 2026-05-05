@@ -3074,6 +3074,10 @@ async function takeFullScreenshot() {
   // glows (box-shadow) that render as odd orange blobs in capture.
   clone.querySelectorAll('.header-actions, .date-picker-btn').forEach(el => el.remove());
 
+  // In timeline mode the hero card is hidden via .tl-mode CSS, but that class
+  // was stripped from the clone root — remove the card explicitly.
+  if (timelineMode) clone.querySelector('#heroCard')?.remove();
+
   // Fix the adherence ring for html2canvas capture.
   // html2canvas has well-known issues rendering SVG <circle> strokes
   // with stroke-dasharray/dashoffset — the stroke ends up offset from
