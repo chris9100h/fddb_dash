@@ -125,6 +125,7 @@ const SETTINGS_DEFAULTS = {
   showInsulinChip:   false,  // show synthetic Insulin – Novorapid chip in timeline
   showTrainingChip:  false,  // show draggable Training block in timeline
   trainingDuration:  60,     // training window length in minutes (global)
+  showNowLine:       true,   // show current-time indicator line in timeline
 };
 let settings = { ...SETTINGS_DEFAULTS };
 
@@ -153,6 +154,7 @@ const SETTING_DB_KEYS = {
   showInsulinChip:     'show_insulin_chip',
   showTrainingChip:    'show_training_chip',
   trainingDuration:    'training_duration',
+  showNowLine:         'show_now_line',
 };
 
 async function writeSettingToDb(key, value) {
@@ -360,6 +362,17 @@ function initSettingsUI() {
     });
   }
 
+  const showNowLineEl = document.getElementById('setShowNowLine');
+  if (showNowLineEl) {
+    showNowLineEl.checked = !!settings.showNowLine;
+    showNowLineEl.addEventListener('change', () => {
+      settings.showNowLine = showNowLineEl.checked;
+      cacheSettings();
+      writeSettingToDb('showNowLine', settings.showNowLine);
+      if (timelineMode) { updateNowLine(); }
+    });
+  }
+
   // Background refresh from server — overrides cache if newer values exist.
   loadSettingsFromDb();
 }
@@ -486,10 +499,32 @@ function toggleMergeServings() {
 }
 
 /* ── Timeline toggle ── */
+let _nowLineTimer = null;
+
+function updateNowLine() {
+  const wrap = document.querySelector('.timeline-view');
+  wrap?.querySelector('.tl-now-line')?.remove();
+  if (!wrap || !timelineMode || !settings.showNowLine) return;
+
+  const now = new Date();
+  const cur = now.getHours() * 60 + now.getMinutes();
+  if (cur < 180 || cur > 1320) return;
+
+  const slot = Math.floor(cur / 30) * 30;
+  const anchor = wrap.querySelector(`[data-hour="${slot}"]`);
+  if (!anchor) return;
+
+  const line = document.createElement('div');
+  line.className = 'tl-now-line';
+  line.innerHTML = `<span class="tl-now-label">▶ ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}</span>`;
+  anchor.after(line);
+}
+
 function toggleTimeline() {
   timelineMode = !timelineMode;
   document.getElementById('timelineBtn').classList.toggle('active', timelineMode);
   document.getElementById('checkedBlock').style.display = (timelineMode || mergeServings) ? 'none' : '';
+  if (!timelineMode) { clearInterval(_nowLineTimer); _nowLineTimer = null; }
   renderDashboard(currentDayEntries);
 }
 
@@ -751,6 +786,11 @@ function renderTimelineDashboard(entries) {
   content.appendChild(wrap);
 
   renderTargetBlock(); updateChecked();
+
+  // Now-line: draw immediately, then refresh every minute
+  updateNowLine();
+  clearInterval(_nowLineTimer);
+  _nowLineTimer = settings.showNowLine ? setInterval(updateNowLine, 60_000) : null;
 }
 
 function buildTlRow(minutes, blocks) {
