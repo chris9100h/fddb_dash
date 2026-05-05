@@ -38,6 +38,12 @@ let waterData = { drunk: null, goal: null };
 let currentAdherence = null;
 let mocUsedThisWeek = null; // null = unknown, false = not used, string = date it was used
 
+// Sentinel minute-values for the training Pre/Post Workout rows.
+// Stored in fddb_item_times like any other assignment; outside the normal
+// 180–1320 range so they never collide with real time slots.
+const PRE_WORKOUT_SLOT  = 1440;
+const POST_WORKOUT_SLOT = 1470;
+
 function getWeekBounds(dateStr) {
   const d = new Date(dateStr);
   const dow = d.getDay();
@@ -602,16 +608,14 @@ function renderTimelineDashboard(entries) {
     (bySlot[key] = bySlot[key] || []).push(block);
   });
 
-  // Compute training window macro sum
+  // Compute training macro sum: items assigned to Pre or Post Workout rows
   const trainingSlot = settings.showTrainingChip ? (itemTimeMap['training::session'] ?? null) : null;
   if (trainingSlot != null) {
-    const slots = Math.floor(settings.trainingDuration / 30);
-    const endSlot = Math.min(trainingSlot + slots * 30, 1320);
     const wm = { kcal: 0, p: 0, c: 0, f: 0 };
     allBlocks.forEach(block => {
       if (block.type === 'training' || block.type === 'insulin') return;
       const m = itemTimeMap[block.tlKey] ?? null;
-      if (m != null && m >= trainingSlot && m <= endSlot) {
+      if (m === PRE_WORKOUT_SLOT || m === POST_WORKOUT_SLOT) {
         if (block.type === 'item') {
           const e = block.entry;
           wm.kcal += e.kcal||0; wm.p += parseFloat(e.protein)||0;
@@ -655,6 +659,10 @@ function renderTimelineDashboard(entries) {
   wrap.className = 'timeline-view';
   wrap.appendChild(buildTlRow('null', bySlot['null'] || []));
   for (let m = 180; m <= 1320; m += 30) wrap.appendChild(buildTlRow(m, bySlot[m] || []));
+  // Pre/Post Workout rows live outside the normal time range; built here so
+  // they exist in the DOM before the training block moves them in.
+  wrap.appendChild(buildTlRow(PRE_WORKOUT_SLOT,  bySlot[PRE_WORKOUT_SLOT]  || []));
+  wrap.appendChild(buildTlRow(POST_WORKOUT_SLOT, bySlot[POST_WORKOUT_SLOT] || []));
 
   // Build insulin block: a visual box wrapping the header chip row, all window
   // rows with items, and the macro summary footer.
@@ -704,10 +712,10 @@ function renderTimelineDashboard(entries) {
     block.appendChild(summary);
   }
 
-  // Build training block
+  // Build training block: chip-bar header + Pre/Post Workout rows + footer.
+  // No regular time-slot rows are used, so no conflict with the insulin window.
   if (trainingSlot != null) {
     const slots = Math.floor(settings.trainingDuration / 30);
-    const endSlot = Math.min(trainingSlot + slots * 30, 1320);
     const wm = allBlocks.find(b => b.type === 'training')?.windowMacros;
 
     const trainingRow = wrap.querySelector(`[data-hour="${trainingSlot}"]`);
@@ -715,22 +723,20 @@ function renderTimelineDashboard(entries) {
     block.className = 'tl-training-block';
     wrap.insertBefore(block, trainingRow);
 
+    // Extract chip into standalone chip-bar (leaves trainingRow in the wrap
+    // as a normal empty/occupied slot visible to other blocks e.g. insulin).
     const chipBar = document.createElement('div');
     chipBar.className = 'tl-training-chip-bar';
     const trainingChip = trainingRow.querySelector('.tl-chip-training');
     if (trainingChip) chipBar.appendChild(trainingChip);
+    if (!trainingRow.querySelector('.tl-chip')) trainingRow.classList.remove('tl-has-items');
     block.appendChild(chipBar);
 
-    for (let m = trainingSlot; m <= endSlot; m += 30) {
-      const row = wrap.querySelector(`[data-hour="${m}"]`);
-      if (!row) continue;
-      row.classList.add('tl-training-range');
-      if (m === trainingSlot) {
-        row.classList.add('tl-training-window-start');
-        if (!row.querySelector('.tl-chip')) row.classList.remove('tl-has-items');
-      }
-      block.appendChild(row);
-    }
+    // Move Pre/Post Workout rows into block (always visible, always droppable)
+    const preRow  = wrap.querySelector(`[data-hour="${PRE_WORKOUT_SLOT}"]`);
+    const postRow = wrap.querySelector(`[data-hour="${POST_WORKOUT_SLOT}"]`);
+    if (preRow)  block.appendChild(preRow);
+    if (postRow) block.appendChild(postRow);
 
     const durLabel = slots * 30 + ' min';
     const summary = document.createElement('div');
@@ -759,7 +765,10 @@ function buildTlRow(minutes, blocks) {
 
   const lbl = document.createElement('div');
   lbl.className = 'tl-time-label';
-  lbl.textContent = isNull ? '–' : formatSlot(minutes);
+  lbl.textContent = isNull ? '–'
+    : minutes === PRE_WORKOUT_SLOT  ? 'Pre'
+    : minutes === POST_WORKOUT_SLOT ? 'Post'
+    : formatSlot(minutes);
 
   const slot = document.createElement('div');
   slot.className = 'tl-slot';
@@ -800,6 +809,7 @@ function makeTlChip(block) {
 
   if (block.type === 'training') {
     const placed = itemTimeMap['training::session'] != null;
+    const timeStr = placed ? formatSlot(itemTimeMap['training::session']) : '';
     chip.className = 'tl-chip tl-chip-training' + (placed ? ' tl-chip-training-placed' : '');
     chip.dataset.entryIds = '';
     chip.dataset.checkKeys = 'training::session';
@@ -807,7 +817,7 @@ function makeTlChip(block) {
     chip.dataset.meal = 'training';
     chip.innerHTML = placed
       ? `<span class="tl-training-summary-label">
-           <i class="fas fa-dumbbell" style="margin-right:5px"></i>Training
+           <i class="fas fa-dumbbell" style="margin-right:5px"></i>Training &middot; ${timeStr}
          </span>
          <div class="tl-chip-grip"><i class="fas fa-grip-lines"></i></div>`
       : `<div class="tl-chip-grip"><i class="fas fa-grip-lines"></i></div>
