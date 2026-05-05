@@ -766,8 +766,8 @@ function buildTlRow(minutes, blocks) {
   const lbl = document.createElement('div');
   lbl.className = 'tl-time-label';
   lbl.textContent = isNull ? '–'
-    : minutes === PRE_WORKOUT_SLOT  ? 'Pre'
-    : minutes === POST_WORKOUT_SLOT ? 'Post'
+    : minutes === PRE_WORKOUT_SLOT  ? 'Pre Workout'
+    : minutes === POST_WORKOUT_SLOT ? 'Post Workout'
     : formatSlot(minutes);
 
   const slot = document.createElement('div');
