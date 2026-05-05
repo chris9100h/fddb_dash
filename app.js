@@ -735,7 +735,7 @@ function renderTimelineDashboard(entries) {
     const summary = document.createElement('div');
     summary.className = 'tl-insulin-summary';
     summary.innerHTML =
-      `<span class="tl-insulin-summary-label">4h window · active until ${formatSlot(Math.min(insulinSlot + 4 * 60, 1320))}</span>` +
+      `<span class="tl-insulin-summary-label">Active until ${formatSlot(Math.min(insulinSlot + 4 * 60, 1320))}</span>` +
       `<span class="tl-insulin-summary-vals">` +
         `<span>${Math.round(wm?.kcal ?? 0)}<small>kcal</small></span>` +
         `<span>${Math.round(wm?.p ?? 0)}<small>P</small></span>` +
