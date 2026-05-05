@@ -2158,6 +2158,91 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   letter-spacing: .06em;
 }
 
+/* ── Training block ─────────────────────────────────── */
+.tl-chip-training {
+  border-color: rgba(185,28,28,.35);
+  background: linear-gradient(135deg, rgba(185,28,28,.1) 0%, var(--card) 60%);
+}
+
+.tl-chip-training-icon {
+  color: #b91c1c;
+  font-size: .9rem;
+  flex-shrink: 0;
+}
+
+.tl-chip-training.tl-chip-training-placed {
+  border: none;
+  border-left: 2px solid rgba(185,28,28,.5);
+  background: rgba(185,28,28,.08);
+  border-radius: 0 8px 8px 0;
+  align-self: stretch;
+  justify-content: space-between;
+  padding: 6px 12px 6px 14px;
+}
+
+.tl-training-block {
+  margin: 4px 0;
+}
+
+.tl-training-block .tl-row {
+  background: rgba(185,28,28,.04);
+  border-left: none;
+}
+
+.tl-training-block .tl-row.tl-training-window-start {
+  display: flex;
+}
+
+.tl-training-block .tl-row .tl-time-label {
+  color: #b91c1c;
+}
+
+.tl-training-chip-bar {
+  display: flex;
+}
+.tl-training-chip-bar .tl-chip {
+  flex: 1;
+}
+
+.tl-training-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 12px 6px 14px;
+  border-left: 2px solid rgba(185,28,28,.5);
+  background: rgba(185,28,28,.08);
+  border-radius: 0 8px 8px 0;
+  margin: 2px 0 8px;
+}
+.tl-training-summary-label {
+  font-size: .6rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: #b91c1c;
+  flex-shrink: 0;
+}
+.tl-training-summary-vals {
+  display: flex;
+  gap: 10px;
+}
+.tl-training-summary-vals span {
+  font-size: .8rem;
+  font-weight: 700;
+  color: #b91c1c;
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+.tl-training-summary-vals small {
+  font-size: .55rem;
+  font-weight: 600;
+  opacity: .7;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
 .tl-chip-pills .mp {
   padding: 3px 5px;
   min-width: 36px;
