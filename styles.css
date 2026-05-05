@@ -2193,6 +2193,8 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
 .tl-training-block .tl-row .tl-time-label {
   color: #b91c1c;
   font-style: italic;
+  width: 88px;
+  text-align: left;
 }
 
 .tl-training-chip-bar {
