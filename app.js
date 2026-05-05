@@ -697,7 +697,14 @@ function renderTimelineDashboard(entries) {
 
   const wrap = document.createElement('div');
   wrap.className = 'timeline-view';
-  wrap.appendChild(buildTlRow('null', bySlot['null'] || []));
+  const nullBlocks = bySlot['null'] || [];
+  if (nullBlocks.length) {
+    const hdr = document.createElement('div');
+    hdr.className = 'tl-unassigned-header';
+    hdr.innerHTML = '<i class="fas fa-clock"></i> No time slot';
+    wrap.appendChild(hdr);
+  }
+  wrap.appendChild(buildTlRow('null', nullBlocks));
   for (let m = 180; m <= 1320; m += 30) wrap.appendChild(buildTlRow(m, bySlot[m] || []));
   // Intra Workout row only needed when the training chip is placed — otherwise
   // it has no parent block and floats loose in the DOM, appearing during drag.
