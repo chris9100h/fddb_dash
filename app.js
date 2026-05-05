@@ -800,6 +800,43 @@ function renderTimelineDashboard(entries) {
 
   renderTargetBlock(); updateChecked();
 
+  // Weekly Treat block — shown below time slots, not time-slotted
+  const treatEntries = entries.filter(e => e.meal === WEEKLY_TREAT_MEAL);
+  if (treatEntries.length) {
+    const treatKcal = treatEntries.reduce((s, e) => s + (e.kcal||0), 0);
+    const cap = settings.weeklyTreatMaxKcal || 0;
+    const isOverBudget = cap > 0 && treatKcal > cap;
+    const badge = isOverBudget
+      ? `<span class="tl-special-badge tl-treat-badge tl-treat-over">+${Math.round(treatKcal - cap)} kcal counted</span>`
+      : `<span class="tl-special-badge tl-treat-badge">excluded</span>`;
+    const blk = document.createElement('div');
+    blk.className = 'tl-special-block tl-treat-block';
+    blk.innerHTML = `<div class="tl-special-header"><span>⭐</span><span class="tl-treat-name">Weekly Treat</span>${badge}</div>`;
+    treatEntries.forEach(e => {
+      const m = {kcal:e.kcal||0, p:parseFloat(e.protein)||0, c:parseFloat(e.carbs)||0, f:parseFloat(e.fat)||0};
+      const chip = document.createElement('div');
+      chip.className = 'tl-chip tl-special-chip';
+      chip.innerHTML = `<div class="tl-chip-body"><div class="tl-chip-name-row"><span class="tl-chip-name">${e.item_name}</span></div><div class="tl-chip-macros">${tlMacrosHTML(m)}</div></div>`;
+      blk.appendChild(chip);
+    });
+    content.appendChild(blk);
+  }
+
+  // Meal of Choice block
+  const mocEntries = entries.filter(e => e.meal === MEAL_OF_CHOICE);
+  if (mocEntries.length) {
+    const mocEntry = mocEntries[0];
+    const m = {kcal:mocEntry.kcal||0, p:parseFloat(mocEntry.protein)||0, c:parseFloat(mocEntry.carbs)||0, f:parseFloat(mocEntry.fat)||0};
+    const blk = document.createElement('div');
+    blk.className = 'tl-special-block tl-moc-block';
+    blk.innerHTML = `<div class="tl-special-header"><span>🍽️</span><span class="tl-moc-name">Meal of Choice</span><span class="tl-special-badge tl-moc-badge">${settings.mocKcal} kcal</span></div>`;
+    const chip = document.createElement('div');
+    chip.className = 'tl-chip tl-special-chip';
+    chip.innerHTML = `<div class="tl-chip-body"><div class="tl-chip-name-row"><span class="tl-chip-name">${mocEntry.item_name || 'Meal of Choice'}</span></div><div class="tl-chip-macros">${tlMacrosHTML(m)}</div></div>`;
+    blk.appendChild(chip);
+    content.appendChild(blk);
+  }
+
   // Day-summary footer
   const tgt = coachTargets[currentDayType] || {};
   const adh = tgt.kcal
