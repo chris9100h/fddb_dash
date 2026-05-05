@@ -1711,6 +1711,17 @@ body.dnd-active {
   color: var(--muted); font-size: .85rem;
   padding: 12px 16px; display: flex; align-items: center; gap: 10px;
 }
+.tl-ctx-meal-grid {
+  display: flex; flex-wrap: wrap; gap: 8px;
+}
+.tl-ctx-meal-btn {
+  background: var(--card); border: 1px solid var(--border);
+  color: var(--text-dim); border-radius: 10px;
+  padding: 9px 14px; font-size: .82rem; font-weight: 600;
+  cursor: pointer; transition: background .15s, color .15s;
+  flex: 1; min-width: calc(50% - 4px);
+}
+.tl-ctx-meal-btn:active { background: var(--surface-2); color: var(--accent); }
 .tl-ctx-cancel {
   background: var(--card); border: 1px solid var(--border);
   color: var(--text-dim); border-radius: 12px;
