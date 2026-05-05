@@ -2288,3 +2288,83 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   font-size: .4rem;
 }
 
+/* ── Timeline mode overrides ──────────────────────────── */
+#viewMain.tl-mode .date-strip-wrap { display: none; }
+#viewMain.tl-mode #heroCard        { display: none; }
+
+/* Timeline page header */
+.tl-page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 8px 0 16px;
+}
+.tl-page-header-text .eyebrow {
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.tl-page-header-text .large-title {
+  margin: 0;
+}
+
+/* Inline macro text in chips */
+.tl-chip-macros {
+  display: flex;
+  gap: 8px;
+  margin-top: 2px;
+}
+.tl-chip-macros span {
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+.tl-chip-macros small {
+  font-size: .55rem;
+  font-weight: 600;
+  opacity: .65;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+/* Day-summary footer */
+.tl-day-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 0 24px;
+  border-top: 1px solid var(--border);
+  margin-top: 8px;
+}
+.tl-day-summary-adh {
+  font-size: .75rem;
+  font-weight: 800;
+  color: var(--accent);
+  letter-spacing: .04em;
+}
+.tl-day-summary-vals {
+  display: flex;
+  gap: 12px;
+}
+.tl-day-summary-vals span {
+  font-size: .8rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+.tl-day-summary-vals small {
+  font-size: .55rem;
+  font-weight: 600;
+  opacity: .65;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
