@@ -1900,7 +1900,7 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
 .timeline-view {
   display: flex;
   flex-direction: column;
-  padding: 4px 0 16px;
+  padding: 4px 0 0;
 }
 
 .tl-row {
@@ -2343,7 +2343,7 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   gap: 10px;
   padding: 10px 0 24px;
   border-top: 1px solid var(--border);
-  margin-top: 8px;
+  margin-top: 0;
 }
 .tl-day-summary-adh {
   font-size: .75rem;

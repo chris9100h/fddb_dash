@@ -3255,6 +3255,7 @@ async function takeFullScreenshot() {
       grid-column: auto !important;
       grid-row: auto !important;
       width: auto !important;
+      gap: 0 !important;
     }
     /* Kill the radial glow pseudo-element on the hero card */
     #__screenshotStage .hero-card::before {
