@@ -125,6 +125,7 @@ const SETTINGS_DEFAULTS = {
   showInsulinChip:   false,  // show synthetic Insulin – Novorapid chip in timeline
   showTrainingChip:  false,  // show draggable Training block in timeline
   trainingDuration:  60,     // training window length in minutes (global)
+  showDateStripInTimeline: false,
   showNowLine:       true,   // show current-time indicator line in timeline
 };
 let settings = { ...SETTINGS_DEFAULTS };
@@ -154,6 +155,7 @@ const SETTING_DB_KEYS = {
   showInsulinChip:     'show_insulin_chip',
   showTrainingChip:    'show_training_chip',
   trainingDuration:    'training_duration',
+  showDateStripInTimeline: 'show_date_strip_in_timeline',
   showNowLine:         'show_now_line',
 };
 
@@ -373,6 +375,17 @@ function initSettingsUI() {
     });
   }
 
+  const showDateStripEl = document.getElementById('setShowDateStripInTimeline');
+  if (showDateStripEl) {
+    showDateStripEl.checked = !!settings.showDateStripInTimeline;
+    showDateStripEl.addEventListener('change', () => {
+      settings.showDateStripInTimeline = showDateStripEl.checked;
+      cacheSettings();
+      writeSettingToDb('showDateStripInTimeline', settings.showDateStripInTimeline);
+      document.getElementById('viewMain').classList.toggle('tl-show-date-strip', settings.showDateStripInTimeline);
+    });
+  }
+
   // Background refresh from server — overrides cache if newer values exist.
   loadSettingsFromDb();
 }
@@ -525,6 +538,7 @@ function setTodayView(mode) {
   document.getElementById('tsnDashboard').classList.toggle('active', !timelineMode);
   document.getElementById('tsnTimeline').classList.toggle('active', timelineMode);
   document.getElementById('viewMain').classList.toggle('tl-mode', timelineMode);
+  document.getElementById('viewMain').classList.toggle('tl-show-date-strip', timelineMode && !!settings.showDateStripInTimeline);
   document.getElementById('checkedBlock').style.display = (timelineMode || mergeServings) ? 'none' : '';
   if (!timelineMode) { clearInterval(_nowLineTimer); _nowLineTimer = null; }
   const eyebrow = document.querySelector('#viewMain .large-header .eyebrow');

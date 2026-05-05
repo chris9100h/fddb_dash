@@ -2330,6 +2330,7 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
 
 /* ── Timeline mode overrides ──────────────────────────── */
 #viewMain.tl-mode .date-strip-wrap { display: none; }
+#viewMain.tl-mode.tl-show-date-strip .date-strip-wrap { display: flex; }
 #viewMain.tl-mode #heroCard        { display: none; }
 
 /* Timeline page header */
