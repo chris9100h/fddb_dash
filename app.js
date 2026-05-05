@@ -520,13 +520,13 @@ function updateNowLine() {
   anchor.after(line);
 }
 
-function toggleTimeline() {
-  timelineMode = !timelineMode;
-  document.getElementById('timelineBtn').classList.toggle('active', timelineMode);
+function setTodayView(mode) {
+  timelineMode = (mode === 'timeline');
+  document.getElementById('tsnDashboard').classList.toggle('active', !timelineMode);
+  document.getElementById('tsnTimeline').classList.toggle('active', timelineMode);
   document.getElementById('viewMain').classList.toggle('tl-mode', timelineMode);
   document.getElementById('checkedBlock').style.display = (timelineMode || mergeServings) ? 'none' : '';
   if (!timelineMode) { clearInterval(_nowLineTimer); _nowLineTimer = null; }
-  // Swap header text between checklist and timeline modes
   const eyebrow = document.querySelector('#viewMain .large-header .eyebrow');
   const title   = document.querySelector('#viewMain .large-header .large-title');
   if (eyebrow) eyebrow.textContent = timelineMode ? 'Daily Schedule' : 'Daily Intake';
