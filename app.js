@@ -947,6 +947,7 @@ function makeTlChip(block) {
         <div class="tl-chip-macros">${tlMacrosHTML(portionM)}</div>
       </div>`;
   }
+  if (currentCheckedMap[block.tlKey]) chip.classList.add('tl-chip-done');
   return chip;
 }
 
