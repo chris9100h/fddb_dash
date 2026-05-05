@@ -818,8 +818,13 @@ function renderTimelineDashboard(entries) {
 
   // Day-summary footer
   const tgt = coachTargets[currentDayType] || {};
-  const adh = tgt.kcal
-    ? Math.round(Math.max(0, 100 - Math.abs(100 - (totals.kcal / tgt.kcal * 100))))
+  const adhParts = [
+    { val: totals.p, goal: tgt.p },
+    { val: totals.c, goal: tgt.c },
+    { val: totals.f, goal: tgt.f },
+  ].filter(m => m.goal > 0);
+  const adh = adhParts.length
+    ? Math.round(adhParts.reduce((s, m) => s + adherenceScore(Math.round(m.val / m.goal * 100)), 0) / adhParts.length)
     : null;
   const dayFoot = document.createElement('div');
   dayFoot.className = 'tl-day-summary';
@@ -3515,6 +3520,7 @@ initTweaks();
 (function(){
   const LONG_PRESS_MS = 260;
   const MOVE_TOLERANCE = 8;
+  const CTX_MENU_MS = 600;
   let state = null;
   let lockedScrollY = 0;
   let lockedScrollMax = 0;
@@ -3591,6 +3597,7 @@ initTweaks();
     document.removeEventListener('pointerup', onUp);
     document.removeEventListener('pointercancel', onUp);
     clearTimeout(state.pressTimer);
+    clearTimeout(state.contextTimer);
     if (state.ghost) state.ghost.remove();
     if (state.dropLine) state.dropLine.remove();
     if (state.src && restore) state.src.classList.remove('dnd-source');
@@ -3775,10 +3782,21 @@ initTweaks();
     document.addEventListener('pointercancel', onUp);
 
     if (state.pointerType !== 'mouse') {
-      state.pressTimer = setTimeout(() => {
-        if (!state) return;
-        beginDrag(state.src, state.startX, state.startY);
-      }, LONG_PRESS_MS);
+      if (timelineMode && src.classList.contains('tl-chip')) {
+        // Timeline chips: movement starts drag immediately (no ghost flash),
+        // holding 600ms without movement shows context menu instead.
+        const chipEl = src;
+        state.contextTimer = setTimeout(() => {
+          if (!state) return;
+          cancelDrag(true);
+          showTlContextMenu(chipEl);
+        }, CTX_MENU_MS);
+      } else {
+        state.pressTimer = setTimeout(() => {
+          if (!state) return;
+          beginDrag(state.src, state.startX, state.startY);
+        }, LONG_PRESS_MS);
+      }
     }
   }
 
@@ -3791,11 +3809,21 @@ initTweaks();
     if (!state.started) {
       if (state.pointerType === 'mouse') {
         if (dist > MOVE_TOLERANCE) beginDrag(state.src, state.startX, state.startY);
+      } else if (timelineMode && state.src.classList.contains('tl-chip')) {
+        // Timeline chips: movement triggers drag (context timer cancelled),
+        // large jitter aborts entirely.
+        if (dist > 28) {
+          clearTimeout(state.contextTimer);
+          cancelDrag(true);
+          return;
+        }
+        if (dist > MOVE_TOLERANCE) {
+          clearTimeout(state.contextTimer);
+          state.contextTimer = null;
+          beginDrag(state.src, state.startX, state.startY);
+        }
       } else {
-        // touch: with touch-action:none iOS can't hijack to scroll,
-        // so finger jitter during the press window shouldn't kill
-        // the drag. Only abort on a *large* movement (clear intent
-        // to move before lift) — tolerate normal finger wiggle.
+        // Regular touch drag: long-press timer based.
         if (dist > 28) {
           clearTimeout(state.pressTimer);
           cancelDrag(true);
@@ -3820,6 +3848,7 @@ initTweaks();
     const src = state.src;
     const ghost = state.ghost;
     clearTimeout(state.pressTimer);
+    clearTimeout(state.contextTimer);
 
     if (!wasStarted) {
       cancelDrag(true);
@@ -4005,6 +4034,46 @@ initTweaks();
     document.body.appendChild(t);
     requestAnimationFrame(() => t.classList.add('show'));
     setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 2200);
+  }
+
+  function showTlContextMenu(chipEl) {
+    const isTreat = chipEl.dataset.meal === WEEKLY_TREAT_MEAL;
+    const name = chipEl.querySelector('.tl-chip-name')?.textContent || 'Item';
+
+    const overlay = document.createElement('div');
+    overlay.className = 'tl-ctx-overlay';
+
+    const sheet = document.createElement('div');
+    sheet.className = 'tl-ctx-sheet';
+    sheet.innerHTML = `
+      <div class="tl-ctx-title">${name}</div>
+      ${!isTreat ? `<button class="tl-ctx-action" id="tlCtxTreat"><i class="fas fa-star"></i> Mark as Weekly Treat</button>` : `<div class="tl-ctx-info"><i class="fas fa-star"></i> Already marked as Weekly Treat</div>`}
+      <button class="tl-ctx-cancel">Cancel</button>`;
+
+    overlay.appendChild(sheet);
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => overlay.classList.add('show'));
+
+    const close = () => {
+      overlay.classList.remove('show');
+      setTimeout(() => overlay.remove(), 220);
+    };
+
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+    sheet.querySelector('.tl-ctx-cancel').addEventListener('click', close);
+
+    const treatBtn = sheet.querySelector('#tlCtxTreat');
+    if (treatBtn) {
+      treatBtn.addEventListener('click', async () => {
+        close();
+        const ids = chipEl.dataset.entryIds.split(',').map(s => s.trim()).filter(Boolean);
+        const fromMeal = chipEl.dataset.meal;
+        const kind = chipEl.dataset.dragKind;
+        const oldKeys = chipEl.dataset.checkKeys.split('|').filter(Boolean);
+        const recipeName = chipEl.dataset.recipeName || '';
+        await moveEntries({ ids, fromMeal, toMeal: WEEKLY_TREAT_MEAL, kind, oldKeys, recipeName });
+      });
+    }
   }
 
   document.addEventListener('pointerdown', onDown);
