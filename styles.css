@@ -584,21 +584,20 @@ body.is-dragging .meal-card-empty { display: block; }
 .merge-active .items-list { padding: 5px 6px; gap: 3px; }
 .merge-active .food-item { padding: 6px 10px; }
 .merge-active .recipe-row-header { padding: 6px 10px; }
-.merge-active .mp { padding: 3px 6px; min-width: 36px; }
-.merge-active .mp-val { font-size: .8rem; }
-.merge-active .mp-lbl { font-size: .4rem; }
-
-/* Macro pills */
-.macro-pills { display: flex; gap: 3px; flex-wrap: wrap; }
-.mp {
-  border-radius: 7px; padding: 4px 7px; text-align: center; min-width: 44px;
+/* Macro inline text (dashboard food items) */
+.macro-pills { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 2px; }
+.macro-pills span {
+  font-size: .78rem; font-weight: 700;
+  display: flex; align-items: baseline; gap: 2px;
 }
-.mp-val { font-family: 'Bebas Neue', sans-serif; font-size: .92rem; line-height: 1; }
-.mp-lbl { font-size: .46rem; text-transform: uppercase; letter-spacing: .06em; margin-top: 2px; opacity: .7; font-weight: 600; }
-.mp-kcal { background: rgba(255,107,0,.12); color: var(--orange); }
-.mp-p    { background: rgba(94,166,255,.12); color: var(--blue); }
-.mp-c    { background: rgba(250,204,21,.12); color: var(--yellow); }
-.mp-f    { background: rgba(248,113,113,.12); color: var(--red); }
+.macro-pills span:nth-child(1) { color: var(--orange); }
+.macro-pills span:nth-child(2) { color: var(--blue); }
+.macro-pills span:nth-child(3) { color: var(--yellow); }
+.macro-pills span:nth-child(4) { color: var(--red); }
+.macro-pills small {
+  font-size: .55rem; font-weight: 600;
+  opacity: .65; text-transform: uppercase; letter-spacing: .05em;
+}
 
 /* Food item */
 .food-item {
@@ -1742,7 +1741,7 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   font-size: .8rem;
   flex-shrink: 0;
 }
-.weekly-treat-pills .mp { opacity: .55; }
+.weekly-treat-pills span { opacity: .55; }
 
 /* ════════════════════════════════════════════════════════
    MEAL OF CHOICE CARD
@@ -2273,19 +2272,6 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   padding-right: 5px;
   pointer-events: none;
   user-select: none;
-}
-
-.tl-chip-pills .mp {
-  padding: 3px 5px;
-  min-width: 36px;
-}
-
-.tl-chip-pills .mp-val {
-  font-size: .78rem;
-}
-
-.tl-chip-pills .mp-lbl {
-  font-size: .4rem;
 }
 
 /* ── Timeline mode overrides ──────────────────────────── */
