@@ -3520,6 +3520,7 @@ initTweaks();
 (function(){
   const LONG_PRESS_MS = 260;
   const MOVE_TOLERANCE = 8;
+  const CTX_MENU_MS = 600;
   let state = null;
   let lockedScrollY = 0;
   let lockedScrollMax = 0;
@@ -3596,6 +3597,7 @@ initTweaks();
     document.removeEventListener('pointerup', onUp);
     document.removeEventListener('pointercancel', onUp);
     clearTimeout(state.pressTimer);
+    clearTimeout(state.contextTimer);
     if (state.ghost) state.ghost.remove();
     if (state.dropLine) state.dropLine.remove();
     if (state.src && restore) state.src.classList.remove('dnd-source');
@@ -3784,6 +3786,15 @@ initTweaks();
         if (!state) return;
         beginDrag(state.src, state.startX, state.startY);
       }, LONG_PRESS_MS);
+
+      if (timelineMode && src.classList.contains('tl-chip')) {
+        const chipEl = src;
+        state.contextTimer = setTimeout(() => {
+          if (!state) return;
+          cancelDrag(true);
+          showTlContextMenu(chipEl);
+        }, CTX_MENU_MS);
+      }
     }
   }
 
@@ -3794,6 +3805,10 @@ initTweaks();
     const dist = Math.hypot(dx, dy);
 
     if (!state.started) {
+      if (dist > 12 && state.contextTimer) {
+        clearTimeout(state.contextTimer);
+        state.contextTimer = null;
+      }
       if (state.pointerType === 'mouse') {
         if (dist > MOVE_TOLERANCE) beginDrag(state.src, state.startX, state.startY);
       } else {
@@ -4010,6 +4025,46 @@ initTweaks();
     document.body.appendChild(t);
     requestAnimationFrame(() => t.classList.add('show'));
     setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 2200);
+  }
+
+  function showTlContextMenu(chipEl) {
+    const isTreat = chipEl.dataset.meal === WEEKLY_TREAT_MEAL;
+    const name = chipEl.querySelector('.tl-chip-name')?.textContent || 'Item';
+
+    const overlay = document.createElement('div');
+    overlay.className = 'tl-ctx-overlay';
+
+    const sheet = document.createElement('div');
+    sheet.className = 'tl-ctx-sheet';
+    sheet.innerHTML = `
+      <div class="tl-ctx-title">${name}</div>
+      ${!isTreat ? `<button class="tl-ctx-action" id="tlCtxTreat"><i class="fas fa-star"></i> Mark as Weekly Treat</button>` : `<div class="tl-ctx-info"><i class="fas fa-star"></i> Already marked as Weekly Treat</div>`}
+      <button class="tl-ctx-cancel">Cancel</button>`;
+
+    overlay.appendChild(sheet);
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => overlay.classList.add('show'));
+
+    const close = () => {
+      overlay.classList.remove('show');
+      setTimeout(() => overlay.remove(), 220);
+    };
+
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+    sheet.querySelector('.tl-ctx-cancel').addEventListener('click', close);
+
+    const treatBtn = sheet.querySelector('#tlCtxTreat');
+    if (treatBtn) {
+      treatBtn.addEventListener('click', async () => {
+        close();
+        const ids = chipEl.dataset.entryIds.split(',').map(s => s.trim()).filter(Boolean);
+        const fromMeal = chipEl.dataset.meal;
+        const kind = chipEl.dataset.dragKind;
+        const oldKeys = chipEl.dataset.checkKeys.split('|').filter(Boolean);
+        const recipeName = chipEl.dataset.recipeName || '';
+        await moveEntries({ ids, fromMeal, toMeal: WEEKLY_TREAT_MEAL, kind, oldKeys, recipeName });
+      });
+    }
   }
 
   document.addEventListener('pointerdown', onDown);

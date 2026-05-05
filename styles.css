@@ -1674,6 +1674,51 @@ body.dnd-active {
 .dnd-toast strong { color: var(--accent, #ff6b00); font-weight: 700; }
 .dnd-toast i { color: var(--accent, #ff6b00); font-size: .85rem; }
 
+/* ── Timeline chip context menu ─────────────────── */
+.tl-ctx-overlay {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,0);
+  display: flex; align-items: flex-end;
+  transition: background .2s;
+}
+.tl-ctx-overlay.show { background: rgba(0,0,0,.55); }
+.tl-ctx-sheet {
+  width: 100%; max-width: 480px; margin: 0 auto;
+  background: var(--surface-2, #1c1c22);
+  border-radius: 20px 20px 0 0;
+  padding: 12px 16px calc(var(--safe-bot) + 16px);
+  display: flex; flex-direction: column; gap: 8px;
+  transform: translateY(100%);
+  transition: transform .22s cubic-bezier(.22,.68,0,1.1);
+}
+.tl-ctx-overlay.show .tl-ctx-sheet { transform: translateY(0); }
+.tl-ctx-title {
+  font-size: .8rem; font-weight: 700; color: var(--muted);
+  text-align: center; padding: 4px 0 8px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+.tl-ctx-action {
+  background: rgba(255,107,0,.1); border: 1px solid rgba(255,107,0,.25);
+  color: var(--accent); border-radius: 12px;
+  padding: 13px 16px; font-size: .9rem; font-weight: 600;
+  cursor: pointer; display: flex; align-items: center; gap: 10px;
+  transition: background .15s;
+}
+.tl-ctx-action:active { background: rgba(255,107,0,.2); }
+.tl-ctx-action i { font-size: .85rem; }
+.tl-ctx-info {
+  color: var(--muted); font-size: .85rem;
+  padding: 12px 16px; display: flex; align-items: center; gap: 10px;
+}
+.tl-ctx-cancel {
+  background: var(--card); border: 1px solid var(--border);
+  color: var(--text-dim); border-radius: 12px;
+  padding: 13px 16px; font-size: .9rem; font-weight: 600;
+  cursor: pointer; transition: background .15s;
+}
+.tl-ctx-cancel:active { background: var(--surface-2); }
+
 /* ════════════════════════════════════════════════════════
    WEEKLY TREAT CARD
    ════════════════════════════════════════════════════════ */
