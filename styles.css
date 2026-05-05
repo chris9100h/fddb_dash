@@ -256,11 +256,10 @@ body {
 .dmi-icon.freeze       { background: rgba(125,211,252,.18); color: #7dd3fc; }
 .dmi-icon.sick         { background: rgba(251,146,60,.18); color: #fb923c; }
 .dmi-icon.reset        { background: rgba(248,113,113,.15); color: #f87171; }
-.dmi-icon.dmi-training { background: rgba(255,107,0,.2); color: var(--accent); }
-.dmi-icon.dmi-rest     { background: rgba(125,211,252,.12); color: #7dd3fc; }
 .dmi-label { flex: 1; }
 .dmi-hint { font-size: .72rem; color: var(--text-dim); }
 .date-menu-divider { height: 1px; background: var(--border); margin: 4px 0; }
+.date-menu-seg { display: flex; justify-content: center; padding: 6px 8px 4px; }
 
 .date-picker-btn {
   width: 44px; height: 44px; border-radius: 14px;
