@@ -2013,7 +2013,8 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
 
 .tl-chip:active { cursor: grabbing; }
 
-.tl-chip.tl-chip-done { opacity: .4; }
+.tl-chip.tl-chip-done .tl-chip-grip,
+.tl-chip.tl-chip-done .tl-chip-body { opacity: .4; }
 .tl-chip-cb {
   width: 18px; height: 18px; border-radius: 5px;
   border: 1.5px solid var(--border-strong);
