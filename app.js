@@ -734,7 +734,7 @@ function renderTimelineDashboard(entries) {
     const intraRow = wrap.querySelector(`[data-hour="${INTRA_WORKOUT_SLOT}"]`);
     if (intraRow) block.appendChild(intraRow);
 
-    const durLabel = slots * 30 + ' min';
+    const durLabel = slots * 30 + ' min · ends ' + formatSlot(trainingSlot + slots * 30);
     const summary = document.createElement('div');
     summary.className = 'tl-training-summary';
     summary.innerHTML =
