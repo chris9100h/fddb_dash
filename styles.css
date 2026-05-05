@@ -2465,9 +2465,8 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
 /* Day-summary footer */
 .tl-day-summary {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  flex-direction: column;
+  gap: 0;
   padding: 10px 14px;
   margin-top: 8px;
   margin-bottom: 16px;
@@ -2475,32 +2474,43 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   background: rgba(255,107,0,.07);
   border-radius: 0 0 8px 8px;
 }
+.tl-day-summary-grid {
+  display: grid;
+  grid-template-columns: 4.5rem repeat(4, 1fr);
+  gap: 3px 6px;
+  align-items: baseline;
+}
+.tl-ds-lbl {
+  font-size: .68rem;
+  font-weight: 700;
+  color: rgba(255,255,255,.4);
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+.tl-ds-hdr {
+  font-size: .6rem;
+  font-weight: 600;
+  opacity: .35;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  text-align: right;
+}
+.tl-day-summary-grid span:not(.tl-ds-lbl):not(.tl-ds-hdr) {
+  font-size: .8rem;
+  font-weight: 700;
+  text-align: right;
+}
+.tl-ds-kcal { color: var(--orange); }
+.tl-ds-p    { color: var(--blue); }
+.tl-ds-c    { color: var(--yellow); }
+.tl-ds-f    { color: var(--red); }
 .tl-day-summary-adh {
   font-size: .75rem;
   font-weight: 800;
   color: var(--accent);
   letter-spacing: .04em;
-}
-.tl-day-summary-vals {
-  display: flex;
-  gap: 12px;
-}
-.tl-day-summary-vals span {
-  font-size: .8rem;
-  font-weight: 700;
-  display: flex;
-  align-items: baseline;
-  gap: 2px;
-}
-.tl-day-summary-vals span:nth-child(1) { color: var(--orange); }
-.tl-day-summary-vals span:nth-child(2) { color: var(--blue); }
-.tl-day-summary-vals span:nth-child(3) { color: var(--yellow); }
-.tl-day-summary-vals span:nth-child(4) { color: var(--red); }
-.tl-day-summary-vals small {
-  font-size: .55rem;
-  font-weight: 600;
-  opacity: .65;
-  text-transform: uppercase;
-  letter-spacing: .05em;
+  border-top: 1px solid rgba(255,107,0,.3);
+  margin-top: 8px;
+  padding-top: 7px;
 }
 

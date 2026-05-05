@@ -826,16 +826,32 @@ function renderTimelineDashboard(entries) {
   const adh = adhParts.length
     ? Math.round(adhParts.reduce((s, m) => s + adherenceScore(Math.round(m.val / m.goal * 100)), 0) / adhParts.length)
     : null;
+  const hasTargets = (tgt.kcal > 0) || (tgt.p > 0) || (tgt.c > 0) || (tgt.f > 0);
+  const fmtT = v => (v > 0) ? Math.round(v) : '–';
+
   const dayFoot = document.createElement('div');
   dayFoot.className = 'tl-day-summary';
   dayFoot.innerHTML =
-    (adh != null ? `<span class="tl-day-summary-adh">Adherence ${adh}%</span>` : '') +
-    `<span class="tl-day-summary-vals">` +
-      `<span>${Math.round(totals.kcal)}<small>kcal</small></span>` +
-      `<span>${Math.round(totals.p)}<small>P</small></span>` +
-      `<span>${Math.round(totals.c)}<small>C</small></span>` +
-      `<span>${Math.round(totals.f)}<small>F</small></span>` +
-    `</span>`;
+    `<div class="tl-day-summary-grid">` +
+      `<span class="tl-ds-lbl"></span>` +
+      `<span class="tl-ds-hdr tl-ds-kcal">kcal</span>` +
+      `<span class="tl-ds-hdr tl-ds-p">P</span>` +
+      `<span class="tl-ds-hdr tl-ds-c">C</span>` +
+      `<span class="tl-ds-hdr tl-ds-f">F</span>` +
+      (hasTargets
+        ? `<span class="tl-ds-lbl">Target</span>` +
+          `<span class="tl-ds-kcal">${fmtT(tgt.kcal)}</span>` +
+          `<span class="tl-ds-p">${fmtT(tgt.p)}</span>` +
+          `<span class="tl-ds-c">${fmtT(tgt.c)}</span>` +
+          `<span class="tl-ds-f">${fmtT(tgt.f)}</span>`
+        : '') +
+      `<span class="tl-ds-lbl">Planned</span>` +
+      `<span class="tl-ds-kcal">${Math.round(totals.kcal)}</span>` +
+      `<span class="tl-ds-p">${Math.round(totals.p)}</span>` +
+      `<span class="tl-ds-c">${Math.round(totals.c)}</span>` +
+      `<span class="tl-ds-f">${Math.round(totals.f)}</span>` +
+    `</div>` +
+    (adh != null ? `<div class="tl-day-summary-adh">Adherence ${adh}%</div>` : '');
   content.appendChild(dayFoot);
 
   // Now-line: draw immediately, then refresh every minute
