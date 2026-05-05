@@ -695,20 +695,15 @@ function renderTimelineDashboard(entries) {
     if (insulinBlock) insulinBlock.windowMacros = wm;
   }
 
-  // Only render up to the last occupied slot (trim empty trailing rows).
-  // Extend to insulin window end so those rows exist when the insulin block is built.
-  const _occupiedSlots = Object.keys(bySlot).map(Number).filter(k => !isNaN(k) && k >= 180 && k !== INTRA_WORKOUT_SLOT);
-  const _lastOccupied  = _occupiedSlots.length ? Math.max(..._occupiedSlots) : 180;
-  const _insulinEnd    = insulinSlot != null ? Math.min(insulinSlot + 4 * 60, 1320) : 0;
-  const renderEnd      = Math.max(_lastOccupied, _insulinEnd);
-
   const wrap = document.createElement('div');
   wrap.className = 'timeline-view';
   wrap.appendChild(buildTlRow('null', bySlot['null'] || []));
-  for (let m = 180; m <= renderEnd; m += 30) wrap.appendChild(buildTlRow(m, bySlot[m] || []));
-  // Intra Workout row lives outside the normal time range; built here so
-  // it exists in the DOM before the training block moves it in.
-  wrap.appendChild(buildTlRow(INTRA_WORKOUT_SLOT, bySlot[INTRA_WORKOUT_SLOT] || []));
+  for (let m = 180; m <= 1320; m += 30) wrap.appendChild(buildTlRow(m, bySlot[m] || []));
+  // Intra Workout row only needed when the training chip is placed — otherwise
+  // it has no parent block and floats loose in the DOM, appearing during drag.
+  if (trainingSlot != null) {
+    wrap.appendChild(buildTlRow(INTRA_WORKOUT_SLOT, bySlot[INTRA_WORKOUT_SLOT] || []));
+  }
 
   // Build insulin block: a visual box wrapping the header chip row, all window
   // rows with items, and the macro summary footer.
