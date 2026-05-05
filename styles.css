@@ -2015,6 +2015,7 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
 
 .tl-chip.tl-chip-done { opacity: .4; }
 .tl-chip.tl-chip-done .tl-chip-name { text-decoration: line-through; text-decoration-color: rgba(255,255,255,.35); }
+.tl-chip-check-icon { color: var(--orange); font-size: .75rem; flex-shrink: 0; }
 
 .tl-chip.tl-dragging { opacity: .25; }
 
