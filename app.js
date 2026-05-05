@@ -526,6 +526,11 @@ function toggleTimeline() {
   document.getElementById('viewMain').classList.toggle('tl-mode', timelineMode);
   document.getElementById('checkedBlock').style.display = (timelineMode || mergeServings) ? 'none' : '';
   if (!timelineMode) { clearInterval(_nowLineTimer); _nowLineTimer = null; }
+  // Swap header text between checklist and timeline modes
+  const eyebrow = document.querySelector('#viewMain .large-header .eyebrow');
+  const title   = document.querySelector('#viewMain .large-header .large-title');
+  if (eyebrow) eyebrow.textContent = timelineMode ? 'Daily Schedule' : 'Daily Intake';
+  if (title)   title.textContent   = timelineMode ? 'Timeline'        : 'Checklist';
   renderDashboard(currentDayEntries);
 }
 
@@ -593,24 +598,6 @@ function renderTimelineDashboard(entries) {
   content.innerHTML = '';
   checkables = [];
   applySickModeOverlay();
-
-  // Timeline-specific header (title + day-type toggle)
-  const tlHeader = document.createElement('div');
-  tlHeader.className = 'tl-page-header';
-  tlHeader.innerHTML = `
-    <div class="tl-page-header-text">
-      <div class="eyebrow">Daily Schedule</div>
-      <h1 class="large-title">Timeline</h1>
-    </div>
-    <div class="day-type-seg">
-      <button class="dts-btn" id="tlDttTraining" onclick="setDayType('training')" title="Training">
-        <i class="fas fa-dumbbell"></i>
-      </button>
-      <button class="dts-btn" id="tlDttRest" onclick="setDayType('rest')" title="Rest">
-        <i class="fas fa-bed"></i>
-      </button>
-    </div>`;
-  content.appendChild(tlHeader);
 
   totals = {kcal:0,p:0,c:0,f:0};
   entries.forEach(e => {
@@ -814,7 +801,7 @@ function renderTimelineDashboard(entries) {
   const dayFoot = document.createElement('div');
   dayFoot.className = 'tl-day-summary';
   dayFoot.innerHTML =
-    (adh != null ? `<span class="tl-day-summary-adh">${adh}%</span>` : '') +
+    (adh != null ? `<span class="tl-day-summary-adh">Adherence ${adh}%</span>` : '') +
     `<span class="tl-day-summary-vals">` +
       `<span>${Math.round(totals.kcal)}<small>kcal</small></span>` +
       `<span>${Math.round(totals.p)}<small>P</small></span>` +
@@ -1073,10 +1060,8 @@ function statPillsHTML(m) {
   return `<div class="stat-pill"><div class="stat-val c-kcal">${Math.round(m.kcal)}</div><div class="stat-lbl">Kcal</div></div><div class="stat-pill"><div class="stat-val c-p">${m.p.toFixed(1)}</div><div class="stat-lbl">Protein</div></div><div class="stat-pill"><div class="stat-val c-c">${m.c.toFixed(1)}</div><div class="stat-lbl">Carbs</div></div><div class="stat-pill"><div class="stat-val c-f">${m.f.toFixed(1)}</div><div class="stat-lbl">Fat</div></div>`;
 }
 function renderDayTypeToggle() {
-  ['dttTraining','tlDttTraining'].forEach(id =>
-    document.getElementById(id)?.classList.toggle('active', currentDayType === 'training'));
-  ['dttRest','tlDttRest'].forEach(id =>
-    document.getElementById(id)?.classList.toggle('active', currentDayType === 'rest'));
+  document.getElementById('dttTraining')?.classList.toggle('active', currentDayType === 'training');
+  document.getElementById('dttRest')?.classList.toggle('active', currentDayType === 'rest');
 }
 async function setDayType(type) {
   currentDayType = type;

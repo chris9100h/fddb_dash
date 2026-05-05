@@ -2319,11 +2319,14 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
 .tl-chip-macros span {
   font-size: .78rem;
   font-weight: 700;
-  color: var(--text-dim);
   display: flex;
   align-items: baseline;
   gap: 2px;
 }
+.tl-chip-macros span:nth-child(1) { color: var(--orange); }
+.tl-chip-macros span:nth-child(2) { color: var(--blue); }
+.tl-chip-macros span:nth-child(3) { color: var(--yellow); }
+.tl-chip-macros span:nth-child(4) { color: var(--red); }
 .tl-chip-macros small {
   font-size: .55rem;
   font-weight: 600;
@@ -2355,11 +2358,14 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
 .tl-day-summary-vals span {
   font-size: .8rem;
   font-weight: 700;
-  color: var(--text-dim);
   display: flex;
   align-items: baseline;
   gap: 2px;
 }
+.tl-day-summary-vals span:nth-child(1) { color: var(--orange); }
+.tl-day-summary-vals span:nth-child(2) { color: var(--blue); }
+.tl-day-summary-vals span:nth-child(3) { color: var(--yellow); }
+.tl-day-summary-vals span:nth-child(4) { color: var(--red); }
 .tl-day-summary-vals small {
   font-size: .55rem;
   font-weight: 600;
