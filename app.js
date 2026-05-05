@@ -493,7 +493,7 @@ function toggleMergeServings() {
   const btn = document.getElementById('mergeBtn');
   btn.classList.toggle('active', mergeServings);
   btn.title = mergeServings ? 'Split Servings' : 'Merge Servings';
-  document.getElementById('checkedBlock').style.display = mergeServings ? 'none' : '';
+  document.getElementById('checkedBlock').style.display = (mergeServings || timelineMode) ? 'none' : '';
   document.getElementById('content').classList.toggle('merge-active', mergeServings);
   renderDashboard(currentDayEntries);
 }
