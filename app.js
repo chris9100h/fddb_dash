@@ -38,11 +38,10 @@ let waterData = { drunk: null, goal: null };
 let currentAdherence = null;
 let mocUsedThisWeek = null; // null = unknown, false = not used, string = date it was used
 
-// Sentinel minute-values for the training Pre/Post Workout rows.
+// Sentinel minute-value for the training Intra Workout row.
 // Stored in fddb_item_times like any other assignment; outside the normal
-// 180–1320 range so they never collide with real time slots.
-const PRE_WORKOUT_SLOT  = 1440;
-const POST_WORKOUT_SLOT = 1470;
+// 180–1320 range so it never collides with real time slots.
+const INTRA_WORKOUT_SLOT = 1440;
 
 function getWeekBounds(dateStr) {
   const d = new Date(dateStr);
@@ -608,14 +607,14 @@ function renderTimelineDashboard(entries) {
     (bySlot[key] = bySlot[key] || []).push(block);
   });
 
-  // Compute training macro sum: items assigned to Pre or Post Workout rows
+  // Compute training macro sum: items assigned to Intra Workout row
   const trainingSlot = settings.showTrainingChip ? (itemTimeMap['training::session'] ?? null) : null;
   if (trainingSlot != null) {
     const wm = { kcal: 0, p: 0, c: 0, f: 0 };
     allBlocks.forEach(block => {
       if (block.type === 'training' || block.type === 'insulin') return;
       const m = itemTimeMap[block.tlKey] ?? null;
-      if (m === PRE_WORKOUT_SLOT || m === POST_WORKOUT_SLOT) {
+      if (m === INTRA_WORKOUT_SLOT) {
         if (block.type === 'item') {
           const e = block.entry;
           wm.kcal += e.kcal||0; wm.p += parseFloat(e.protein)||0;
@@ -659,10 +658,9 @@ function renderTimelineDashboard(entries) {
   wrap.className = 'timeline-view';
   wrap.appendChild(buildTlRow('null', bySlot['null'] || []));
   for (let m = 180; m <= 1320; m += 30) wrap.appendChild(buildTlRow(m, bySlot[m] || []));
-  // Pre/Post Workout rows live outside the normal time range; built here so
-  // they exist in the DOM before the training block moves them in.
-  wrap.appendChild(buildTlRow(PRE_WORKOUT_SLOT,  bySlot[PRE_WORKOUT_SLOT]  || []));
-  wrap.appendChild(buildTlRow(POST_WORKOUT_SLOT, bySlot[POST_WORKOUT_SLOT] || []));
+  // Intra Workout row lives outside the normal time range; built here so
+  // it exists in the DOM before the training block moves it in.
+  wrap.appendChild(buildTlRow(INTRA_WORKOUT_SLOT, bySlot[INTRA_WORKOUT_SLOT] || []));
 
   // Build insulin block: a visual box wrapping the header chip row, all window
   // rows with items, and the macro summary footer.
@@ -712,7 +710,7 @@ function renderTimelineDashboard(entries) {
     block.appendChild(summary);
   }
 
-  // Build training block: chip-bar header + Pre/Post Workout rows + footer.
+  // Build training block: chip-bar header + Intra Workout row + footer.
   // No regular time-slot rows are used, so no conflict with the insulin window.
   if (trainingSlot != null) {
     const slots = Math.floor(settings.trainingDuration / 30);
@@ -732,11 +730,9 @@ function renderTimelineDashboard(entries) {
     if (!trainingRow.querySelector('.tl-chip')) trainingRow.classList.remove('tl-has-items');
     block.appendChild(chipBar);
 
-    // Move Pre/Post Workout rows into block (always visible, always droppable)
-    const preRow  = wrap.querySelector(`[data-hour="${PRE_WORKOUT_SLOT}"]`);
-    const postRow = wrap.querySelector(`[data-hour="${POST_WORKOUT_SLOT}"]`);
-    if (preRow)  block.appendChild(preRow);
-    if (postRow) block.appendChild(postRow);
+    // Move Intra Workout row into block (always visible, always droppable)
+    const intraRow = wrap.querySelector(`[data-hour="${INTRA_WORKOUT_SLOT}"]`);
+    if (intraRow) block.appendChild(intraRow);
 
     const durLabel = slots * 30 + ' min';
     const summary = document.createElement('div');
@@ -766,8 +762,7 @@ function buildTlRow(minutes, blocks) {
   const lbl = document.createElement('div');
   lbl.className = 'tl-time-label';
   lbl.textContent = isNull ? '–'
-    : minutes === PRE_WORKOUT_SLOT  ? 'Pre Workout'
-    : minutes === POST_WORKOUT_SLOT ? 'Post Workout'
+    : minutes === INTRA_WORKOUT_SLOT ? 'Intra Workout'
     : formatSlot(minutes);
 
   const slot = document.createElement('div');
