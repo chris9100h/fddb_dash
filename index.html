@@ -391,27 +391,6 @@
           </div>
           <div class="settings-row">
             <div class="settings-row-text">
-              <div class="settings-row-label">Weekly treat max</div>
-              <div class="settings-row-sub">Excess kcal above this count against your day</div>
-            </div>
-            <div class="settings-row-control">
-              <select id="setTreatMaxKcal" class="settings-select">
-                <option value="0">No limit</option>
-                <option value="100">100 kcal</option>
-                <option value="200">200 kcal</option>
-                <option value="300">300 kcal</option>
-                <option value="400">400 kcal</option>
-                <option value="500">500 kcal</option>
-                <option value="600">600 kcal</option>
-                <option value="700">700 kcal</option>
-                <option value="800">800 kcal</option>
-                <option value="900">900 kcal</option>
-                <option value="1000">1000 kcal</option>
-              </select>
-            </div>
-          </div>
-          <div class="settings-row">
-            <div class="settings-row-text">
               <div class="settings-row-label">Meal of Choice budget</div>
               <div class="settings-row-sub">Kcal allocated for a weekly Meal of Choice</div>
             </div>
@@ -428,6 +407,27 @@
                 <option value="1600">1600 kcal</option>
                 <option value="1800">1800 kcal</option>
                 <option value="2000">2000 kcal</option>
+              </select>
+            </div>
+          </div>
+          <div class="settings-row">
+            <div class="settings-row-text">
+              <div class="settings-row-label">Weekly treat max</div>
+              <div class="settings-row-sub">Excess kcal above this count against your day</div>
+            </div>
+            <div class="settings-row-control">
+              <select id="setTreatMaxKcal" class="settings-select">
+                <option value="0">No limit</option>
+                <option value="100">100 kcal</option>
+                <option value="200">200 kcal</option>
+                <option value="300">300 kcal</option>
+                <option value="400">400 kcal</option>
+                <option value="500">500 kcal</option>
+                <option value="600">600 kcal</option>
+                <option value="700">700 kcal</option>
+                <option value="800">800 kcal</option>
+                <option value="900">900 kcal</option>
+                <option value="1000">1000 kcal</option>
               </select>
             </div>
           </div>
@@ -457,6 +457,30 @@
       <div class="settings-section">
         <div class="settings-section-title"><i class="fas fa-clock"></i> Timeline</div>
         <div class="list-group">
+          <div class="settings-row">
+            <div class="settings-row-text">
+              <div class="settings-row-label">Current time indicator</div>
+              <div class="settings-row-sub">Show an orange line at the current time in the timeline</div>
+            </div>
+            <div class="settings-row-control">
+              <label class="toggle-switch">
+                <input type="checkbox" id="setShowNowLine">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+          <div class="settings-row">
+            <div class="settings-row-text">
+              <div class="settings-row-label">Date strip in timeline</div>
+              <div class="settings-row-sub">Show the date navigation strip when in timeline view</div>
+            </div>
+            <div class="settings-row-control">
+              <label class="toggle-switch">
+                <input type="checkbox" id="setShowDateStripInTimeline">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
           <div class="settings-row">
             <div class="settings-row-text">
               <div class="settings-row-label">Insulin – Novorapid chip</div>
@@ -500,30 +524,6 @@
                 <option value="110">110 min</option>
                 <option value="120">120 min</option>
               </select>
-            </div>
-          </div>
-          <div class="settings-row">
-            <div class="settings-row-text">
-              <div class="settings-row-label">Current time indicator</div>
-              <div class="settings-row-sub">Show an orange line at the current time in the timeline</div>
-            </div>
-            <div class="settings-row-control">
-              <label class="toggle-switch">
-                <input type="checkbox" id="setShowNowLine">
-                <span class="toggle-slider"></span>
-              </label>
-            </div>
-          </div>
-          <div class="settings-row">
-            <div class="settings-row-text">
-              <div class="settings-row-label">Date strip in timeline</div>
-              <div class="settings-row-sub">Show the date navigation strip when in timeline view</div>
-            </div>
-            <div class="settings-row-control">
-              <label class="toggle-switch">
-                <input type="checkbox" id="setShowDateStripInTimeline">
-                <span class="toggle-slider"></span>
-              </label>
             </div>
           </div>
         </div>
@@ -583,7 +583,7 @@
         </div>
       </div>
 
-      <div class="version-footer">FDDB · Check · v3.09</div>
+      <div class="version-footer">FDDB · Check · v3.10</div>
     </div>
   </section>
 
