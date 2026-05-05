@@ -3782,20 +3782,18 @@ initTweaks();
     document.addEventListener('pointercancel', onUp);
 
     if (state.pointerType !== 'mouse') {
+      state.pressTimer = setTimeout(() => {
+        if (!state) return;
+        beginDrag(state.src, state.startX, state.startY);
+      }, LONG_PRESS_MS);
+
       if (timelineMode && src.classList.contains('tl-chip')) {
-        // Timeline chips: movement starts drag immediately (no ghost flash),
-        // holding 600ms without movement shows context menu instead.
         const chipEl = src;
         state.contextTimer = setTimeout(() => {
           if (!state) return;
           cancelDrag(true);
           showTlContextMenu(chipEl);
         }, CTX_MENU_MS);
-      } else {
-        state.pressTimer = setTimeout(() => {
-          if (!state) return;
-          beginDrag(state.src, state.startX, state.startY);
-        }, LONG_PRESS_MS);
       }
     }
   }
@@ -3809,21 +3807,11 @@ initTweaks();
     if (!state.started) {
       if (state.pointerType === 'mouse') {
         if (dist > MOVE_TOLERANCE) beginDrag(state.src, state.startX, state.startY);
-      } else if (timelineMode && state.src.classList.contains('tl-chip')) {
-        // Timeline chips: movement triggers drag (context timer cancelled),
-        // large jitter aborts entirely.
-        if (dist > 28) {
-          clearTimeout(state.contextTimer);
-          cancelDrag(true);
-          return;
-        }
-        if (dist > MOVE_TOLERANCE) {
+      } else {
+        if (dist > 12) {
           clearTimeout(state.contextTimer);
           state.contextTimer = null;
-          beginDrag(state.src, state.startX, state.startY);
         }
-      } else {
-        // Regular touch drag: long-press timer based.
         if (dist > 28) {
           clearTimeout(state.pressTimer);
           cancelDrag(true);
