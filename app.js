@@ -3694,6 +3694,7 @@ initTweaks();
   }
 
   function beginDrag(src, clientX, clientY) {
+    if (state) { clearTimeout(state.contextTimer); state.contextTimer = null; }
     // For timeline: pre-measure the expanded scrollHeight so lockBodyScroll
     // captures the full draggable range. Add/remove tl-drag-active synchronously
     // (forced reflow, no paint, no scroll API) so no pointercancel fires.
