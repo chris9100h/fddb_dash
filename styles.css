@@ -2246,20 +2246,31 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
 /* Current-time indicator */
 .tl-now-line {
   position: relative;
+  display: flex;
+  align-items: center;
+  height: 16px;
+  margin: 0;
+  z-index: 5;
+}
+.tl-now-line::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0;
+  top: 50%;
   height: 2px;
   background: var(--accent);
-  margin: 2px 0;
-  z-index: 5;
   border-radius: 1px;
+  transform: translateY(-50%);
 }
 .tl-now-label {
-  position: absolute;
-  left: 0;
-  top: -9px;
+  position: relative;
+  z-index: 1;
   font-size: .62rem;
   font-weight: 800;
   letter-spacing: .06em;
   color: var(--accent);
+  background: var(--bg);
+  padding-right: 5px;
   pointer-events: none;
   user-select: none;
 }
