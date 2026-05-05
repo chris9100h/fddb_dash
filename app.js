@@ -3098,7 +3098,7 @@ async function takeFullScreenshot() {
 
   // Remove header action buttons from the clone — they have accent
   // glows (box-shadow) that render as odd orange blobs in capture.
-  clone.querySelectorAll('.header-actions, .date-picker-btn').forEach(el => el.remove());
+  clone.querySelectorAll('.header-actions, .date-picker-btn, .today-sub-nav').forEach(el => el.remove());
 
   // In timeline mode the hero card is hidden via .tl-mode CSS, but that class
   // was stripped from the clone root — remove the card explicitly.
