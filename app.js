@@ -969,6 +969,11 @@ function makeTlChip(block) {
       <div class="tl-chip-cb"><i class="fas fa-check"></i></div>`;
   }
   if (currentCheckedMap[block.tlKey]) chip.classList.add('tl-chip-done');
+  chip.querySelector('.tl-chip-grip').addEventListener('pointerdown', ev => ev.stopPropagation());
+  chip.querySelector('.tl-chip-grip').addEventListener('click', ev => {
+    ev.stopPropagation();
+    if (typeof showTlContextMenu === 'function') showTlContextMenu(chip);
+  });
   chip.querySelector('.tl-chip-cb').addEventListener('pointerdown', ev => ev.stopPropagation());
   chip.querySelector('.tl-chip-cb').addEventListener('click', ev => {
     ev.stopPropagation();
@@ -3520,7 +3525,6 @@ initTweaks();
 (function(){
   const LONG_PRESS_MS = 260;
   const MOVE_TOLERANCE = 8;
-  const CTX_MENU_MS = 600;
   let state = null;
   let lockedScrollY = 0;
   let lockedScrollMax = 0;
@@ -3694,7 +3698,6 @@ initTweaks();
   }
 
   function beginDrag(src, clientX, clientY) {
-    if (state) { clearTimeout(state.contextTimer); state.contextTimer = null; }
     // For timeline: pre-measure the expanded scrollHeight so lockBodyScroll
     // captures the full draggable range. Add/remove tl-drag-active synchronously
     // (forced reflow, no paint, no scroll API) so no pointercancel fires.
@@ -3787,15 +3790,6 @@ initTweaks();
         if (!state) return;
         beginDrag(state.src, state.startX, state.startY);
       }, LONG_PRESS_MS);
-
-      if (timelineMode && src.classList.contains('tl-chip')) {
-        const chipEl = src;
-        state.contextTimer = setTimeout(() => {
-          if (!state) return;
-          cancelDrag(true);
-          showTlContextMenu(chipEl);
-        }, CTX_MENU_MS);
-      }
     }
   }
 
@@ -3809,10 +3803,6 @@ initTweaks();
       if (state.pointerType === 'mouse') {
         if (dist > MOVE_TOLERANCE) beginDrag(state.src, state.startX, state.startY);
       } else {
-        if (dist > 12) {
-          clearTimeout(state.contextTimer);
-          state.contextTimer = null;
-        }
         if (dist > 28) {
           clearTimeout(state.pressTimer);
           cancelDrag(true);
@@ -3837,7 +3827,6 @@ initTweaks();
     const src = state.src;
     const ghost = state.ghost;
     clearTimeout(state.pressTimer);
-    clearTimeout(state.contextTimer);
 
     if (!wasStarted) {
       cancelDrag(true);
@@ -4066,6 +4055,7 @@ initTweaks();
   }
 
   document.addEventListener('pointerdown', onDown);
+  window.showTlContextMenu = showTlContextMenu;
 })();
 
 /* ──────────────────────────────────────────────────────────
