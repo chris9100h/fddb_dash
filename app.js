@@ -625,7 +625,7 @@ function renderTimelineDashboard(entries) {
   }
 
   // Build recipe-grouped blocks per meal, then group by assigned slot (minutes)
-  const tlEntries = entries.filter(e => e.meal !== WEEKLY_TREAT_MEAL && e.meal !== MEAL_OF_CHOICE);
+  const tlEntries = entries; // treat + MoC included; styled distinctly in makeTlChip
   const grouped = {};
   tlEntries.forEach(e => (grouped[e.meal] = grouped[e.meal] || []).push(e));
 
@@ -897,6 +897,16 @@ function makeTlChip(block) {
 
   chip.className = 'tl-chip';
   const meal = block.meal;
+  const isTreat = meal === WEEKLY_TREAT_MEAL;
+  const isMoc   = meal === MEAL_OF_CHOICE;
+  if (isTreat) chip.className += ' tl-chip-treat';
+  else if (isMoc) chip.className += ' tl-chip-moc';
+
+  const mealTag = isTreat
+    ? `<span class="tl-chip-meal-tag tl-treat-tag">⭐ Treat</span>`
+    : isMoc
+    ? `<span class="tl-chip-meal-tag tl-moc-tag">🍽️ MoC</span>`
+    : '';
 
   if (block.type === 'item') {
     const e = block.entry;
@@ -909,7 +919,7 @@ function makeTlChip(block) {
       <div class="tl-chip-grip"><i class="fas fa-grip-lines"></i></div>
       <div class="tl-chip-body">
         <div class="tl-chip-name-row">
-          <span class="tl-chip-name">${e.item_name}</span>
+          <span class="tl-chip-name">${e.item_name}</span>${mealTag}
         </div>
         <div class="tl-chip-macros">${tlMacrosHTML(m)}</div>
       </div>`;
@@ -930,7 +940,7 @@ function makeTlChip(block) {
       <div class="tl-chip-grip"><i class="fas fa-grip-lines"></i></div>
       <div class="tl-chip-body">
         <div class="tl-chip-name-row">
-          <span class="tl-chip-name">${displayName}${portionLabel}</span>
+          <span class="tl-chip-name">${displayName}${portionLabel}</span>${mealTag}
         </div>
         <div class="tl-chip-macros">${tlMacrosHTML(portionM)}</div>
       </div>`;
@@ -3255,6 +3265,7 @@ async function takeFullScreenshot() {
       grid-column: auto !important;
       grid-row: auto !important;
       width: auto !important;
+      gap: 0 !important;
     }
     /* Kill the radial glow pseudo-element on the hero card */
     #__screenshotStage .hero-card::before {
