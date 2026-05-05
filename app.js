@@ -523,6 +523,7 @@ function updateNowLine() {
 function toggleTimeline() {
   timelineMode = !timelineMode;
   document.getElementById('timelineBtn').classList.toggle('active', timelineMode);
+  document.getElementById('viewMain').classList.toggle('tl-mode', timelineMode);
   document.getElementById('checkedBlock').style.display = (timelineMode || mergeServings) ? 'none' : '';
   if (!timelineMode) { clearInterval(_nowLineTimer); _nowLineTimer = null; }
   renderDashboard(currentDayEntries);
@@ -592,6 +593,24 @@ function renderTimelineDashboard(entries) {
   content.innerHTML = '';
   checkables = [];
   applySickModeOverlay();
+
+  // Timeline-specific header (title + day-type toggle)
+  const tlHeader = document.createElement('div');
+  tlHeader.className = 'tl-page-header';
+  tlHeader.innerHTML = `
+    <div class="tl-page-header-text">
+      <div class="eyebrow">Daily Schedule</div>
+      <h1 class="large-title">Timeline</h1>
+    </div>
+    <div class="day-type-seg">
+      <button class="dts-btn" id="tlDttTraining" onclick="setDayType('training')" title="Training">
+        <i class="fas fa-dumbbell"></i>
+      </button>
+      <button class="dts-btn" id="tlDttRest" onclick="setDayType('rest')" title="Rest">
+        <i class="fas fa-bed"></i>
+      </button>
+    </div>`;
+  content.appendChild(tlHeader);
 
   totals = {kcal:0,p:0,c:0,f:0};
   entries.forEach(e => {
@@ -787,6 +806,23 @@ function renderTimelineDashboard(entries) {
 
   renderTargetBlock(); updateChecked();
 
+  // Day-summary footer
+  const tgt = coachTargets[currentDayType] || {};
+  const adh = tgt.kcal
+    ? Math.round(Math.max(0, 100 - Math.abs(100 - (totals.kcal / tgt.kcal * 100))))
+    : null;
+  const dayFoot = document.createElement('div');
+  dayFoot.className = 'tl-day-summary';
+  dayFoot.innerHTML =
+    (adh != null ? `<span class="tl-day-summary-adh">${adh}%</span>` : '') +
+    `<span class="tl-day-summary-vals">` +
+      `<span>${Math.round(totals.kcal)}<small>kcal</small></span>` +
+      `<span>${Math.round(totals.p)}<small>P</small></span>` +
+      `<span>${Math.round(totals.c)}<small>C</small></span>` +
+      `<span>${Math.round(totals.f)}<small>F</small></span>` +
+    `</span>`;
+  content.appendChild(dayFoot);
+
   // Now-line: draw immediately, then refresh every minute
   updateNowLine();
   clearInterval(_nowLineTimer);
@@ -881,7 +917,7 @@ function makeTlChip(block) {
         <div class="tl-chip-name-row">
           <span class="tl-chip-name">${e.item_name}</span>
         </div>
-        <div class="macro-pills tl-chip-pills">${pillsHTML(m)}</div>
+        <div class="tl-chip-macros">${tlMacrosHTML(m)}</div>
       </div>`;
   } else {
     const { recipe, entries, serving, servings } = block;
@@ -902,7 +938,7 @@ function makeTlChip(block) {
         <div class="tl-chip-name-row">
           <span class="tl-chip-name">${displayName}${portionLabel}</span>
         </div>
-        <div class="macro-pills tl-chip-pills">${pillsHTML(portionM)}</div>
+        <div class="tl-chip-macros">${tlMacrosHTML(portionM)}</div>
       </div>`;
   }
   return chip;
@@ -1024,6 +1060,12 @@ async function loadDay() {
 function macroSum(items) {
   return items.reduce((a,e) => ({ kcal: a.kcal+(e.kcal||0), p: a.p+(parseFloat(e.protein)||0), c: a.c+(parseFloat(e.carbs)||0), f: a.f+(parseFloat(e.fat)||0) }), {kcal:0,p:0,c:0,f:0});
 }
+function tlMacrosHTML(m) {
+  return `<span>${Math.round(m.kcal)}<small>kcal</small></span>` +
+         `<span>${m.p.toFixed(1)}<small>P</small></span>` +
+         `<span>${m.c.toFixed(1)}<small>C</small></span>` +
+         `<span>${m.f.toFixed(1)}<small>F</small></span>`;
+}
 function pillsHTML(m) {
   return `<div class="mp mp-kcal"><div class="mp-val">${Math.round(m.kcal)}</div><div class="mp-lbl">kcal</div></div><div class="mp mp-p"><div class="mp-val">${m.p.toFixed(1)}</div><div class="mp-lbl">P</div></div><div class="mp mp-c"><div class="mp-val">${m.c.toFixed(1)}</div><div class="mp-lbl">C</div></div><div class="mp mp-f"><div class="mp-val">${m.f.toFixed(1)}</div><div class="mp-lbl">F</div></div>`;
 }
@@ -1031,8 +1073,10 @@ function statPillsHTML(m) {
   return `<div class="stat-pill"><div class="stat-val c-kcal">${Math.round(m.kcal)}</div><div class="stat-lbl">Kcal</div></div><div class="stat-pill"><div class="stat-val c-p">${m.p.toFixed(1)}</div><div class="stat-lbl">Protein</div></div><div class="stat-pill"><div class="stat-val c-c">${m.c.toFixed(1)}</div><div class="stat-lbl">Carbs</div></div><div class="stat-pill"><div class="stat-val c-f">${m.f.toFixed(1)}</div><div class="stat-lbl">Fat</div></div>`;
 }
 function renderDayTypeToggle() {
-  document.getElementById('dttTraining')?.classList.toggle('active', currentDayType === 'training');
-  document.getElementById('dttRest')?.classList.toggle('active', currentDayType === 'rest');
+  ['dttTraining','tlDttTraining'].forEach(id =>
+    document.getElementById(id)?.classList.toggle('active', currentDayType === 'training'));
+  ['dttRest','tlDttRest'].forEach(id =>
+    document.getElementById(id)?.classList.toggle('active', currentDayType === 'rest'));
 }
 async function setDayType(type) {
   currentDayType = type;
