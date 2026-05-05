@@ -1136,11 +1136,14 @@ function renderDayTypeToggle() {
   document.getElementById('dttTraining')?.classList.toggle('active', currentDayType === 'training');
   document.getElementById('dttRest')?.classList.toggle('active', currentDayType === 'rest');
 }
-async function setDayType(type) {
-  currentDayType = type;
-  renderDayTypeToggle();
-  renderTargetBlock();
-  await db.from('fddb_day_type').upsert({ date: currentDate, type }, { onConflict: 'date' });
+async function setDayType(type, date = currentDate) {
+  await db.from('fddb_day_type').upsert({ date, type }, { onConflict: 'date' });
+  if (date === currentDate) {
+    currentDayType = type;
+    renderDayTypeToggle();
+    renderTargetBlock();
+    if (timelineMode) renderTimelineDashboard(currentDayEntries);
+  }
 }
 function adherenceScore(pct) { return Math.max(0, 100 - Math.abs(100 - pct)); }
 
@@ -2554,11 +2557,14 @@ async function openDateMenu(date, x, y) {
   const freezeWLabel = (settings.freezeWindow || 1) > 1 ? `${settings.freezeWindow} weeks` : 'week';
 
   // Compute adherence for current day to allow Finalize.
+  // Always fetch day type — needed for Training/Rest toggle regardless of isFuture
+  const dtRes = await db.from('fddb_day_type').select('type').eq('date', date).maybeSingle();
+  const menuDayType = dtRes.data?.type || 'training';
+
   let canFinalize = false, adhForFinalize = null, totalsForFinalize = null;
   if (!isFuture) {
-    const [macroRes, dtRes, tgtRes] = await Promise.all([
+    const [macroRes, tgtRes] = await Promise.all([
       db.from('fddb_daily_macros').select('kcal, protein, carbs, fat').eq('date', date).neq('meal', WEEKLY_TREAT_MEAL),
-      db.from('fddb_day_type').select('type').eq('date', date).maybeSingle(),
       db.from('fddb_coach_targets').select('*').lte('valid_from', date).order('valid_from', { ascending: false }),
     ]);
     const rows = macroRes.data || [];
@@ -2569,8 +2575,7 @@ async function openDateMenu(date, x, y) {
         c: s.c + (parseFloat(r.carbs)||0),
         f: s.f + (parseFloat(r.fat)||0),
       }), { kcal:0, p:0, c:0, f:0 });
-      const type = (dtRes.data && dtRes.data.type) || 'training';
-      const match = (tgtRes.data || []).find(t => t.type === type);
+      const match = (tgtRes.data || []).find(t => t.type === menuDayType);
       if (match) {
         adhForFinalize = computeDayAdherence(menuTotals, { p: match.protein, c: match.carbs, f: match.fat });
         canFinalize = adhForFinalize != null;
@@ -2640,6 +2645,23 @@ async function openDateMenu(date, x, y) {
       () => setDayStatus(date, null)
     ));
   }
+
+  // Training / Rest day type
+  const divDt = document.createElement('div');
+  divDt.className = 'date-menu-divider';
+  menu.appendChild(divDt);
+  menu.appendChild(item(
+    'daytype', 'dmi-training', '<i class="fas fa-dumbbell"></i>',
+    'Training day', menuDayType === 'training' ? 'active' : '',
+    menuDayType === 'training',
+    () => setDayType('training', date)
+  ));
+  menu.appendChild(item(
+    'daytype', 'dmi-rest', '<i class="fas fa-bed"></i>',
+    'Rest day', menuDayType === 'rest' ? 'active' : '',
+    menuDayType === 'rest',
+    () => setDayType('rest', date)
+  ));
 
   document.body.appendChild(menu);
   // Position with viewport clamp.
