@@ -56,9 +56,6 @@
           <button class="pill-btn" id="mergeBtn" onclick="toggleMergeServings()" title="Merge Servings">
             <i class="fas fa-layer-group"></i>
           </button>
-          <button class="pill-btn" id="timelineBtn" onclick="toggleTimeline()" title="Timeline">
-            <i class="fas fa-clock"></i>
-          </button>
           <div class="sync-ring-wrap" id="syncRingWrap">
             <svg class="sync-ring-svg" viewBox="0 0 48 48" aria-hidden="true">
               <circle class="sync-ring-track" cx="24" cy="24" r="21"/>
@@ -82,6 +79,14 @@
           <i class="fas fa-calendar-day"></i>
           <input type="date" id="dateInput" onchange="onDateChange()">
         </label>
+      </div>
+      <div class="today-sub-nav" id="todaySubNav">
+        <button class="tsn-btn active" id="tsnDashboard" onclick="setTodayView('dashboard')">
+          <i class="fas fa-utensils"></i> Dashboard
+        </button>
+        <button class="tsn-btn" id="tsnTimeline" onclick="setTodayView('timeline')">
+          <i class="fas fa-clock"></i> Timeline
+        </button>
       </div>
     </header>
 
