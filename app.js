@@ -818,8 +818,13 @@ function renderTimelineDashboard(entries) {
 
   // Day-summary footer
   const tgt = coachTargets[currentDayType] || {};
-  const adh = tgt.kcal
-    ? Math.round(Math.max(0, 100 - Math.abs(100 - (totals.kcal / tgt.kcal * 100))))
+  const adhParts = [
+    { val: totals.p, goal: tgt.p },
+    { val: totals.c, goal: tgt.c },
+    { val: totals.f, goal: tgt.f },
+  ].filter(m => m.goal > 0);
+  const adh = adhParts.length
+    ? Math.round(adhParts.reduce((s, m) => s + adherenceScore(Math.round(m.val / m.goal * 100)), 0) / adhParts.length)
     : null;
   const dayFoot = document.createElement('div');
   dayFoot.className = 'tl-day-summary';
