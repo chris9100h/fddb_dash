@@ -764,7 +764,7 @@ function renderTimelineDashboard(entries) {
     const summary = document.createElement('div');
     summary.className = 'tl-insulin-summary';
     summary.innerHTML =
-      `<span class="tl-insulin-summary-label">💉 Active until ${formatSlot(Math.min(insulinSlot + 4 * 60, 1320))}</span>` +
+      `<span class="tl-insulin-summary-label"><i class="fas fa-syringe" style="margin-right:5px"></i>Active until ${formatSlot(Math.min(insulinSlot + 4 * 60, 1320))}</span>` +
       `<span class="tl-insulin-summary-vals">` +
         `<span>${Math.round(wm?.kcal ?? 0)}<small>kcal</small></span>` +
         `<span>${Math.round(wm?.p ?? 0)}<small>P</small></span>` +
@@ -798,7 +798,7 @@ function renderTimelineDashboard(entries) {
     const intraRow = wrap.querySelector(`[data-hour="${INTRA_WORKOUT_SLOT}"]`);
     if (intraRow) block.appendChild(intraRow);
 
-    const durLabel = '🏋️ Ends ' + formatSlot(trainingSlot + slots * 30);
+    const durLabel = '<i class="fas fa-dumbbell" style="margin-right:5px"></i>Ends ' + formatSlot(trainingSlot + slots * 30);
     const summary = document.createElement('div');
     summary.className = 'tl-training-summary';
     summary.innerHTML =
