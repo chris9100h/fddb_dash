@@ -3782,18 +3782,20 @@ initTweaks();
     document.addEventListener('pointercancel', onUp);
 
     if (state.pointerType !== 'mouse') {
-      state.pressTimer = setTimeout(() => {
-        if (!state) return;
-        beginDrag(state.src, state.startX, state.startY);
-      }, LONG_PRESS_MS);
-
       if (timelineMode && src.classList.contains('tl-chip')) {
+        // Timeline chips: movement starts drag immediately (no ghost flash),
+        // holding 600ms without movement shows context menu instead.
         const chipEl = src;
         state.contextTimer = setTimeout(() => {
           if (!state) return;
           cancelDrag(true);
           showTlContextMenu(chipEl);
         }, CTX_MENU_MS);
+      } else {
+        state.pressTimer = setTimeout(() => {
+          if (!state) return;
+          beginDrag(state.src, state.startX, state.startY);
+        }, LONG_PRESS_MS);
       }
     }
   }
@@ -3805,17 +3807,23 @@ initTweaks();
     const dist = Math.hypot(dx, dy);
 
     if (!state.started) {
-      if (dist > 12 && state.contextTimer) {
-        clearTimeout(state.contextTimer);
-        state.contextTimer = null;
-      }
       if (state.pointerType === 'mouse') {
         if (dist > MOVE_TOLERANCE) beginDrag(state.src, state.startX, state.startY);
+      } else if (timelineMode && state.src.classList.contains('tl-chip')) {
+        // Timeline chips: movement triggers drag (context timer cancelled),
+        // large jitter aborts entirely.
+        if (dist > 28) {
+          clearTimeout(state.contextTimer);
+          cancelDrag(true);
+          return;
+        }
+        if (dist > MOVE_TOLERANCE) {
+          clearTimeout(state.contextTimer);
+          state.contextTimer = null;
+          beginDrag(state.src, state.startX, state.startY);
+        }
       } else {
-        // touch: with touch-action:none iOS can't hijack to scroll,
-        // so finger jitter during the press window shouldn't kill
-        // the drag. Only abort on a *large* movement (clear intent
-        // to move before lift) — tolerate normal finger wiggle.
+        // Regular touch drag: long-press timer based.
         if (dist > 28) {
           clearTimeout(state.pressTimer);
           cancelDrag(true);
@@ -3840,6 +3848,7 @@ initTweaks();
     const src = state.src;
     const ghost = state.ghost;
     clearTimeout(state.pressTimer);
+    clearTimeout(state.contextTimer);
 
     if (!wasStarted) {
       cancelDrag(true);
