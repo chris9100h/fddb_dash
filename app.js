@@ -2646,22 +2646,28 @@ async function openDateMenu(date, x, y) {
     ));
   }
 
-  // Training / Rest day type
+  // Training / Rest day type slider
   const divDt = document.createElement('div');
   divDt.className = 'date-menu-divider';
   menu.appendChild(divDt);
-  menu.appendChild(item(
-    'daytype', 'dmi-training', '<i class="fas fa-dumbbell"></i>',
-    'Training day', menuDayType === 'training' ? 'active' : '',
-    menuDayType === 'training',
-    () => setDayType('training', date)
-  ));
-  menu.appendChild(item(
-    'daytype', 'dmi-rest', '<i class="fas fa-bed"></i>',
-    'Rest day', menuDayType === 'rest' ? 'active' : '',
-    menuDayType === 'rest',
-    () => setDayType('rest', date)
-  ));
+  const seg = document.createElement('div');
+  seg.className = 'date-menu-seg';
+  seg.innerHTML =
+    `<button class="dts-btn${menuDayType === 'training' ? ' active' : ''}" data-dt="training">` +
+      `<i class="fas fa-dumbbell"></i>` +
+    `</button>` +
+    `<button class="dts-btn${menuDayType === 'rest' ? ' active' : ''}" data-dt="rest">` +
+      `<i class="fas fa-bed"></i>` +
+    `</button>`;
+  seg.querySelectorAll('.dts-btn').forEach(btn => {
+    btn.onclick = () => {
+      seg.querySelectorAll('.dts-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      closeDateMenu();
+      setDayType(btn.dataset.dt, date);
+    };
+  });
+  menu.appendChild(seg);
 
   document.body.appendChild(menu);
   // Position with viewport clamp.
