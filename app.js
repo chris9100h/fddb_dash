@@ -924,7 +924,8 @@ function makeTlChip(block) {
           <span class="tl-chip-name">${e.item_name}</span>${mealTag}
         </div>
         <div class="tl-chip-macros">${tlMacrosHTML(m)}</div>
-      </div>`;
+      </div>
+      <div class="tl-chip-cb"><i class="fas fa-check"></i></div>`;
   } else {
     const { recipe, entries, serving, servings } = block;
     const totalM = macroSum(entries);
@@ -945,12 +946,18 @@ function makeTlChip(block) {
           <span class="tl-chip-name">${displayName}${portionLabel}</span>${mealTag}
         </div>
         <div class="tl-chip-macros">${tlMacrosHTML(portionM)}</div>
-      </div>`;
+      </div>
+      <div class="tl-chip-cb"><i class="fas fa-check"></i></div>`;
   }
-  if (currentCheckedMap[block.tlKey]) {
-    chip.classList.add('tl-chip-done');
-    chip.insertAdjacentHTML('beforeend', '<i class="fas fa-check tl-chip-check-icon"></i>');
-  }
+  if (currentCheckedMap[block.tlKey]) chip.classList.add('tl-chip-done');
+  chip.querySelector('.tl-chip-cb').addEventListener('pointerdown', ev => ev.stopPropagation());
+  chip.querySelector('.tl-chip-cb').addEventListener('click', ev => {
+    ev.stopPropagation();
+    const nowChecked = !currentCheckedMap[block.tlKey];
+    currentCheckedMap[block.tlKey] = nowChecked;
+    chip.classList.toggle('tl-chip-done', nowChecked);
+    persistChecked(block.tlKey, nowChecked);
+  });
   return chip;
 }
 

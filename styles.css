@@ -2014,8 +2014,19 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
 .tl-chip:active { cursor: grabbing; }
 
 .tl-chip.tl-chip-done { opacity: .4; }
-.tl-chip.tl-chip-done .tl-chip-name { text-decoration: line-through; text-decoration-color: rgba(255,255,255,.35); }
-.tl-chip-check-icon { color: var(--orange); font-size: .75rem; flex-shrink: 0; }
+.tl-chip-cb {
+  width: 18px; height: 18px; border-radius: 5px;
+  border: 1.5px solid var(--border-strong);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  font-size: .6rem; color: transparent;
+  transition: all .15s;
+  cursor: pointer;
+}
+.tl-chip.tl-chip-done .tl-chip-cb {
+  background: var(--accent); border-color: var(--accent); color: #fff;
+  box-shadow: 0 0 0 3px rgba(255,107,0,.15);
+}
 
 .tl-chip.tl-dragging { opacity: .25; }
 
