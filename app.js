@@ -1570,11 +1570,14 @@ function renderDashboard(entries) {
   const usedLabels = new Set(
     orderedMeals.filter(m => (grouped[m] || []).length > 0).map(m => LABELS[m] || m)
   );
+  const seenEmptyLabels = new Set();
   const sorted = orderedMeals.filter(m => {
     if ((grouped[m] || []).length > 0) return true;
-    // empty → only keep if no non-empty meal shares its display label
+    // empty → only keep if no meal (empty or not) with this label already included
     const label = LABELS[m] || m;
-    return !usedLabels.has(label);
+    if (usedLabels.has(label) || seenEmptyLabels.has(label)) return false;
+    seenEmptyLabels.add(label);
+    return true;
   });
 
   sorted.forEach((meal, mi) => {
@@ -4023,33 +4026,57 @@ initTweaks();
 
     const sheet = document.createElement('div');
     sheet.className = 'tl-ctx-sheet';
-    sheet.innerHTML = `
-      <div class="tl-ctx-title">${name}</div>
-      ${!isTreat ? `<button class="tl-ctx-action" id="tlCtxTreat"><i class="fas fa-star"></i> Mark as Weekly Treat</button>` : `<div class="tl-ctx-info"><i class="fas fa-star"></i> Already marked as Weekly Treat</div>`}
-      <button class="tl-ctx-cancel">Cancel</button>`;
-
-    overlay.appendChild(sheet);
-    document.body.appendChild(overlay);
-    requestAnimationFrame(() => overlay.classList.add('show'));
 
     const close = () => {
       overlay.classList.remove('show');
       setTimeout(() => overlay.remove(), 220);
     };
 
-    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
-    sheet.querySelector('.tl-ctx-cancel').addEventListener('click', close);
+    const doMove = async (toMeal) => {
+      close();
+      const ids = chipEl.dataset.entryIds.split(',').map(s => s.trim()).filter(Boolean);
+      const fromMeal = chipEl.dataset.meal;
+      const kind = chipEl.dataset.dragKind;
+      const oldKeys = chipEl.dataset.checkKeys.split('|').filter(Boolean);
+      const recipeName = chipEl.dataset.recipeName || '';
+      await moveEntries({ ids, fromMeal, toMeal, kind, oldKeys, recipeName });
+    };
 
-    const treatBtn = sheet.querySelector('#tlCtxTreat');
-    if (treatBtn) {
-      treatBtn.addEventListener('click', async () => {
-        close();
-        const ids = chipEl.dataset.entryIds.split(',').map(s => s.trim()).filter(Boolean);
-        const fromMeal = chipEl.dataset.meal;
-        const kind = chipEl.dataset.dragKind;
-        const oldKeys = chipEl.dataset.checkKeys.split('|').filter(Boolean);
-        const recipeName = chipEl.dataset.recipeName || '';
-        await moveEntries({ ids, fromMeal, toMeal: WEEKLY_TREAT_MEAL, kind, oldKeys, recipeName });
+    if (!isTreat) {
+      sheet.innerHTML = `
+        <div class="tl-ctx-title">${name}</div>
+        <button class="tl-ctx-action" id="tlCtxTreat"><i class="fas fa-star"></i> Mark as Weekly Treat</button>
+        <button class="tl-ctx-cancel">Cancel</button>`;
+      overlay.appendChild(sheet);
+      document.body.appendChild(overlay);
+      requestAnimationFrame(() => overlay.classList.add('show'));
+      overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+      sheet.querySelector('.tl-ctx-cancel').addEventListener('click', close);
+      sheet.querySelector('#tlCtxTreat').addEventListener('click', () => doMove(WEEKLY_TREAT_MEAL));
+    } else {
+      // Build meal options from current day entries (excluding treat itself)
+      const seenLabels = new Set();
+      const mealOptions = ORDER
+        .filter(m => {
+          const label = LABELS[m] || m;
+          if (seenLabels.has(label)) return false;
+          seenLabels.add(label);
+          return true;
+        })
+        .map(m => `<button class="tl-ctx-meal-btn" data-meal="${m}">${LABELS[m] || m}</button>`)
+        .join('');
+      sheet.innerHTML = `
+        <div class="tl-ctx-title">${name}</div>
+        <div class="tl-ctx-info"><i class="fas fa-star"></i> Weekly Treat — move back to:</div>
+        <div class="tl-ctx-meal-grid">${mealOptions}</div>
+        <button class="tl-ctx-cancel">Cancel</button>`;
+      overlay.appendChild(sheet);
+      document.body.appendChild(overlay);
+      requestAnimationFrame(() => overlay.classList.add('show'));
+      overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+      sheet.querySelector('.tl-ctx-cancel').addEventListener('click', close);
+      sheet.querySelectorAll('.tl-ctx-meal-btn').forEach(btn => {
+        btn.addEventListener('click', () => doMove(btn.dataset.meal));
       });
     }
   }
