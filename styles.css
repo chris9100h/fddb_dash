@@ -2243,6 +2243,27 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   letter-spacing: .06em;
 }
 
+/* Current-time indicator */
+.tl-now-line {
+  position: relative;
+  height: 2px;
+  background: var(--accent);
+  margin: 2px 0;
+  z-index: 5;
+  border-radius: 1px;
+}
+.tl-now-label {
+  position: absolute;
+  left: 0;
+  top: -9px;
+  font-size: .62rem;
+  font-weight: 800;
+  letter-spacing: .06em;
+  color: var(--accent);
+  pointer-events: none;
+  user-select: none;
+}
+
 .tl-chip-pills .mp {
   padding: 3px 5px;
   min-width: 36px;
