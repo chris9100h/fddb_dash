@@ -116,8 +116,10 @@ const SETTINGS_DEFAULTS = {
   freezeWindow: 1,          // window size in weeks (1 / 2 / 4)
   weeklyTreatMaxKcal: 0,    // 0 = no limit; excess kcal above threshold count against totals
   mocKcal: 1200,            // kcal budget for one Meal of Choice
-  showWeightChart:  true,   // overlay weight as secondary axis on deviation chart
-  showInsulinChip:  false,  // show synthetic Insulin – Novorapid chip in timeline
+  showWeightChart:   true,   // overlay weight as secondary axis on deviation chart
+  showInsulinChip:   false,  // show synthetic Insulin – Novorapid chip in timeline
+  showTrainingChip:  false,  // show draggable Training block in timeline
+  trainingDuration:  60,     // training window length in minutes (global)
 };
 let settings = { ...SETTINGS_DEFAULTS };
 
@@ -144,6 +146,8 @@ const SETTING_DB_KEYS = {
   mocKcal:             'moc_kcal',
   showWeightChart:     'show_weight_chart',
   showInsulinChip:     'show_insulin_chip',
+  showTrainingChip:    'show_training_chip',
+  trainingDuration:    'training_duration',
 };
 
 async function writeSettingToDb(key, value) {
@@ -323,6 +327,31 @@ function initSettingsUI() {
       cacheSettings();
       writeSettingToDb('showInsulinChip', settings.showInsulinChip);
       if (timelineMode) renderDashboard(currentDayEntries);
+    });
+  }
+
+  const showTrainingEl = document.getElementById('setShowTrainingChip');
+  if (showTrainingEl) {
+    showTrainingEl.checked = !!settings.showTrainingChip;
+    showTrainingEl.addEventListener('change', () => {
+      settings.showTrainingChip = showTrainingEl.checked;
+      cacheSettings();
+      writeSettingToDb('showTrainingChip', settings.showTrainingChip);
+      if (timelineMode) renderDashboard(currentDayEntries);
+    });
+  }
+
+  const trainingDurationEl = document.getElementById('setTrainingDuration');
+  if (trainingDurationEl) {
+    trainingDurationEl.value = settings.trainingDuration;
+    trainingDurationEl.addEventListener('change', () => {
+      const v = parseInt(trainingDurationEl.value, 10);
+      if (Number.isFinite(v) && v >= 15) {
+        settings.trainingDuration = v;
+        cacheSettings();
+        writeSettingToDb('trainingDuration', settings.trainingDuration);
+        if (timelineMode) renderDashboard(currentDayEntries);
+      }
     });
   }
 
@@ -558,6 +587,9 @@ function renderTimelineDashboard(entries) {
   if (settings.showInsulinChip) {
     allBlocks.push({ type: 'insulin', tlKey: 'insulin::novorapid', meal: null });
   }
+  if (settings.showTrainingChip) {
+    allBlocks.push({ type: 'training', tlKey: 'training::session', meal: null });
+  }
   for (const meal of Object.keys(grouped)) {
     const items = (grouped[meal] || []).slice().sort((a, b) => (a.sort_order ?? Infinity) - (b.sort_order ?? Infinity));
     allBlocks.push(...buildTlRenderBlocks(meal, items));
@@ -569,6 +601,31 @@ function renderTimelineDashboard(entries) {
     const key = m == null ? 'null' : m;
     (bySlot[key] = bySlot[key] || []).push(block);
   });
+
+  // Compute training window macro sum
+  const trainingSlot = settings.showTrainingChip ? (itemTimeMap['training::session'] ?? null) : null;
+  if (trainingSlot != null) {
+    const slots = Math.floor(settings.trainingDuration / 30);
+    const endSlot = Math.min(trainingSlot + slots * 30, 1320);
+    const wm = { kcal: 0, p: 0, c: 0, f: 0 };
+    allBlocks.forEach(block => {
+      if (block.type === 'training' || block.type === 'insulin') return;
+      const m = itemTimeMap[block.tlKey] ?? null;
+      if (m != null && m >= trainingSlot && m <= endSlot) {
+        if (block.type === 'item') {
+          const e = block.entry;
+          wm.kcal += e.kcal||0; wm.p += parseFloat(e.protein)||0;
+          wm.c += parseFloat(e.carbs)||0; wm.f += parseFloat(e.fat)||0;
+        } else {
+          const pm = macroSum(block.entries);
+          wm.kcal += pm.kcal/block.servings; wm.p += pm.p/block.servings;
+          wm.c += pm.c/block.servings; wm.f += pm.f/block.servings;
+        }
+      }
+    });
+    const trainingBlock = allBlocks.find(b => b.type === 'training');
+    if (trainingBlock) trainingBlock.windowMacros = wm;
+  }
 
   // Compute insulin window macro sum before rendering so the chip can display it
   const insulinSlot = settings.showInsulinChip ? (itemTimeMap['insulin::novorapid'] ?? null) : null;
@@ -647,6 +704,48 @@ function renderTimelineDashboard(entries) {
     block.appendChild(summary);
   }
 
+  // Build training block
+  if (trainingSlot != null) {
+    const slots = Math.floor(settings.trainingDuration / 30);
+    const endSlot = Math.min(trainingSlot + slots * 30, 1320);
+    const wm = allBlocks.find(b => b.type === 'training')?.windowMacros;
+
+    const trainingRow = wrap.querySelector(`[data-hour="${trainingSlot}"]`);
+    const block = document.createElement('div');
+    block.className = 'tl-training-block';
+    wrap.insertBefore(block, trainingRow);
+
+    const chipBar = document.createElement('div');
+    chipBar.className = 'tl-training-chip-bar';
+    const trainingChip = trainingRow.querySelector('.tl-chip-training');
+    if (trainingChip) chipBar.appendChild(trainingChip);
+    block.appendChild(chipBar);
+
+    for (let m = trainingSlot; m <= endSlot; m += 30) {
+      const row = wrap.querySelector(`[data-hour="${m}"]`);
+      if (!row) continue;
+      row.classList.add('tl-training-range');
+      if (m === trainingSlot) {
+        row.classList.add('tl-training-window-start');
+        if (!row.querySelector('.tl-chip')) row.classList.remove('tl-has-items');
+      }
+      block.appendChild(row);
+    }
+
+    const durLabel = slots * 30 + ' min';
+    const summary = document.createElement('div');
+    summary.className = 'tl-training-summary';
+    summary.innerHTML =
+      `<span class="tl-training-summary-label">${durLabel}</span>` +
+      `<span class="tl-training-summary-vals">` +
+        `<span>${Math.round(wm?.kcal ?? 0)}<small>kcal</small></span>` +
+        `<span>${Math.round(wm?.p ?? 0)}<small>P</small></span>` +
+        `<span>${Math.round(wm?.c ?? 0)}<small>C</small></span>` +
+        `<span>${Math.round(wm?.f ?? 0)}<small>F</small></span>` +
+      `</span>`;
+    block.appendChild(summary);
+  }
+
   content.appendChild(wrap);
 
   renderTargetBlock(); updateChecked();
@@ -694,6 +793,28 @@ function makeTlChip(block) {
          <div class="tl-chip-body">
            <div class="tl-chip-name-row">
              <span class="tl-chip-name">Insulin – Novorapid</span>
+           </div>
+         </div>`;
+    return chip;
+  }
+
+  if (block.type === 'training') {
+    const placed = itemTimeMap['training::session'] != null;
+    chip.className = 'tl-chip tl-chip-training' + (placed ? ' tl-chip-training-placed' : '');
+    chip.dataset.entryIds = '';
+    chip.dataset.checkKeys = 'training::session';
+    chip.dataset.dragKind = 'item';
+    chip.dataset.meal = 'training';
+    chip.innerHTML = placed
+      ? `<span class="tl-training-summary-label">
+           <i class="fas fa-dumbbell" style="margin-right:5px"></i>Training
+         </span>
+         <div class="tl-chip-grip"><i class="fas fa-grip-lines"></i></div>`
+      : `<div class="tl-chip-grip"><i class="fas fa-grip-lines"></i></div>
+         <i class="fas fa-dumbbell tl-chip-training-icon"></i>
+         <div class="tl-chip-body">
+           <div class="tl-chip-name-row">
+             <span class="tl-chip-name">Training</span>
            </div>
          </div>`;
     return chip;
