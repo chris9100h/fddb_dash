@@ -2185,16 +2185,14 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
 }
 
 .tl-training-block .tl-row {
+  display: flex;
   background: rgba(185,28,28,.04);
   border-left: none;
 }
 
-.tl-training-block .tl-row.tl-training-window-start {
-  display: flex;
-}
-
 .tl-training-block .tl-row .tl-time-label {
   color: #b91c1c;
+  font-style: italic;
 }
 
 .tl-training-chip-bar {
