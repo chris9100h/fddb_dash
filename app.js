@@ -1066,7 +1066,10 @@ function tlMacrosHTML(m) {
          `<span>${m.f.toFixed(1)}<small>F</small></span>`;
 }
 function pillsHTML(m) {
-  return `<div class="mp mp-kcal"><div class="mp-val">${Math.round(m.kcal)}</div><div class="mp-lbl">kcal</div></div><div class="mp mp-p"><div class="mp-val">${m.p.toFixed(1)}</div><div class="mp-lbl">P</div></div><div class="mp mp-c"><div class="mp-val">${m.c.toFixed(1)}</div><div class="mp-lbl">C</div></div><div class="mp mp-f"><div class="mp-val">${m.f.toFixed(1)}</div><div class="mp-lbl">F</div></div>`;
+  return `<span>${Math.round(m.kcal)}<small>kcal</small></span>` +
+         `<span>${m.p.toFixed(1)}<small>P</small></span>` +
+         `<span>${m.c.toFixed(1)}<small>C</small></span>` +
+         `<span>${m.f.toFixed(1)}<small>F</small></span>`;
 }
 function statPillsHTML(m) {
   return `<div class="stat-pill"><div class="stat-val c-kcal">${Math.round(m.kcal)}</div><div class="stat-lbl">Kcal</div></div><div class="stat-pill"><div class="stat-val c-p">${m.p.toFixed(1)}</div><div class="stat-lbl">Protein</div></div><div class="stat-pill"><div class="stat-val c-c">${m.c.toFixed(1)}</div><div class="stat-lbl">Carbs</div></div><div class="stat-pill"><div class="stat-val c-f">${m.f.toFixed(1)}</div><div class="stat-lbl">Fat</div></div>`;
