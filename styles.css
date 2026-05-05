@@ -2335,78 +2335,27 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   letter-spacing: .05em;
 }
 
-/* ── Timeline Special Blocks (Weekly Treat · Meal of Choice) ── */
-.tl-special-block {
-  border-radius: var(--radius-sm);
-  border: 1px solid transparent;
-  overflow: hidden;
+/* ── Timeline: Weekly Treat + Meal of Choice chip variants ── */
+.tl-chip-treat {
+  border-color: rgba(245,158,11,.35);
+  background: linear-gradient(135deg, rgba(245,158,11,.07) 0%, var(--card) 55%);
 }
-.tl-special-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  font-size: .72rem;
+.tl-chip-moc {
+  border-color: rgba(167,139,250,.35);
+  background: linear-gradient(135deg, rgba(167,139,250,.07) 0%, var(--card) 55%);
+}
+.tl-chip-meal-tag {
+  font-size: .5rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: .07em;
-}
-.tl-special-badge {
-  margin-left: auto;
-  font-size: .55rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .1em;
+  letter-spacing: .08em;
   border-radius: 999px;
-  padding: 2px 7px;
+  padding: 1px 6px;
+  flex-shrink: 0;
+  margin-left: auto;
 }
-.tl-special-block .tl-chip {
-  margin: 4px 8px;
-  cursor: default;
-  animation: none;
-}
-.tl-special-block .tl-chip:last-child { margin-bottom: 8px; }
-
-/* Weekly Treat — gold */
-.tl-treat-block {
-  border-color: rgba(245,158,11,.25);
-  background: linear-gradient(160deg, rgba(245,158,11,.06) 0%, var(--surface) 60%);
-}
-.tl-treat-block .tl-special-header {
-  background: linear-gradient(90deg, rgba(245,158,11,.12) 0%, transparent 70%);
-  border-bottom: 1px solid rgba(245,158,11,.18);
-  color: var(--gold);
-}
-.tl-treat-badge {
-  color: var(--gold);
-  background: rgba(245,158,11,.15);
-  border: 1px solid rgba(245,158,11,.3);
-}
-.tl-treat-over {
-  color: var(--red) !important;
-  background: rgba(248,113,113,.12) !important;
-  border-color: rgba(248,113,113,.35) !important;
-}
-.tl-treat-name { color: var(--gold); }
-.tl-treat-block .tl-chip { border-color: rgba(245,158,11,.2); }
-
-/* Meal of Choice — purple */
-.tl-moc-block {
-  border-color: rgba(167,139,250,.25);
-  background: linear-gradient(160deg, rgba(167,139,250,.06) 0%, var(--surface) 60%);
-}
-.tl-moc-block .tl-special-header {
-  background: linear-gradient(90deg, rgba(167,139,250,.12) 0%, transparent 70%);
-  border-bottom: 1px solid rgba(167,139,250,.18);
-  color: var(--moc);
-}
-.tl-moc-badge {
-  color: var(--moc);
-  background: rgba(167,139,250,.15);
-  border: 1px solid rgba(167,139,250,.3);
-}
-.tl-moc-name { color: var(--moc); }
-.tl-moc-block .tl-chip { border-color: rgba(167,139,250,.2); }
+.tl-treat-tag { color: var(--gold);  background: rgba(245,158,11,.15); }
+.tl-moc-tag   { color: var(--moc);   background: rgba(167,139,250,.15); }
 
 /* Day-summary footer */
 .tl-day-summary {
