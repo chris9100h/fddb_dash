@@ -1214,7 +1214,12 @@ function makeTlChip(block) {
     chip.querySelector('.tl-recipe-chevron').addEventListener('click', e => {
       e.stopPropagation();
       recipeWrap.classList.toggle('tl-recipe-open');
-      refreshMealRail(false);
+      const ing = recipeWrap.querySelector('.tl-recipe-ingredients');
+      if (ing) {
+        ing.addEventListener('transitionend', () => refreshMealRail(false), { once: true });
+      } else {
+        refreshMealRail(false);
+      }
     });
   }
   if (currentCheckedMap[block.tlKey]) chip.classList.add('tl-chip-done');
