@@ -812,8 +812,9 @@ function renderTimelineDashboard(entries) {
           wm.c += parseFloat(e.carbs)||0; wm.f += parseFloat(e.fat)||0;
         } else {
           const pm = macroSum(block.entries);
-          wm.kcal += pm.kcal/block.servings; wm.p += pm.p/block.servings;
-          wm.c += pm.c/block.servings; wm.f += pm.f/block.servings;
+          const d = block.isExploded ? 1 : block.servings;
+          wm.kcal += pm.kcal/d; wm.p += pm.p/d;
+          wm.c += pm.c/d; wm.f += pm.f/d;
         }
       }
     });
@@ -836,8 +837,9 @@ function renderTimelineDashboard(entries) {
           wm.c += parseFloat(e.carbs)||0; wm.f += parseFloat(e.fat)||0;
         } else {
           const pm = macroSum(block.entries);
-          wm.kcal += pm.kcal/block.servings; wm.p += pm.p/block.servings;
-          wm.c += pm.c/block.servings; wm.f += pm.f/block.servings;
+          const d = block.isExploded ? 1 : block.servings;
+          wm.kcal += pm.kcal/d; wm.p += pm.p/d;
+          wm.c += pm.c/d; wm.f += pm.f/d;
         }
       }
     });
