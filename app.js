@@ -127,6 +127,7 @@ const SETTINGS_DEFAULTS = {
   trainingDuration:  60,     // training window length in minutes (global)
   showDateStripInTimeline: false,
   showNowLine:       true,   // show current-time indicator line in timeline
+  timelinePrimary:   false,  // timeline is the default view; dashboard is read-only
 };
 let settings = { ...SETTINGS_DEFAULTS };
 
@@ -135,6 +136,10 @@ try {
   const raw = localStorage.getItem(SETTINGS_CACHE_KEY);
   if (raw) settings = { ...SETTINGS_DEFAULTS, ...JSON.parse(raw) };
 } catch (e) { /* ignore */ }
+
+// Initialise timelineMode from the persisted setting so the first render
+// uses the correct view without waiting for the DB settings load.
+if (settings.timelinePrimary) timelineMode = true;
 
 function cacheSettings() {
   try { localStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify(settings)); } catch (e) {}
@@ -157,6 +162,7 @@ const SETTING_DB_KEYS = {
   trainingDuration:    'training_duration',
   showDateStripInTimeline: 'show_date_strip_in_timeline',
   showNowLine:         'show_now_line',
+  timelinePrimary:     'timeline_primary',
 };
 
 async function writeSettingToDb(key, value) {
@@ -195,6 +201,16 @@ async function loadSettingsFromDb() {
   } catch (e) { /* offline — keep cached values */ }
 }
 
+// Applies the timeline-primary setting: swaps tab order, switches to timeline
+// view, and syncs the checkbox in the settings panel.
+function applyTimelinePrimary() {
+  const nav = document.getElementById('todaySubNav');
+  if (nav) nav.classList.toggle('tl-primary', !!settings.timelinePrimary);
+  const el = document.getElementById('setTimelinePrimary');
+  if (el) el.checked = !!settings.timelinePrimary;
+  if (settings.timelinePrimary && !timelineMode) setTodayView('timeline');
+}
+
 function applySettingsToUI() {
   const goalEl = document.getElementById('setAdherenceGoal');
   const cutoffEl = document.getElementById('setAdherenceCutoff');
@@ -209,6 +225,7 @@ function applySettingsToUI() {
       ? `Active since ${settings.sickSince || '—'} · all days marked sick`
       : 'Off';
   }
+  applyTimelinePrimary();
   const freezePerWeekEl   = document.getElementById('setFreezePerWeek');
   const freezeWindowEl    = document.getElementById('setFreezeWindow');
   const treatMaxKcalEl    = document.getElementById('setTreatMaxKcal');
@@ -383,6 +400,17 @@ function initSettingsUI() {
       cacheSettings();
       writeSettingToDb('showDateStripInTimeline', settings.showDateStripInTimeline);
       document.getElementById('viewMain').classList.toggle('tl-show-date-strip', settings.showDateStripInTimeline);
+    });
+  }
+
+  const tlPrimaryEl = document.getElementById('setTimelinePrimary');
+  if (tlPrimaryEl) {
+    tlPrimaryEl.checked = !!settings.timelinePrimary;
+    tlPrimaryEl.addEventListener('change', () => {
+      settings.timelinePrimary = tlPrimaryEl.checked;
+      cacheSettings();
+      writeSettingToDb('timelinePrimary', settings.timelinePrimary);
+      applyTimelinePrimary();
     });
   }
 
@@ -3965,6 +3993,8 @@ initTweaks();
     if (ev.button !== undefined && ev.button !== 0) return;
     const src = findDraggable(ev.target);
     if (!src) return;
+    // Dashboard is read-only when timeline is the primary view
+    if (settings.timelinePrimary && !timelineMode) return;
     // ignore interactive children
     if (ev.target.closest('.cb-box, .recipe-chevron')) return;
 

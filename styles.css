@@ -134,6 +134,8 @@ body {
 }
 .tsn-btn i { font-size: .8rem; }
 .tsn-btn.active { background: var(--accent); color: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.3); }
+/* When timeline is the primary view, swap the tab order so Timeline comes first */
+.today-sub-nav.tl-primary { flex-direction: row-reverse; }
 .header-streak-fire { color: var(--accent); font-size: 1.05rem; }
 .header-streak-body { display: flex; flex-direction: column; }
 .header-streak-num {
