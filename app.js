@@ -934,6 +934,12 @@ function renderTimelineDashboard(entries) {
     const slots = Math.floor(settings.trainingDuration / 30);
     const wm = allBlocks.find(b => b.type === 'training')?.windowMacros;
 
+    // Mark all rows within the training window so they can't be used as drop targets.
+    for (let i = 0; i < slots; i++) {
+      const coveredRow = wrap.querySelector(`[data-hour="${trainingSlot + i * 30}"]`);
+      if (coveredRow) coveredRow.classList.add('tl-training-covered');
+    }
+
     const trainingRow = wrap.querySelector(`[data-hour="${trainingSlot}"]`);
     const block = document.createElement('div');
     block.className = 'tl-training-block';
@@ -3991,6 +3997,7 @@ initTweaks();
     let found = null;
     rows.forEach(r => {
       r.classList.remove('tl-drop-target');
+      if (r.classList.contains('tl-training-covered')) return;
       const b = r.getBoundingClientRect();
       if (y >= b.top && y < b.bottom) found = r;
     });

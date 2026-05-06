@@ -2055,6 +2055,10 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   display: flex;
 }
 
+.timeline-view.tl-drag-active .tl-row.tl-training-covered {
+  display: none;
+}
+
 .tl-row.tl-has-items {
   padding: 8px 0;
 }
