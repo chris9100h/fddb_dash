@@ -1269,7 +1269,7 @@ async function loadDay() {
     await db.from('fddb_day_type').upsert({ date: dateVal, type: 'training' }, { onConflict: 'date' });
   }
   renderDayTypeToggle();
-  renderDashboard(currentDayEntries);
+  setTodayView(timelineMode ? 'timeline' : 'dashboard');
 }
 
 /* ── Helpers ── */
