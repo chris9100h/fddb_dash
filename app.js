@@ -1717,7 +1717,9 @@ function renderDashboard(entries) {
       if (allFound && matchIndices.length > 0) {
         matchIndices.forEach(idx => { remaining[idx].used = true; });
         const recipeEntries = matchIndices.map(idx => items[idx]);
-        renderBlocks.push({ type: 'recipe', recipe, entries: recipeEntries, firstIdx: Math.min(...matchIndices) });
+        const isSplitDash = recipeEntries.some(e => (e.serving_index ?? 0) !== 0);
+        const physDash = isSplitDash ? 1 : (recipe.servings || 1);
+        renderBlocks.push({ type: 'recipe', recipe, entries: recipeEntries, firstIdx: Math.min(...matchIndices), isSplit: isSplitDash, physicalServings: physDash });
       }
     });
 
@@ -1755,11 +1757,13 @@ function renderDashboard(entries) {
         const { recipe, entries: recEntries } = block;
         const totalM = macroSum(recEntries);
         const servings = recipe.servings || 1;
+        const physicalServings = block.physicalServings || servings;
+        const isSplitBlock = !!block.isSplit;
         const effectiveServings = mergeServings ? 1 : servings;
         const displayName = recipe.templateId
           ? ((allRecipes.find(r => r.id === recipe.templateId)?.name ?? '') + ' · ' + recipe.name)
           : recipe.name;
-        const portionM = mergeServings ? totalM : { kcal: totalM.kcal/servings, p: totalM.p/servings, c: totalM.c/servings, f: totalM.f/servings };
+        const portionM = mergeServings ? totalM : { kcal: totalM.kcal/physicalServings, p: totalM.p/physicalServings, c: totalM.c/physicalServings, f: totalM.f/physicalServings };
 
         for (let s = 0; s < effectiveServings; s++) {
           const itemKey = mergeServings ? `${meal}::${recipe.name}::0` : `${meal}::${recipe.name}::${s}`;
@@ -1767,11 +1771,12 @@ function renderDashboard(entries) {
           rb.className = 'recipe-row' + (currentCheckedMap[itemKey] ? ' checked' : '');
           rb.dataset.meal = meal;
           rb.dataset.entryIds = recEntries.map(x => x.id).join(',');
-          rb.dataset.checkKeys = (mergeServings
-            ? [`${meal}::${recipe.name}::0`]
-            : Array.from({length: servings}, (_, i) => `${meal}::${recipe.name}::${i}`)).join('|');
+          rb.dataset.checkKeys = itemKey;
           rb.dataset.dragKind = 'recipe';
           rb.dataset.recipeName = recipe.name;
+          rb.dataset.servingIdx = String(s);
+          rb.dataset.recipeServings = String(servings);
+          rb.dataset.isSplit = isSplitBlock ? '1' : '0';
           const portionLabel = (!mergeServings && servings > 1) ? ` <span class="recipe-portion-tag">${s+1}/${servings}</span>` : (mergeServings && servings > 1 ? ` <span class="recipe-portion-tag">${servings}×</span>` : '');
 
           const hdr = document.createElement('div');
@@ -3955,23 +3960,41 @@ initTweaks();
       document.addEventListener('click', swallow, { capture: true, once: true });
       setTimeout(() => document.removeEventListener('click', swallow, { capture: true }), 80);
       cancelDrag(false);
-      src.dataset.checkKeys.split('|').filter(Boolean).forEach(k => saveItemTime(k, hour));
+      const tlCheckKeys = src.dataset.checkKeys.split('|').filter(Boolean);
+      // Capture original times before overwriting (needed for stayed serving after split)
+      const originalTimes = {};
+      tlCheckKeys.forEach(k => { originalTimes[k] = itemTimeMap[k] ?? null; });
+      tlCheckKeys.forEach(k => saveItemTime(k, hour));
 
       // Sync meal when the time slot maps to a different meal window
       const newMeal = minutesToMeal(hour);
       const fromMeal = src.dataset.meal;
       if (newMeal && newMeal !== fromMeal && ids.length) {
         const kind = src.dataset.dragKind;
-        const oldKeys = src.dataset.checkKeys.split('|').filter(Boolean);
         const recipeName = src.dataset.recipeName;
         const servingIdx = src.dataset.servingIdx !== undefined ? parseInt(src.dataset.servingIdx, 10) : null;
         const recipeServings = src.dataset.recipeServings !== undefined ? parseInt(src.dataset.recipeServings, 10) : 1;
         const isSplit = src.dataset.isSplit === '1';
         if (kind === 'recipe' && recipeServings > 1 && !isSplit) {
           // Physical split: duplicate rows so each serving gets its own entries
-          await splitRecipeServing({ ids, fromMeal, newMeal, servingIdx, recipeServings, oldKeys, recipeName });
+          await splitRecipeServing({ ids, fromMeal, newMeal, servingIdx, recipeServings, oldKeys: tlCheckKeys, recipeName });
+          // Fix itemTimeMap: old key (fromMeal::name::0) → stayed key + moved key
+          const movedSi  = (servingIdx ?? 0) === 0 ? 1 : 2;
+          const stayedSi = (servingIdx ?? 0) === 0 ? 2 : 1;
+          tlCheckKeys.forEach(k => {
+            const origTime = originalTimes[k];
+            saveItemTime(k, null); // remove stale old key
+            const base = `::${recipeName}::`;
+            saveItemTime(fromMeal + base + stayedSi, origTime); // stayed serving keeps original slot
+            saveItemTime(newMeal  + base + movedSi,  hour);     // moved serving at new slot
+          });
         } else {
-          await moveEntries({ ids, fromMeal, toMeal: newMeal, kind, oldKeys, recipeName });
+          await moveEntries({ ids, fromMeal, toMeal: newMeal, kind, oldKeys: tlCheckKeys, recipeName });
+          // Fix itemTimeMap: replace fromMeal prefix with newMeal in all keys
+          tlCheckKeys.forEach(k => {
+            saveItemTime(k, null);
+            saveItemTime(newMeal + '::' + k.slice(fromMeal.length + 2), hour);
+          });
         }
       }
 
@@ -3993,13 +4016,21 @@ initTweaks();
       const oldKeys = src.dataset.checkKeys.split('|').filter(Boolean);
       const kind = src.dataset.dragKind;
       const recipeName = src.dataset.recipeName;
+      const fromMeal = src.dataset.meal;
+      const servingIdx = src.dataset.servingIdx !== undefined ? parseInt(src.dataset.servingIdx, 10) : null;
+      const recipeServings = src.dataset.recipeServings !== undefined ? parseInt(src.dataset.recipeServings, 10) : 1;
+      const isSplit = src.dataset.isSplit === '1';
 
       const swallow = e => { e.stopPropagation(); e.preventDefault(); };
       document.addEventListener('click', swallow, { capture: true, once: true });
       setTimeout(() => document.removeEventListener('click', swallow, { capture: true }), 80);
 
       cancelDrag(false);
-      await moveEntries({ ids, fromMeal: src.dataset.meal, toMeal: newMeal, kind, oldKeys, recipeName });
+      if (kind === 'recipe' && recipeServings > 1 && !isSplit) {
+        await splitRecipeServing({ ids, fromMeal, newMeal, servingIdx, recipeServings, oldKeys, recipeName });
+      } else {
+        await moveEntries({ ids, fromMeal, toMeal: newMeal, kind, oldKeys, recipeName });
+      }
     } else if (dropCard && dropCard.dataset.meal === src.dataset.meal) {
       const capturedInsertBefore = state.dropInsertBefore;
       const capturedCard = dropCard;
