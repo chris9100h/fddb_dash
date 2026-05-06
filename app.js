@@ -3448,8 +3448,10 @@ async function takeFullScreenshot() {
   // In timeline mode the hero card is hidden via .tl-mode CSS, but that class
   // was stripped from the clone root — remove the card explicitly.
   if (timelineMode) clone.querySelector('#heroCard')?.remove();
-  // Remove the now-line from the capture — it's a live UI indicator, not content.
+  // Remove live UI indicators from the capture.
   clone.querySelector('.tl-now-line')?.remove();
+  clone.querySelector('.tl-meal-rail')?.remove();
+  clone.querySelector('.timeline-view')?.classList.remove('tl-has-rail');
 
   // Fix the adherence ring for html2canvas capture.
   // html2canvas has well-known issues rendering SVG <circle> strokes
