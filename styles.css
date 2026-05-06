@@ -2463,6 +2463,32 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
 .tl-treat-tag { color: var(--gold);  background: rgba(245,158,11,.15); }
 .tl-moc-tag   { color: var(--moc);   background: rgba(167,139,250,.15); }
 
+/* Recipe expand in timeline */
+.tl-recipe-wrap { display: flex; flex-direction: column; }
+.tl-recipe-chevron {
+  background: none; border: none; cursor: pointer;
+  color: var(--text-dim); padding: 0 6px;
+  display: inline-flex; align-items: center;
+  font-size: .72rem; flex-shrink: 0;
+  transition: color .15s;
+}
+.tl-recipe-chevron:hover { color: var(--text); }
+.tl-recipe-chevron i { transition: transform .25s cubic-bezier(.4,0,.2,1); }
+.tl-recipe-wrap.tl-recipe-open .tl-recipe-chevron i { transform: rotate(180deg); }
+.tl-recipe-ingredients {
+  max-height: 0; overflow: hidden;
+  transition: max-height .3s cubic-bezier(.4,0,.2,1);
+}
+.tl-recipe-wrap.tl-recipe-open .tl-recipe-ingredients { max-height: 1200px; }
+.tl-ingredient-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 10px 5px 14px;
+  border-top: 1px solid var(--border);
+}
+.tl-ing-name {
+  flex: 1; font-size: .72rem; color: var(--text-dim); word-break: break-word;
+}
+
 /* Day-summary footer */
 .tl-day-summary {
   display: flex;

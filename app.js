@@ -933,6 +933,7 @@ function makeTlChip(block) {
   }
 
   chip.className = 'tl-chip';
+  let returnEl = chip;
   const meal = block.meal;
   const isTreat = meal === WEEKLY_TREAT_MEAL;
   const isMoc   = meal === MEAL_OF_CHOICE;
@@ -982,7 +983,36 @@ function makeTlChip(block) {
         </div>
         <div class="tl-chip-macros">${tlMacrosHTML(portionM)}</div>
       </div>
+      <button class="tl-recipe-chevron" title="Zutaten anzeigen"><i class="fas fa-chevron-down"></i></button>
       <div class="tl-chip-cb"><i class="fas fa-check"></i></div>`;
+
+    // Build ingredient list
+    const ingList = document.createElement('div');
+    ingList.className = 'tl-recipe-ingredients';
+    entries.forEach(ing => {
+      const row = document.createElement('div');
+      row.className = 'tl-ingredient-row';
+      row.innerHTML =
+        `<span class="tl-ing-name">${ing.item_name}</span>` +
+        `<div class="ing-pills">` +
+          `<div class="ip ip-kcal">${Math.round((ing.kcal||0)/servings)}</div>` +
+          `<div class="ip ip-p">${(parseFloat(ing.protein||0)/servings).toFixed(1)}</div>` +
+          `<div class="ip ip-c">${(parseFloat(ing.carbs||0)/servings).toFixed(1)}</div>` +
+          `<div class="ip ip-f">${(parseFloat(ing.fat||0)/servings).toFixed(1)}</div>` +
+        `</div>`;
+      ingList.appendChild(row);
+    });
+
+    const recipeWrap = document.createElement('div');
+    recipeWrap.className = 'tl-recipe-wrap';
+    recipeWrap.appendChild(chip);
+    recipeWrap.appendChild(ingList);
+    returnEl = recipeWrap;
+
+    chip.querySelector('.tl-recipe-chevron').addEventListener('click', e => {
+      e.stopPropagation();
+      recipeWrap.classList.toggle('tl-recipe-open');
+    });
   }
   if (currentCheckedMap[block.tlKey]) chip.classList.add('tl-chip-done');
   chip.querySelector('.tl-chip-grip').addEventListener('pointerdown', ev => ev.stopPropagation());
@@ -998,7 +1028,7 @@ function makeTlChip(block) {
     chip.classList.toggle('tl-chip-done', nowChecked);
     persistChecked(block.tlKey, nowChecked);
   });
-  return chip;
+  return returnEl;
 }
 
 /* ── View switching ── */
