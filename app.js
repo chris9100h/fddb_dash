@@ -956,14 +956,20 @@ function renderTimelineDashboard(entries) {
     const rail = document.createElement('div');
     rail.className = 'tl-meal-rail';
 
-    // Only individual food rows determine bracket spans — training/insulin blocks
-    // are excluded entirely since they can span multiple categories.
+    // Only food rows that are NOT inside a training/insulin block determine brackets.
+    // Rows inside blocks are excluded since the block has its own visual styling.
+    const inBlockRows = new Set([
+      ...wrap.querySelectorAll('.tl-training-block .tl-row'),
+      ...wrap.querySelectorAll('.tl-insulin-block .tl-row'),
+    ]);
     const measured = [];
-    [...wrap.querySelectorAll('.tl-row.tl-has-items[data-hour]')].forEach(r => {
-      const h = parseInt(r.dataset.hour, 10);
-      const meal = !isNaN(h) ? getMealForTime(h) : null;
-      if (meal) measured.push({ el: r, meal });
-    });
+    [...wrap.querySelectorAll('.tl-row.tl-has-items[data-hour]')]
+      .filter(r => !inBlockRows.has(r))
+      .forEach(r => {
+        const h = parseInt(r.dataset.hour, 10);
+        const meal = !isNaN(h) ? getMealForTime(h) : null;
+        if (meal) measured.push({ el: r, meal });
+      });
 
     // Sort by vertical position, then group consecutive same-category entries
     const wrapTop = wrap.getBoundingClientRect().top;
