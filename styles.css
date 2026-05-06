@@ -1517,10 +1517,20 @@ body[data-hero="bars"] .hero-card-inner { grid-template-columns: 1fr; }
 .settings-section-title {
   font-size: .68rem; letter-spacing: .14em; text-transform: uppercase;
   color: var(--muted); font-weight: 600;
-  display: inline-flex; align-items: center; gap: 7px;
+  display: flex; align-items: center; gap: 7px;
   padding: 0 4px;
+  cursor: pointer; user-select: none;
 }
+.settings-section[data-always-open] .settings-section-title { cursor: default; }
 .settings-section-title i { color: var(--accent); font-size: .72rem; }
+.settings-chevron {
+  margin-left: auto;
+  transition: transform .2s ease;
+  color: var(--muted) !important;
+  font-size: .65rem !important;
+}
+.settings-section.collapsed .settings-chevron { transform: rotate(-90deg); }
+.settings-section.collapsed > .list-group { display: none; }
 
 .settings-row {
   display: flex; align-items: center; gap: 14px;

@@ -441,6 +441,22 @@ function initSettingsUI() {
 
   // Background refresh from server — overrides cache if newer values exist.
   loadSettingsFromDb();
+
+  initSettingsCollapse();
+}
+
+function initSettingsCollapse() {
+  document.querySelectorAll('#viewSettings .settings-section').forEach(section => {
+    const title = section.querySelector('.settings-section-title');
+    const alwaysOpen = section.hasAttribute('data-always-open');
+    const chev = document.createElement('i');
+    chev.className = 'fas fa-chevron-down settings-chevron';
+    title.appendChild(chev);
+    if (!alwaysOpen) {
+      section.classList.add('collapsed');
+      title.addEventListener('click', () => section.classList.toggle('collapsed'));
+    }
+  });
 }
 
 function todayISO() {
