@@ -1027,15 +1027,8 @@ function refreshMealRail(dragActive) {
     .forEach(r => {
       const h = parseInt(r.dataset.hour, 10);
       const meal = !isNaN(h) ? getMealForTime(h) : null;
-      if (meal) measured.push({ el: r, meal });
+      if (meal) measured.push({ el: r, meal, top: r.offsetTop, bottom: r.offsetTop + r.offsetHeight });
     });
-
-  const wrapTop = wrap.getBoundingClientRect().top;
-  measured.forEach(item => {
-    const rect = item.el.getBoundingClientRect();
-    item.top    = rect.top    - wrapTop;
-    item.bottom = rect.bottom - wrapTop;
-  });
   measured.sort((a, b) => a.top - b.top);
 
   const groups = [];
