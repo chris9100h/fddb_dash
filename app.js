@@ -994,11 +994,12 @@ function renderTimelineDashboard(entries) {
     }
 
     const GAP = 4;
-    for (const { top, bottom } of groups) {
+    for (const { meal, top, bottom } of groups) {
       const seg = document.createElement('div');
       seg.className = 'tl-meal-rail-seg';
       seg.style.top    = (top    + GAP) + 'px';
       seg.style.height = (bottom - top - GAP * 2) + 'px';
+      seg.dataset.label = LABELS[meal] || meal;
       rail.appendChild(seg);
     }
     wrap.appendChild(rail);

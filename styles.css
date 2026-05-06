@@ -1987,10 +1987,10 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
 }
 .tl-meal-rail {
   position: absolute;
-  left: -15px;
+  left: -17px;
   top: 0;
   bottom: 0;
-  width: 11px;
+  width: 13px;
   pointer-events: none;
   z-index: 1;
 }
@@ -2004,6 +2004,21 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   border-bottom: 1.5px solid var(--muted);
   border-radius: 2px 0 0 2px;
   opacity: .55;
+  overflow: hidden;
+}
+.tl-meal-rail-seg::before {
+  content: attr(data-label);
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 4px 0 0 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  max-height: 100%;
 }
 
 .tl-row {
