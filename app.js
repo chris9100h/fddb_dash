@@ -126,6 +126,7 @@ const SETTINGS_DEFAULTS = {
   showTrainingChip:  false,  // show draggable Training block in timeline
   trainingDuration:  60,     // training window length in minutes (global)
   showDateStripInTimeline: false,
+  showMealRail:      true,   // show meal-category coloured rail on the left of the timeline
   showNowLine:       true,   // show current-time indicator line in timeline
   timelinePrimary:   false,  // timeline is the default view; dashboard is read-only
 };
@@ -174,6 +175,7 @@ const SETTING_DB_KEYS = {
   showTrainingChip:    'show_training_chip',
   trainingDuration:    'training_duration',
   showDateStripInTimeline: 'show_date_strip_in_timeline',
+  showMealRail:        'show_meal_rail',
   showNowLine:         'show_now_line',
   timelinePrimary:     'timeline_primary',
 };
@@ -412,6 +414,17 @@ function initSettingsUI() {
       cacheSettings();
       writeSettingToDb('showDateStripInTimeline', settings.showDateStripInTimeline);
       document.getElementById('viewMain').classList.toggle('tl-show-date-strip', settings.showDateStripInTimeline);
+    });
+  }
+
+  const showMealRailEl = document.getElementById('setShowMealRail');
+  if (showMealRailEl) {
+    showMealRailEl.checked = !!settings.showMealRail;
+    showMealRailEl.addEventListener('change', () => {
+      settings.showMealRail = showMealRailEl.checked;
+      cacheSettings();
+      writeSettingToDb('showMealRail', settings.showMealRail);
+      if (timelineMode) renderTimelineDashboard(currentDayEntries);
     });
   }
 
@@ -936,6 +949,37 @@ function renderTimelineDashboard(entries) {
   }
 
   content.appendChild(wrap);
+
+  // Meal-category rail: narrow coloured bar on the left spanning visible rows per category
+  if (settings.showMealRail) {
+    wrap.classList.add('tl-has-rail');
+    const rail = document.createElement('div');
+    rail.className = 'tl-meal-rail';
+    const visibleRows = [...wrap.querySelectorAll('.tl-row.tl-has-items[data-hour]')]
+      .filter(r => { const h = parseInt(r.dataset.hour, 10); return !isNaN(h) && getMealForTime(h); });
+    const groups = [];
+    for (const row of visibleRows) {
+      const meal = getMealForTime(parseInt(row.dataset.hour, 10));
+      if (!groups.length || groups[groups.length - 1].meal !== meal) {
+        groups.push({ meal, rows: [row] });
+      } else {
+        groups[groups.length - 1].rows.push(row);
+      }
+    }
+    const wrapTop = wrap.getBoundingClientRect().top;
+    for (const { meal, rows } of groups) {
+      const top    = rows[0].getBoundingClientRect().top - wrapTop;
+      const bottom = rows[rows.length - 1].getBoundingClientRect().bottom - wrapTop;
+      const seg = document.createElement('div');
+      seg.className = 'tl-meal-rail-seg';
+      seg.style.top    = top + 'px';
+      seg.style.height = (bottom - top) + 'px';
+      seg.style.setProperty('--rc', TL_COLORS[meal] || '#888');
+      seg.dataset.label = LABELS[meal] || meal;
+      rail.appendChild(seg);
+    }
+    wrap.appendChild(rail);
+  }
 
   renderTargetBlock(); updateChecked();
 
