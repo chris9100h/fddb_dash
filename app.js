@@ -956,19 +956,27 @@ function renderTimelineDashboard(entries) {
     const rail = document.createElement('div');
     rail.className = 'tl-meal-rail';
 
-    // Collect visible food rows + training/insulin blocks, all with their meal category
-    const measured = [];
-    [...wrap.querySelectorAll('.tl-row.tl-has-items[data-hour]')].forEach(r => {
-      const h = parseInt(r.dataset.hour, 10);
-      const meal = !isNaN(h) ? getMealForTime(h) : null;
-      if (meal) measured.push({ el: r, meal });
-    });
+    // Collect visible food rows + training/insulin blocks, all with their meal category.
+    // Rows INSIDE a block are excluded from individual measurement — the block itself
+    // is added as a single unit so its rows don't create overlapping inner brackets.
     const tbEl = wrap.querySelector('.tl-training-block');
+    const ibEl = wrap.querySelector('.tl-insulin-block');
+    const inBlockRows = new Set([
+      ...wrap.querySelectorAll('.tl-training-block .tl-row'),
+      ...wrap.querySelectorAll('.tl-insulin-block .tl-row'),
+    ]);
+    const measured = [];
+    [...wrap.querySelectorAll('.tl-row.tl-has-items[data-hour]')]
+      .filter(r => !inBlockRows.has(r))
+      .forEach(r => {
+        const h = parseInt(r.dataset.hour, 10);
+        const meal = !isNaN(h) ? getMealForTime(h) : null;
+        if (meal) measured.push({ el: r, meal });
+      });
     if (tbEl && trainingSlot != null) {
       const meal = getMealForTime(trainingSlot);
       if (meal) measured.push({ el: tbEl, meal });
     }
-    const ibEl = wrap.querySelector('.tl-insulin-block');
     if (ibEl && insulinSlot != null) {
       const meal = getMealForTime(insulinSlot);
       if (meal) measured.push({ el: ibEl, meal });
