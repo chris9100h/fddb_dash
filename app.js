@@ -12,8 +12,8 @@ const WATER_URL = 'https://ebbuvdzgstrhrcsbrlez.supabase.co';
 const WATER_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImViYnV2ZHpnc3RyaHJjc2JybGV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwMjc4ODAsImV4cCI6MjA5MTYwMzg4MH0.RyTzHiqV1TPSZtM7lgenBJbUCTjj5fCUhoWauifjlIE';
 const dbWater = supabase.createClient(WATER_URL, WATER_KEY);
 
-const ORDER = ['frühstück','zwischenmahlzeit 1','mittagessen','zwischenmahlzeit 2','abendbrot','abendessen'];
-const LABELS = { 'frühstück':'Breakfast','zwischenmahlzeit 1':'Snack 1','mittagessen':'Lunch','zwischenmahlzeit 2':'Snack 2','abendbrot':'Dinner','abendessen':'Dinner','weekly_treat':'Weekly Treat','meal_of_choice':'Meal of Choice' };
+const ORDER = ['frühstück','zwischenmahlzeit 1','zwischenmahlzeit 3','mittagessen','zwischenmahlzeit 2','zwischenmahlzeit 4','abendbrot','abendessen'];
+const LABELS = { 'frühstück':'Breakfast','zwischenmahlzeit 1':'Snack 1','zwischenmahlzeit 3':'Snack 2','mittagessen':'Lunch','zwischenmahlzeit 2':'Snack 3','zwischenmahlzeit 4':'Snack 4','abendbrot':'Dinner','abendessen':'Dinner','weekly_treat':'Weekly Treat','meal_of_choice':'Meal of Choice' };
 const WEEKLY_TREAT_MEAL = 'weekly_treat';
 const MEAL_OF_CHOICE = 'meal_of_choice';
 const MOC_KCAL = 1200;
@@ -566,6 +566,19 @@ function formatSlot(minutes) {
   return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${minutes % 60 === 0 ? '00' : '30'}`;
 }
 
+// Map a timeline slot (minutes) to the matching meal key, or null if outside all windows.
+function minutesToMeal(minutes) {
+  if (minutes === null || minutes === undefined) return null;
+  if (minutes >= 180  && minutes <= 300)  return 'frühstück';
+  if (minutes >= 330  && minutes <= 450)  return 'zwischenmahlzeit 1';
+  if (minutes >= 480  && minutes <= 660)  return 'zwischenmahlzeit 3';
+  if (minutes >= 690  && minutes <= 870)  return 'mittagessen';
+  if (minutes >= 900  && minutes <= 1020) return 'zwischenmahlzeit 2';
+  if (minutes >= 1050 && minutes <= 1170) return 'zwischenmahlzeit 4';
+  if (minutes >= 1200 && minutes <= 1320) return 'abendbrot';
+  return null;
+}
+
 const TL_COLORS = {
   'frühstück':'#a78bfa','zwischenmahlzeit 1':'#4ade80','mittagessen':'#60a5fa',
   'zwischenmahlzeit 2':'#f97316','abendbrot':'#f472b6','abendessen':'#f472b6',
@@ -597,8 +610,27 @@ function buildTlRenderBlocks(meal, items) {
       const servings = recipe.servings || 1;
       const recEntries = matchIndices.map(idx => items[idx]);
       const baseIdx = Math.min(...matchIndices);
-      for (let s = 0; s < servings; s++) {
-        renderBlocks.push({ type: 'recipe', recipe, entries: recEntries, serving: s, servings, firstIdx: baseIdx + s * 0.001, meal, tlKey: `${meal}::${recipe.name}::${s}` });
+
+      // serving_index > 0 means this group was explicitly split off; treat as
+      // a single physical serving (macros already divided at write time).
+      const isSplit = recEntries.some(e => (e.serving_index ?? 0) !== 0);
+      if (isSplit) {
+        const si = recEntries[0]?.serving_index ?? 1;
+        renderBlocks.push({
+          type: 'recipe', recipe, entries: recEntries,
+          serving: si - 1, servings, physicalServings: 1,
+          firstIdx: baseIdx, meal, isSplit: true,
+          tlKey: `${meal}::${recipe.name}::${si}`,
+        });
+      } else {
+        for (let s = 0; s < servings; s++) {
+          renderBlocks.push({
+            type: 'recipe', recipe, entries: recEntries,
+            serving: s, servings, physicalServings: servings,
+            firstIdx: baseIdx + s * 0.001, meal, isSplit: false,
+            tlKey: `${meal}::${recipe.name}::${s}`,
+          });
+        }
       }
     }
   });
@@ -964,8 +996,9 @@ function makeTlChip(block) {
       <div class="tl-chip-cb"><i class="fas fa-check"></i></div>`;
   } else {
     const { recipe, entries, serving, servings } = block;
+    const physicalServings = block.physicalServings || servings;
     const totalM = macroSum(entries);
-    const portionM = { kcal: totalM.kcal/servings, p: totalM.p/servings, c: totalM.c/servings, f: totalM.f/servings };
+    const portionM = { kcal: totalM.kcal/physicalServings, p: totalM.p/physicalServings, c: totalM.c/physicalServings, f: totalM.f/physicalServings };
     const displayName = recipe.templateId
       ? ((allRecipes.find(r => r.id === recipe.templateId)?.name ?? '') + ' · ' + recipe.name)
       : recipe.name;
@@ -975,6 +1008,9 @@ function makeTlChip(block) {
     chip.dataset.dragKind = 'recipe';
     chip.dataset.meal = meal;
     chip.dataset.recipeName = recipe.name;
+    chip.dataset.servingIdx = String(serving);
+    chip.dataset.recipeServings = String(servings);
+    chip.dataset.isSplit = block.isSplit ? '1' : '0';
     chip.innerHTML = `
       <div class="tl-chip-grip"><i class="fas fa-grip-lines"></i></div>
       <div class="tl-chip-body">
@@ -3920,6 +3956,25 @@ initTweaks();
       setTimeout(() => document.removeEventListener('click', swallow, { capture: true }), 80);
       cancelDrag(false);
       src.dataset.checkKeys.split('|').filter(Boolean).forEach(k => saveItemTime(k, hour));
+
+      // Sync meal when the time slot maps to a different meal window
+      const newMeal = minutesToMeal(hour);
+      const fromMeal = src.dataset.meal;
+      if (newMeal && newMeal !== fromMeal && ids.length) {
+        const kind = src.dataset.dragKind;
+        const oldKeys = src.dataset.checkKeys.split('|').filter(Boolean);
+        const recipeName = src.dataset.recipeName;
+        const servingIdx = src.dataset.servingIdx !== undefined ? parseInt(src.dataset.servingIdx, 10) : null;
+        const recipeServings = src.dataset.recipeServings !== undefined ? parseInt(src.dataset.recipeServings, 10) : 1;
+        const isSplit = src.dataset.isSplit === '1';
+        if (kind === 'recipe' && recipeServings > 1 && !isSplit) {
+          // Physical split: duplicate rows so each serving gets its own entries
+          await splitRecipeServing({ ids, fromMeal, newMeal, servingIdx, recipeServings, oldKeys, recipeName });
+        } else {
+          await moveEntries({ ids, fromMeal, toMeal: newMeal, kind, oldKeys, recipeName });
+        }
+      }
+
       renderTimelineDashboard(currentDayEntries);
       return;
     }
@@ -3980,6 +4035,64 @@ initTweaks();
     const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
     const fmt = x => x.toISOString().split('T')[0];
     return { monday: fmt(mon), sunday: fmt(sun) };
+  }
+
+  // Split a multi-serving recipe: duplicates the shared rows, divides macros per serving,
+  // assigns serving_index so each group is independent going forward.
+  async function splitRecipeServing({ ids, fromMeal, newMeal, servingIdx, recipeServings, oldKeys, recipeName }) {
+    const N = recipeServings;
+    const srcEntries = currentDayEntries.filter(e => ids.includes(String(e.id)));
+    if (!srcEntries.length) return;
+
+    // si=1 → stays in fromMeal (all servings except the moved one)
+    // si=2 → goes to newMeal (the moved serving)
+    const movedSi  = servingIdx === 0 ? 1 : 2;
+    const stayedSi = servingIdx === 0 ? 2 : 1;
+
+    // Update original rows: halve macros, set serving_index=stayedSi
+    await Promise.all(srcEntries.map(e =>
+      db.from('fddb_daily_macros').update({
+        serving_index: stayedSi,
+        kcal:    Math.round((e.kcal ?? 0) / N),
+        protein: ((parseFloat(e.protein) || 0) / N).toFixed(2),
+        carbs:   ((parseFloat(e.carbs)   || 0) / N).toFixed(2),
+        fat:     ((parseFloat(e.fat)     || 0) / N).toFixed(2),
+      }).eq('id', e.id)
+    ));
+
+    // Insert new rows for moved serving
+    const newRows = srcEntries.map(e => ({
+      date: currentDate, meal: newMeal, item_name: e.item_name,
+      kcal:    Math.round((e.kcal ?? 0) / N),
+      protein: ((parseFloat(e.protein) || 0) / N).toFixed(2),
+      carbs:   ((parseFloat(e.carbs)   || 0) / N).toFixed(2),
+      fat:     ((parseFloat(e.fat)     || 0) / N).toFixed(2),
+      serving_index: movedSi,
+      sort_order: e.sort_order ?? 0,
+    }));
+    const { data: inserted } = await db.from('fddb_daily_macros').insert(newRows).select();
+
+    // Update in-memory entries
+    srcEntries.forEach(e => {
+      e.serving_index = stayedSi;
+      e.kcal    = Math.round((e.kcal ?? 0) / N);
+      e.protein = ((parseFloat(e.protein) || 0) / N).toFixed(2);
+      e.carbs   = ((parseFloat(e.carbs)   || 0) / N).toFixed(2);
+      e.fat     = ((parseFloat(e.fat)     || 0) / N).toFixed(2);
+    });
+    if (inserted) inserted.forEach(e => currentDayEntries.push(e));
+
+    // Update checklist keys for moved serving
+    const newKeys = (oldKeys || []).map(k => k.replace(`::${recipeName}::${servingIdx}`, `::${recipeName}::${movedSi}`));
+    for (let i = 0; i < (oldKeys || []).length; i++) {
+      const oldK = oldKeys[i], newK = newKeys[i];
+      if (oldK === newK) continue;
+      const v = currentCheckedMap[oldK];
+      await db.from('fddb_checklist_status').delete().eq('date', currentDate).eq('item_key', oldK);
+      if (v) await db.from('fddb_checklist_status').upsert({ date: currentDate, item_key: newK, checked: true }, { onConflict: 'date,item_key' });
+    }
+
+    renderTargetBlock();
   }
 
   async function moveEntries({ ids, fromMeal, toMeal, kind, oldKeys, recipeName }) {
