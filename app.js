@@ -956,23 +956,14 @@ function renderTimelineDashboard(entries) {
     const rail = document.createElement('div');
     rail.className = 'tl-meal-rail';
 
-    // Collect visible food rows + training/insulin blocks, all with their meal category
+    // Only individual food rows determine bracket spans — training/insulin blocks
+    // are excluded entirely since they can span multiple categories.
     const measured = [];
     [...wrap.querySelectorAll('.tl-row.tl-has-items[data-hour]')].forEach(r => {
       const h = parseInt(r.dataset.hour, 10);
       const meal = !isNaN(h) ? getMealForTime(h) : null;
       if (meal) measured.push({ el: r, meal });
     });
-    const tbEl = wrap.querySelector('.tl-training-block');
-    if (tbEl && trainingSlot != null) {
-      const meal = getMealForTime(trainingSlot);
-      if (meal) measured.push({ el: tbEl, meal });
-    }
-    const ibEl = wrap.querySelector('.tl-insulin-block');
-    if (ibEl && insulinSlot != null) {
-      const meal = getMealForTime(insulinSlot);
-      if (meal) measured.push({ el: ibEl, meal });
-    }
 
     // Sort by vertical position, then group consecutive same-category entries
     const wrapTop = wrap.getBoundingClientRect().top;
