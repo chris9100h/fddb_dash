@@ -951,10 +951,7 @@ function renderTimelineDashboard(entries) {
   content.appendChild(wrap);
 
   // Meal-category rail
-  if (settings.showMealRail) {
-    wrap.classList.add('tl-has-rail');
-    refreshMealRail(false);
-  }
+  if (settings.showMealRail) wrap.classList.add('tl-has-rail');
 
   renderTargetBlock(); updateChecked();
 
@@ -1009,6 +1006,10 @@ function renderTimelineDashboard(entries) {
   updateNowLine();
   clearInterval(_nowLineTimer);
   _nowLineTimer = settings.showNowLine ? setInterval(updateNowLine, 60_000) : null;
+
+  // Rail must be measured after now-line is in the DOM (it's a 16px flow element
+  // that shifts all rows below it — measuring before would give wrong positions).
+  if (settings.showMealRail) refreshMealRail(false);
 }
 
 function refreshMealRail(dragActive) {
@@ -1213,6 +1214,7 @@ function makeTlChip(block) {
     chip.querySelector('.tl-recipe-chevron').addEventListener('click', e => {
       e.stopPropagation();
       recipeWrap.classList.toggle('tl-recipe-open');
+      refreshMealRail(false);
     });
   }
   if (currentCheckedMap[block.tlKey]) chip.classList.add('tl-chip-done');
