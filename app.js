@@ -974,7 +974,16 @@ function renderTimelineDashboard(entries) {
       `<span class="tl-ds-c">${Math.round(totals.c)}</span>` +
       `<span class="tl-ds-f">${Math.round(totals.f)}</span>` +
     `</div>` +
-    (adh != null ? `<div class="tl-day-summary-adh">Adherence ${adh}%</div>` : '');
+    (adh != null ? (() => {
+      const perfect = adh >= 97;
+      const goalMet = adh >= settings.adherenceGoal;
+      const badgeHtml = perfect
+        ? `<span class="hero-badge badge-perfect"><i class="fas fa-star"></i> Perfect</span>`
+        : goalMet
+          ? `<span class="hero-badge badge-goal"><i class="fas fa-check"></i> Goal</span>`
+          : '';
+      return `<div class="tl-day-summary-adh">Adherence ${adh}%${badgeHtml ? ' ' + badgeHtml : ''}</div>`;
+    })() : '');
   content.appendChild(dayFoot);
 
   // Now-line: draw immediately, then refresh every minute

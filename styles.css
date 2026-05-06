@@ -2534,6 +2534,7 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
 .tl-ds-c    { color: var(--yellow); }
 .tl-ds-f    { color: var(--red); }
 .tl-day-summary-adh {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
   font-size: .75rem;
   font-weight: 800;
   color: var(--accent);
@@ -2541,6 +2542,5 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   border-top: 1px solid rgba(255,107,0,.3);
   margin-top: 8px;
   padding-top: 7px;
-  text-align: center;
 }
 
