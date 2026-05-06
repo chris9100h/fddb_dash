@@ -950,32 +950,55 @@ function renderTimelineDashboard(entries) {
 
   content.appendChild(wrap);
 
-  // Meal-category rail: narrow coloured bar on the left spanning visible rows per category
+  // Meal-category rail: bracket indicator on the left spanning visible rows per category
   if (settings.showMealRail) {
     wrap.classList.add('tl-has-rail');
     const rail = document.createElement('div');
     rail.className = 'tl-meal-rail';
-    const visibleRows = [...wrap.querySelectorAll('.tl-row.tl-has-items[data-hour]')]
-      .filter(r => { const h = parseInt(r.dataset.hour, 10); return !isNaN(h) && getMealForTime(h); });
+
+    // Collect visible food rows + training/insulin blocks, all with their meal category
+    const measured = [];
+    [...wrap.querySelectorAll('.tl-row.tl-has-items[data-hour]')].forEach(r => {
+      const h = parseInt(r.dataset.hour, 10);
+      const meal = !isNaN(h) ? getMealForTime(h) : null;
+      if (meal) measured.push({ el: r, meal });
+    });
+    const tbEl = wrap.querySelector('.tl-training-block');
+    if (tbEl && trainingSlot != null) {
+      const meal = getMealForTime(trainingSlot);
+      if (meal) measured.push({ el: tbEl, meal });
+    }
+    const ibEl = wrap.querySelector('.tl-insulin-block');
+    if (ibEl && insulinSlot != null) {
+      const meal = getMealForTime(insulinSlot);
+      if (meal) measured.push({ el: ibEl, meal });
+    }
+
+    // Sort by vertical position, then group consecutive same-category entries
+    const wrapTop = wrap.getBoundingClientRect().top;
+    measured.forEach(item => {
+      const r = item.el.getBoundingClientRect();
+      item.top    = r.top    - wrapTop;
+      item.bottom = r.bottom - wrapTop;
+    });
+    measured.sort((a, b) => a.top - b.top);
+
     const groups = [];
-    for (const row of visibleRows) {
-      const meal = getMealForTime(parseInt(row.dataset.hour, 10));
-      if (!groups.length || groups[groups.length - 1].meal !== meal) {
-        groups.push({ meal, rows: [row] });
+    for (const item of measured) {
+      if (!groups.length || groups[groups.length - 1].meal !== item.meal) {
+        groups.push({ meal: item.meal, top: item.top, bottom: item.bottom });
       } else {
-        groups[groups.length - 1].rows.push(row);
+        const g = groups[groups.length - 1];
+        g.bottom = Math.max(g.bottom, item.bottom);
       }
     }
-    const wrapTop = wrap.getBoundingClientRect().top;
-    for (const { meal, rows } of groups) {
-      const top    = rows[0].getBoundingClientRect().top - wrapTop;
-      const bottom = rows[rows.length - 1].getBoundingClientRect().bottom - wrapTop;
+
+    const GAP = 4;
+    for (const { top, bottom } of groups) {
       const seg = document.createElement('div');
       seg.className = 'tl-meal-rail-seg';
-      seg.style.top    = top + 'px';
-      seg.style.height = (bottom - top) + 'px';
-      seg.style.setProperty('--rc', TL_COLORS[meal] || '#888');
-      seg.dataset.label = LABELS[meal] || meal;
+      seg.style.top    = (top    + GAP) + 'px';
+      seg.style.height = (bottom - top - GAP * 2) + 'px';
       rail.appendChild(seg);
     }
     wrap.appendChild(rail);
