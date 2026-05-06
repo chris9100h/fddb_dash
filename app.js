@@ -950,56 +950,10 @@ function renderTimelineDashboard(entries) {
 
   content.appendChild(wrap);
 
-  // Meal-category rail: bracket indicator on the left spanning visible rows per category
+  // Meal-category rail
   if (settings.showMealRail) {
     wrap.classList.add('tl-has-rail');
-    const rail = document.createElement('div');
-    rail.className = 'tl-meal-rail';
-
-    // Only food rows that are NOT inside a training/insulin block determine brackets.
-    // Rows inside blocks are excluded since the block has its own visual styling.
-    const inBlockRows = new Set([
-      ...wrap.querySelectorAll('.tl-training-block .tl-row'),
-      ...wrap.querySelectorAll('.tl-insulin-block .tl-row'),
-    ]);
-    const measured = [];
-    [...wrap.querySelectorAll('.tl-row.tl-has-items[data-hour]')]
-      .filter(r => !inBlockRows.has(r))
-      .forEach(r => {
-        const h = parseInt(r.dataset.hour, 10);
-        const meal = !isNaN(h) ? getMealForTime(h) : null;
-        if (meal) measured.push({ el: r, meal });
-      });
-
-    // Sort by vertical position, then group consecutive same-category entries
-    const wrapTop = wrap.getBoundingClientRect().top;
-    measured.forEach(item => {
-      const r = item.el.getBoundingClientRect();
-      item.top    = r.top    - wrapTop;
-      item.bottom = r.bottom - wrapTop;
-    });
-    measured.sort((a, b) => a.top - b.top);
-
-    const groups = [];
-    for (const item of measured) {
-      if (!groups.length || groups[groups.length - 1].meal !== item.meal) {
-        groups.push({ meal: item.meal, top: item.top, bottom: item.bottom });
-      } else {
-        const g = groups[groups.length - 1];
-        g.bottom = Math.max(g.bottom, item.bottom);
-      }
-    }
-
-    const GAP = 4;
-    for (const { meal, top, bottom } of groups) {
-      const seg = document.createElement('div');
-      seg.className = 'tl-meal-rail-seg';
-      seg.style.top    = (top    + GAP) + 'px';
-      seg.style.height = (bottom - top - GAP * 2) + 'px';
-      seg.dataset.label = LABELS[meal] || meal;
-      rail.appendChild(seg);
-    }
-    wrap.appendChild(rail);
+    refreshMealRail(false);
   }
 
   renderTargetBlock(); updateChecked();
@@ -1055,6 +1009,57 @@ function renderTimelineDashboard(entries) {
   updateNowLine();
   clearInterval(_nowLineTimer);
   _nowLineTimer = settings.showNowLine ? setInterval(updateNowLine, 60_000) : null;
+}
+
+function refreshMealRail(dragActive) {
+  const wrap = document.querySelector('.timeline-view');
+  if (!wrap || !settings.showMealRail) return;
+  wrap.querySelector('.tl-meal-rail')?.remove();
+
+  const rowSel = dragActive ? '.tl-row[data-hour]' : '.tl-row.tl-has-items[data-hour]';
+  const inBlockRows = new Set([
+    ...wrap.querySelectorAll('.tl-training-block .tl-row'),
+    ...wrap.querySelectorAll('.tl-insulin-block .tl-row'),
+  ]);
+  const measured = [];
+  [...wrap.querySelectorAll(rowSel)]
+    .filter(r => !inBlockRows.has(r))
+    .forEach(r => {
+      const h = parseInt(r.dataset.hour, 10);
+      const meal = !isNaN(h) ? getMealForTime(h) : null;
+      if (meal) measured.push({ el: r, meal });
+    });
+
+  const wrapTop = wrap.getBoundingClientRect().top;
+  measured.forEach(item => {
+    const rect = item.el.getBoundingClientRect();
+    item.top    = rect.top    - wrapTop;
+    item.bottom = rect.bottom - wrapTop;
+  });
+  measured.sort((a, b) => a.top - b.top);
+
+  const groups = [];
+  for (const item of measured) {
+    if (!groups.length || groups[groups.length - 1].meal !== item.meal) {
+      groups.push({ meal: item.meal, top: item.top, bottom: item.bottom });
+    } else {
+      const g = groups[groups.length - 1];
+      g.bottom = Math.max(g.bottom, item.bottom);
+    }
+  }
+
+  const rail = document.createElement('div');
+  rail.className = 'tl-meal-rail';
+  const GAP = 4;
+  for (const { meal, top, bottom } of groups) {
+    const seg = document.createElement('div');
+    seg.className = 'tl-meal-rail-seg';
+    seg.style.top    = (top    + GAP) + 'px';
+    seg.style.height = (bottom - top - GAP * 2) + 'px';
+    seg.dataset.label = LABELS[meal] || meal;
+    rail.appendChild(seg);
+  }
+  wrap.appendChild(rail);
 }
 
 function buildTlRow(minutes, blocks) {
@@ -3924,6 +3929,7 @@ initTweaks();
     document.querySelectorAll('.meal-card.dnd-hover').forEach(c => c.classList.remove('dnd-hover'));
     document.querySelectorAll('.tl-row.tl-drop-target').forEach(r => r.classList.remove('tl-drop-target'));
     document.querySelector('.timeline-view')?.classList.remove('tl-drag-active');
+    refreshMealRail(false);
     state = null;
     document.body.classList.remove('is-dragging');
     if (wasStarted) unlockBodyScroll();
@@ -4063,7 +4069,10 @@ initTweaks();
 
     // Expand all rows after body is locked so row expansion can't scroll the
     // viewport or change the ghost's initial coordinates.
-    if (timelineMode) document.querySelector('.timeline-view')?.classList.add('tl-drag-active');
+    if (timelineMode) {
+      document.querySelector('.timeline-view')?.classList.add('tl-drag-active');
+      refreshMealRail(true);
+    }
 
     moveGhost(clientX, clientY);
   }
