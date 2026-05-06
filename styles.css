@@ -1981,6 +1981,8 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   display: flex;
   flex-direction: column;
   padding: 4px 0 0;
+}
+.timeline-view.tl-has-rail {
   margin-left: 16px;
 }
 .tl-meal-rail {
