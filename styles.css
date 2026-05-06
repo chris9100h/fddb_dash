@@ -1987,37 +1987,41 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
 }
 .tl-meal-rail {
   position: absolute;
-  left: -15px;
+  left: -14px;
   top: 0;
   bottom: 0;
-  width: 13px;
+  width: 12px;
   pointer-events: none;
   z-index: 1;
+  overflow: visible;
 }
 .tl-meal-rail-seg {
   position: absolute;
   left: 0;
   width: 100%;
-  border-left: 2px solid var(--rc);
   box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  overflow: hidden;
+  border-left:   1.5px solid var(--muted);
+  border-top:    1.5px solid var(--muted);
+  border-bottom: 1.5px solid var(--muted);
+  border-radius: 2px 0 0 2px;
+  opacity: .55;
+  overflow: visible;
 }
 .tl-meal-rail-seg::before {
   content: attr(data-label);
+  position: absolute;
+  right: calc(100% + 3px);
+  top: 4px;
   writing-mode: vertical-rl;
   transform: rotate(180deg);
   font-size: 7px;
   font-weight: 700;
   letter-spacing: .07em;
   text-transform: uppercase;
-  color: var(--rc);
-  opacity: .6;
-  padding: 4px 0 0 2px;
+  color: var(--muted);
   white-space: nowrap;
   overflow: hidden;
-  max-height: 100%;
+  max-height: calc(100% - 8px);
 }
 
 .tl-row {
