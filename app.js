@@ -137,9 +137,22 @@ try {
   if (raw) settings = { ...SETTINGS_DEFAULTS, ...JSON.parse(raw) };
 } catch (e) { /* ignore */ }
 
-// Initialise timelineMode from the persisted setting so the first render
-// uses the correct view without waiting for the DB settings load.
-if (settings.timelinePrimary) timelineMode = true;
+// Apply timeline-primary DOM state synchronously so the page never renders
+// with the wrong tab active or without the tl-mode class. Everything here
+// mirrors what setTodayView() does, but without triggering a data render.
+if (settings.timelinePrimary) {
+  timelineMode = true;
+  document.getElementById('tsnDashboard')?.classList.remove('active');
+  document.getElementById('tsnTimeline')?.classList.add('active');
+  document.getElementById('todaySubNav')?.classList.add('tl-primary');
+  document.getElementById('viewMain')?.classList.add('tl-mode');
+  if (settings.showDateStripInTimeline) document.getElementById('viewMain')?.classList.add('tl-show-date-strip');
+  const cb = document.getElementById('checkedBlock'); if (cb) cb.style.display = 'none';
+  const eyebrow = document.querySelector('#viewMain .large-header .eyebrow');
+  const title   = document.querySelector('#viewMain .large-header .large-title');
+  if (eyebrow) eyebrow.textContent = 'Daily Schedule';
+  if (title)   title.textContent   = 'Timeline';
+}
 
 function cacheSettings() {
   try { localStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify(settings)); } catch (e) {}
@@ -201,14 +214,13 @@ async function loadSettingsFromDb() {
   } catch (e) { /* offline — keep cached values */ }
 }
 
-// Applies the timeline-primary setting: swaps tab order, switches to timeline
-// view, and syncs the checkbox in the settings panel.
+// Applies the timeline-primary setting after a live toggle in the settings
+// panel: swaps tab order, syncs checkbox, and switches view with a full render.
 function applyTimelinePrimary() {
-  const nav = document.getElementById('todaySubNav');
-  if (nav) nav.classList.toggle('tl-primary', !!settings.timelinePrimary);
+  document.getElementById('todaySubNav')?.classList.toggle('tl-primary', !!settings.timelinePrimary);
   const el = document.getElementById('setTimelinePrimary');
   if (el) el.checked = !!settings.timelinePrimary;
-  if (settings.timelinePrimary && !timelineMode) setTodayView('timeline');
+  setTodayView(settings.timelinePrimary ? 'timeline' : (timelineMode ? 'timeline' : 'dashboard'));
 }
 
 function applySettingsToUI() {
