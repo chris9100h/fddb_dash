@@ -1948,7 +1948,20 @@ function renderDashboard(entries) {
     dashRemaining.filter(r => !r.used).forEach(r => {
       dashRenderBlocks.push({ type: 'item', entry: r.item, firstIdx: r.idx });
     });
-    dashRenderBlocks.sort((a,b) => a.firstIdx - b.firstIdx);
+    dashRenderBlocks.sort((a, b) => {
+      const getTime = block => {
+        if (block.type === 'recipe') {
+          const si = block.overrideServingIdx ?? 0;
+          return itemTimeMap[`${meal}::${block.recipe.name}::${si}`] ?? null;
+        }
+        return itemTimeMap[`${meal}::${block.entry.item_name}`] ?? null;
+      };
+      const ta = getTime(a), tb = getTime(b);
+      if (ta !== null && tb !== null) return ta - tb;
+      if (ta !== null) return -1;
+      if (tb !== null) return 1;
+      return a.firstIdx - b.firstIdx;
+    });
 
     dashRenderBlocks.forEach(block => {
       if (block.type === 'item') {
