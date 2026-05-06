@@ -589,6 +589,30 @@ function getMealForTime(minutes) {
   return slot ? slot.meal : null;
 }
 
+// Returns the set of recipe names that have been "exploded" into per-serving DB rows.
+// A recipe is considered exploded only when its entries span ≥2 distinct non-null
+// serving_index values across all meals for the current day. This correctly handles
+// both NULL defaults and integer 0 defaults for the serving_index column.
+function computeExplodedRecipes() {
+  const recipeTemplateMap = new Map(allRecipes.map(r => [r.id, r]));
+  const exploded = new Set();
+  allRecipes.forEach(recipe => {
+    if ((recipe.servings || 1) <= 1) return;
+    const effectiveItems = recipe.templateId
+      ? [...new Set([...(recipeTemplateMap.get(recipe.templateId)?.items || []), ...recipe.items])]
+      : recipe.items;
+    if (!effectiveItems.length) return;
+    const indices = new Set(
+      currentDayEntries
+        .filter(e => effectiveItems.includes(stripAmount(e.item_name)))
+        .map(e => e.serving_index)
+        .filter(v => v != null)
+    );
+    if (indices.size >= 2) exploded.add(recipe.name);
+  });
+  return exploded;
+}
+
 function buildTlRenderBlocks(meal, items) {
   const renderBlocks = [];
   const recipeTemplateMap = new Map(allRecipes.map(r => [r.id, r]));
@@ -600,12 +624,44 @@ function buildTlRenderBlocks(meal, items) {
     return { ...r, effectiveItems: r.items };
   }).sort((a, b) => b.effectiveItems.length - a.effectiveItems.length);
 
-  // Match recipes in a pool of items; overrideServingIdx != null means entries
-  // are already per-serving (exploded) — don't split by recipe.servings.
-  function matchPool(pool, overrideServingIdx) {
-    const remaining = pool.map((item, idx) => ({ item, idx, used: false }));
-    recipesByLength.forEach(recipe => {
-      if (recipe.effectiveItems.length === 0) return;
+  const explodedRecipeNames = computeExplodedRecipes();
+  const remaining = items.map((item, idx) => ({ item, idx, used: false }));
+
+  recipesByLength.forEach(recipe => {
+    if (recipe.effectiveItems.length === 0) return;
+    const isExploded = explodedRecipeNames.has(recipe.name);
+
+    if (isExploded) {
+      // Recipe was explicitly split: group items in this meal by serving_index,
+      // match the recipe independently within each group.
+      const siGroups = {};
+      remaining.forEach(r => {
+        if (r.used) return;
+        const si = r.item.serving_index ?? 0;
+        (siGroups[si] = siGroups[si] || []).push(r);
+      });
+      for (const [si, pool] of Object.entries(siGroups)) {
+        const matched = [];
+        let allFound = true;
+        for (const rName of recipe.effectiveItems) {
+          const found = pool.find(r => !matched.includes(r) && stripAmount(r.item.item_name) === rName);
+          if (found) matched.push(found);
+          else { allFound = false; break; }
+        }
+        if (allFound && matched.length > 0) {
+          matched.forEach(r => { remaining[r.idx].used = true; });
+          const recEntries = matched.map(r => r.item);
+          const servingIdx = parseInt(si, 10);
+          renderBlocks.push({
+            type: 'recipe', recipe, entries: recEntries,
+            serving: servingIdx, servings: recipe.servings || 1, isExploded: true,
+            firstIdx: Math.min(...matched.map(r => r.idx)), meal,
+            tlKey: `${meal}::${recipe.name}::${servingIdx}`,
+          });
+        }
+      }
+    } else {
+      // Standard: all entries in this meal represent all servings combined.
       const matchIndices = [];
       const workingPool = remaining.filter(r => !r.used);
       let allFound = true;
@@ -616,42 +672,19 @@ function buildTlRenderBlocks(meal, items) {
       }
       if (allFound && matchIndices.length > 0) {
         matchIndices.forEach(idx => { remaining[idx].used = true; });
-        const recEntries = matchIndices.map(idx => pool[idx]);
+        const servings = recipe.servings || 1;
+        const recEntries = matchIndices.map(idx => items[idx]);
         const baseIdx = Math.min(...matchIndices);
-        if (overrideServingIdx != null) {
-          // Exploded entry: this IS one serving, macros already divided
-          renderBlocks.push({
-            type: 'recipe', recipe, entries: recEntries,
-            serving: overrideServingIdx, servings: recipe.servings || 1, isExploded: true,
-            firstIdx: baseIdx, meal, tlKey: `${meal}::${recipe.name}::${overrideServingIdx}`,
-          });
-        } else {
-          const servings = recipe.servings || 1;
-          for (let s = 0; s < servings; s++) {
-            renderBlocks.push({ type: 'recipe', recipe, entries: recEntries, serving: s, servings, isExploded: false, firstIdx: baseIdx + s * 0.001, meal, tlKey: `${meal}::${recipe.name}::${s}` });
-          }
+        for (let s = 0; s < servings; s++) {
+          renderBlocks.push({ type: 'recipe', recipe, entries: recEntries, serving: s, servings, isExploded: false, firstIdx: baseIdx + s * 0.001, meal, tlKey: `${meal}::${recipe.name}::${s}` });
         }
       }
-    });
-    remaining.filter(r => !r.used).forEach(r => {
-      const tlKey = overrideServingIdx != null
-        ? `${meal}::${r.item.item_name}::${overrideServingIdx}`
-        : `${meal}::${r.item.item_name}`;
-      renderBlocks.push({ type: 'item', entry: r.item, firstIdx: r.idx, meal, tlKey, serving_index: overrideServingIdx ?? null });
-    });
-  }
+    }
+  });
 
-  // Separate exploded entries (serving_index set) from merged entries
-  const mergedItems = items.filter(i => i.serving_index == null);
-  const explodedItems = items.filter(i => i.serving_index != null);
-
-  // Group exploded items by serving_index; each group is one independent serving
-  const servingGroups = {};
-  explodedItems.forEach(i => { (servingGroups[i.serving_index] = servingGroups[i.serving_index] || []).push(i); });
-  for (const [sidx, pool] of Object.entries(servingGroups)) matchPool(pool, parseInt(sidx, 10));
-
-  // Process merged items with standard multi-serving split
-  matchPool(mergedItems, null);
+  remaining.filter(r => !r.used).forEach(r => {
+    renderBlocks.push({ type: 'item', entry: r.item, firstIdx: r.idx, meal, tlKey: `${meal}::${r.item.item_name}` });
+  });
 
   renderBlocks.sort((a, b) => a.firstIdx - b.firstIdx);
   return renderBlocks;
@@ -1710,7 +1743,8 @@ function renderDashboard(entries) {
     const list = document.createElement('div');
     list.className = 'items-list';
 
-    // Build render blocks, handling both merged (serving_index=null) and exploded entries.
+    // Build render blocks, using computeExplodedRecipes() to distinguish recipes
+    // that have been individually split across meals from unmodified multi-serving ones.
     const dashRenderBlocks = [];
     const recipeTemplateMap = new Map(allRecipes.map(r => [r.id, r]));
     const recipesByLength = [...allRecipes].map(r => {
@@ -1724,12 +1758,37 @@ function renderDashboard(entries) {
       return { ...r, effectiveItems: r.items };
     }).sort((a, b) => b.effectiveItems.length - a.effectiveItems.length);
 
-    function matchDashPool(pool, overrideServingIdx) {
-      const remaining = pool.map((item, idx) => ({ item, idx, used: false }));
-      recipesByLength.forEach(recipe => {
-        if (recipe.effectiveItems.length === 0) return;
+    const explodedRecipeNames = computeExplodedRecipes();
+    const dashRemaining = items.map((item, idx) => ({ item, idx, used: false }));
+
+    recipesByLength.forEach(recipe => {
+      if (recipe.effectiveItems.length === 0) return;
+      const isExploded = explodedRecipeNames.has(recipe.name);
+
+      if (isExploded) {
+        const siGroups = {};
+        dashRemaining.forEach(r => {
+          if (r.used) return;
+          const si = r.item.serving_index ?? 0;
+          (siGroups[si] = siGroups[si] || []).push(r);
+        });
+        for (const [si, pool] of Object.entries(siGroups)) {
+          const matched = [];
+          let allFound = true;
+          for (const rName of recipe.effectiveItems) {
+            const found = pool.find(r => !matched.includes(r) && stripAmount(r.item.item_name) === rName);
+            if (found) matched.push(found);
+            else { allFound = false; break; }
+          }
+          if (allFound && matched.length > 0) {
+            matched.forEach(r => { dashRemaining[r.idx].used = true; });
+            const recipeEntries = matched.map(r => r.item);
+            dashRenderBlocks.push({ type: 'recipe', recipe, entries: recipeEntries, isExploded: true, overrideServingIdx: parseInt(si, 10), firstIdx: Math.min(...matched.map(r => r.idx)) });
+          }
+        }
+      } else {
         const matchIndices = [];
-        const workingPool = remaining.filter(r => !r.used);
+        const workingPool = dashRemaining.filter(r => !r.used);
         let allFound = true;
         for (const rName of recipe.effectiveItems) {
           const found = workingPool.find(r => !matchIndices.includes(r.idx) && stripAmount(r.item.item_name) === rName);
@@ -1737,22 +1796,15 @@ function renderDashboard(entries) {
           else { allFound = false; break; }
         }
         if (allFound && matchIndices.length > 0) {
-          matchIndices.forEach(idx => { remaining[idx].used = true; });
-          const recipeEntries = matchIndices.map(idx => pool[idx]);
-          dashRenderBlocks.push({ type: 'recipe', recipe, entries: recipeEntries, isExploded: overrideServingIdx != null, overrideServingIdx, firstIdx: Math.min(...matchIndices) });
+          matchIndices.forEach(idx => { dashRemaining[idx].used = true; });
+          const recipeEntries = matchIndices.map(idx => items[idx]);
+          dashRenderBlocks.push({ type: 'recipe', recipe, entries: recipeEntries, isExploded: false, overrideServingIdx: null, firstIdx: Math.min(...matchIndices) });
         }
-      });
-      remaining.filter(r => !r.used).forEach(r => {
-        dashRenderBlocks.push({ type: 'item', entry: r.item, firstIdx: r.idx });
-      });
-    }
-
-    const mergedItems = items.filter(i => i.serving_index == null);
-    const explodedItems = items.filter(i => i.serving_index != null);
-    const dashServingGroups = {};
-    explodedItems.forEach(i => { (dashServingGroups[i.serving_index] = dashServingGroups[i.serving_index] || []).push(i); });
-    for (const [sidx, pool] of Object.entries(dashServingGroups)) matchDashPool(pool, parseInt(sidx, 10));
-    matchDashPool(mergedItems, null);
+      }
+    });
+    dashRemaining.filter(r => !r.used).forEach(r => {
+      dashRenderBlocks.push({ type: 'item', entry: r.item, firstIdx: r.idx });
+    });
     dashRenderBlocks.sort((a,b) => a.firstIdx - b.firstIdx);
 
     dashRenderBlocks.forEach(block => {
