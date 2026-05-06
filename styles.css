@@ -1977,9 +1977,45 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
    TIMELINE VIEW
    ════════════════════════════════════════ */
 .timeline-view {
+  position: relative;
   display: flex;
   flex-direction: column;
   padding: 4px 0 0;
+  margin-left: 16px;
+}
+.tl-meal-rail {
+  position: absolute;
+  left: -15px;
+  top: 0;
+  bottom: 0;
+  width: 13px;
+  pointer-events: none;
+  z-index: 1;
+}
+.tl-meal-rail-seg {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  border-left: 2px solid var(--rc);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+.tl-meal-rail-seg::before {
+  content: attr(data-label);
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--rc);
+  opacity: .6;
+  padding: 4px 0 0 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  max-height: 100%;
 }
 
 .tl-row {

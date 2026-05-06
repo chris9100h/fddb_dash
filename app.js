@@ -937,6 +937,36 @@ function renderTimelineDashboard(entries) {
 
   content.appendChild(wrap);
 
+  // Meal-category rail: narrow coloured bar on the left spanning visible rows per category
+  {
+    const rail = document.createElement('div');
+    rail.className = 'tl-meal-rail';
+    const visibleRows = [...wrap.querySelectorAll('.tl-row.tl-has-items[data-hour]')]
+      .filter(r => { const h = parseInt(r.dataset.hour, 10); return !isNaN(h) && getMealForTime(h); });
+    const groups = [];
+    for (const row of visibleRows) {
+      const meal = getMealForTime(parseInt(row.dataset.hour, 10));
+      if (!groups.length || groups[groups.length - 1].meal !== meal) {
+        groups.push({ meal, rows: [row] });
+      } else {
+        groups[groups.length - 1].rows.push(row);
+      }
+    }
+    const wrapTop = wrap.getBoundingClientRect().top;
+    for (const { meal, rows } of groups) {
+      const top    = rows[0].getBoundingClientRect().top - wrapTop;
+      const bottom = rows[rows.length - 1].getBoundingClientRect().bottom - wrapTop;
+      const seg = document.createElement('div');
+      seg.className = 'tl-meal-rail-seg';
+      seg.style.top    = top + 'px';
+      seg.style.height = (bottom - top) + 'px';
+      seg.style.setProperty('--rc', TL_COLORS[meal] || '#888');
+      seg.dataset.label = LABELS[meal] || meal;
+      rail.appendChild(seg);
+    }
+    wrap.appendChild(rail);
+  }
+
   renderTargetBlock(); updateChecked();
 
   // Day-summary footer
