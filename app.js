@@ -12,8 +12,8 @@ const WATER_URL = 'https://ebbuvdzgstrhrcsbrlez.supabase.co';
 const WATER_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImViYnV2ZHpnc3RyaHJjc2JybGV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwMjc4ODAsImV4cCI6MjA5MTYwMzg4MH0.RyTzHiqV1TPSZtM7lgenBJbUCTjj5fCUhoWauifjlIE';
 const dbWater = supabase.createClient(WATER_URL, WATER_KEY);
 
-const ORDER = ['frühstück','zwischenmahlzeit 1','mittagessen','zwischenmahlzeit 2','abendbrot','abendessen'];
-const LABELS = { 'frühstück':'Breakfast','zwischenmahlzeit 1':'Snack 1','mittagessen':'Lunch','zwischenmahlzeit 2':'Snack 2','abendbrot':'Dinner','abendessen':'Dinner','weekly_treat':'Weekly Treat','meal_of_choice':'Meal of Choice' };
+const ORDER = ['frühstück','zwischenmahlzeit 1','snack_2','mittagessen','zwischenmahlzeit 2','snack_4','abendbrot','abendessen'];
+const LABELS = { 'frühstück':'Breakfast','zwischenmahlzeit 1':'Snack 1','snack_2':'Snack 2','mittagessen':'Lunch','zwischenmahlzeit 2':'Snack 3','snack_4':'Snack 4','abendbrot':'Dinner','abendessen':'Dinner','weekly_treat':'Weekly Treat','meal_of_choice':'Meal of Choice' };
 const WEEKLY_TREAT_MEAL = 'weekly_treat';
 const MEAL_OF_CHOICE = 'meal_of_choice';
 const MOC_KCAL = 1200;
@@ -567,12 +567,29 @@ function formatSlot(minutes) {
 }
 
 const TL_COLORS = {
-  'frühstück':'#a78bfa','zwischenmahlzeit 1':'#4ade80','mittagessen':'#60a5fa',
-  'zwischenmahlzeit 2':'#f97316','abendbrot':'#f472b6','abendessen':'#f472b6',
+  'frühstück':'#a78bfa','zwischenmahlzeit 1':'#4ade80','snack_2':'#34d399',
+  'mittagessen':'#60a5fa','zwischenmahlzeit 2':'#f97316','snack_4':'#fb923c',
+  'abendbrot':'#f472b6','abendessen':'#f472b6',
 };
 
+// Maps each time range to its meal category. Used when a chip is dropped
+// onto a timeline slot so the dashboard category follows the time placement.
+const TIME_TO_MEAL = [
+  { from: 180,  to: 300,  meal: 'frühstück'        }, // 03:00–05:00
+  { from: 330,  to: 450,  meal: 'zwischenmahlzeit 1' }, // 05:30–07:30
+  { from: 480,  to: 660,  meal: 'snack_2'           }, // 08:00–11:00
+  { from: 690,  to: 870,  meal: 'mittagessen'       }, // 11:30–14:30
+  { from: 900,  to: 1020, meal: 'zwischenmahlzeit 2' }, // 15:00–17:00
+  { from: 1050, to: 1170, meal: 'snack_4'           }, // 17:30–19:30
+  { from: 1200, to: 1320, meal: 'abendbrot'         }, // 20:00–22:00
+];
+function getMealForTime(minutes) {
+  if (minutes == null) return null;
+  const slot = TIME_TO_MEAL.find(s => minutes >= s.from && minutes <= s.to);
+  return slot ? slot.meal : null;
+}
+
 function buildTlRenderBlocks(meal, items) {
-  const remaining = items.map((item, idx) => ({ item, idx, used: false }));
   const renderBlocks = [];
   const recipeTemplateMap = new Map(allRecipes.map(r => [r.id, r]));
   const recipesByLength = [...allRecipes].map(r => {
@@ -582,27 +599,60 @@ function buildTlRenderBlocks(meal, items) {
     }
     return { ...r, effectiveItems: r.items };
   }).sort((a, b) => b.effectiveItems.length - a.effectiveItems.length);
-  recipesByLength.forEach(recipe => {
-    if (recipe.effectiveItems.length === 0) return;
-    const matchIndices = [];
-    const workingPool = remaining.filter(r => !r.used);
-    let allFound = true;
-    for (const rName of recipe.effectiveItems) {
-      const found = workingPool.find(r => !matchIndices.includes(r.idx) && stripAmount(r.item.item_name) === rName);
-      if (found) matchIndices.push(found.idx);
-      else { allFound = false; break; }
-    }
-    if (allFound && matchIndices.length > 0) {
-      matchIndices.forEach(idx => { remaining[idx].used = true; });
-      const servings = recipe.servings || 1;
-      const recEntries = matchIndices.map(idx => items[idx]);
-      const baseIdx = Math.min(...matchIndices);
-      for (let s = 0; s < servings; s++) {
-        renderBlocks.push({ type: 'recipe', recipe, entries: recEntries, serving: s, servings, firstIdx: baseIdx + s * 0.001, meal, tlKey: `${meal}::${recipe.name}::${s}` });
+
+  // Match recipes in a pool of items; overrideServingIdx != null means entries
+  // are already per-serving (exploded) — don't split by recipe.servings.
+  function matchPool(pool, overrideServingIdx) {
+    const remaining = pool.map((item, idx) => ({ item, idx, used: false }));
+    recipesByLength.forEach(recipe => {
+      if (recipe.effectiveItems.length === 0) return;
+      const matchIndices = [];
+      const workingPool = remaining.filter(r => !r.used);
+      let allFound = true;
+      for (const rName of recipe.effectiveItems) {
+        const found = workingPool.find(r => !matchIndices.includes(r.idx) && stripAmount(r.item.item_name) === rName);
+        if (found) matchIndices.push(found.idx);
+        else { allFound = false; break; }
       }
-    }
-  });
-  remaining.filter(r => !r.used).forEach(r => renderBlocks.push({ type: 'item', entry: r.item, firstIdx: r.idx, meal, tlKey: `${meal}::${r.item.item_name}` }));
+      if (allFound && matchIndices.length > 0) {
+        matchIndices.forEach(idx => { remaining[idx].used = true; });
+        const recEntries = matchIndices.map(idx => pool[idx]);
+        const baseIdx = Math.min(...matchIndices);
+        if (overrideServingIdx != null) {
+          // Exploded entry: this IS one serving, macros already divided
+          renderBlocks.push({
+            type: 'recipe', recipe, entries: recEntries,
+            serving: overrideServingIdx, servings: recipe.servings || 1, isExploded: true,
+            firstIdx: baseIdx, meal, tlKey: `${meal}::${recipe.name}::${overrideServingIdx}`,
+          });
+        } else {
+          const servings = recipe.servings || 1;
+          for (let s = 0; s < servings; s++) {
+            renderBlocks.push({ type: 'recipe', recipe, entries: recEntries, serving: s, servings, isExploded: false, firstIdx: baseIdx + s * 0.001, meal, tlKey: `${meal}::${recipe.name}::${s}` });
+          }
+        }
+      }
+    });
+    remaining.filter(r => !r.used).forEach(r => {
+      const tlKey = overrideServingIdx != null
+        ? `${meal}::${r.item.item_name}::${overrideServingIdx}`
+        : `${meal}::${r.item.item_name}`;
+      renderBlocks.push({ type: 'item', entry: r.item, firstIdx: r.idx, meal, tlKey, serving_index: overrideServingIdx ?? null });
+    });
+  }
+
+  // Separate exploded entries (serving_index set) from merged entries
+  const mergedItems = items.filter(i => i.serving_index == null);
+  const explodedItems = items.filter(i => i.serving_index != null);
+
+  // Group exploded items by serving_index; each group is one independent serving
+  const servingGroups = {};
+  explodedItems.forEach(i => { (servingGroups[i.serving_index] = servingGroups[i.serving_index] || []).push(i); });
+  for (const [sidx, pool] of Object.entries(servingGroups)) matchPool(pool, parseInt(sidx, 10));
+
+  // Process merged items with standard multi-serving split
+  matchPool(mergedItems, null);
+
   renderBlocks.sort((a, b) => a.firstIdx - b.firstIdx);
   return renderBlocks;
 }
@@ -963,9 +1013,12 @@ function makeTlChip(block) {
       </div>
       <div class="tl-chip-cb"><i class="fas fa-check"></i></div>`;
   } else {
-    const { recipe, entries, serving, servings } = block;
+    const { recipe, entries, serving, servings, isExploded } = block;
     const totalM = macroSum(entries);
-    const portionM = { kcal: totalM.kcal/servings, p: totalM.p/servings, c: totalM.c/servings, f: totalM.f/servings };
+    // Exploded entries already carry per-serving macros; merged entries must be divided.
+    const portionM = isExploded
+      ? totalM
+      : { kcal: totalM.kcal/servings, p: totalM.p/servings, c: totalM.c/servings, f: totalM.f/servings };
     const displayName = recipe.templateId
       ? ((allRecipes.find(r => r.id === recipe.templateId)?.name ?? '') + ' · ' + recipe.name)
       : recipe.name;
@@ -975,6 +1028,9 @@ function makeTlChip(block) {
     chip.dataset.dragKind = 'recipe';
     chip.dataset.meal = meal;
     chip.dataset.recipeName = recipe.name;
+    chip.dataset.serving = String(serving);
+    chip.dataset.servings = String(servings);
+    chip.dataset.isExploded = String(!!isExploded);
     chip.innerHTML = `
       <div class="tl-chip-grip"><i class="fas fa-grip-lines"></i></div>
       <div class="tl-chip-body">
@@ -995,10 +1051,10 @@ function makeTlChip(block) {
       row.innerHTML =
         `<span class="tl-ing-name">${ing.item_name}</span>` +
         `<div class="ing-pills">` +
-          `<div class="ip ip-kcal">${Math.round((ing.kcal||0)/servings)}</div>` +
-          `<div class="ip ip-p">${(parseFloat(ing.protein||0)/servings).toFixed(1)}</div>` +
-          `<div class="ip ip-c">${(parseFloat(ing.carbs||0)/servings).toFixed(1)}</div>` +
-          `<div class="ip ip-f">${(parseFloat(ing.fat||0)/servings).toFixed(1)}</div>` +
+          `<div class="ip ip-kcal">${Math.round((ing.kcal||0)/(isExploded ? 1 : servings))}</div>` +
+          `<div class="ip ip-p">${(parseFloat(ing.protein||0)/(isExploded ? 1 : servings)).toFixed(1)}</div>` +
+          `<div class="ip ip-c">${(parseFloat(ing.carbs||0)/(isExploded ? 1 : servings)).toFixed(1)}</div>` +
+          `<div class="ip ip-f">${(parseFloat(ing.fat||0)/(isExploded ? 1 : servings)).toFixed(1)}</div>` +
         `</div>`;
       ingList.appendChild(row);
     });
@@ -1654,8 +1710,8 @@ function renderDashboard(entries) {
     const list = document.createElement('div');
     list.className = 'items-list';
 
-    const remaining = items.map((item, idx) => ({ item, idx, used: false }));
-    const renderBlocks = [];
+    // Build render blocks, handling both merged (serving_index=null) and exploded entries.
+    const dashRenderBlocks = [];
     const recipeTemplateMap = new Map(allRecipes.map(r => [r.id, r]));
     const recipesByLength = [...allRecipes].map(r => {
       if (r.templateId) {
@@ -1668,30 +1724,38 @@ function renderDashboard(entries) {
       return { ...r, effectiveItems: r.items };
     }).sort((a, b) => b.effectiveItems.length - a.effectiveItems.length);
 
-    recipesByLength.forEach(recipe => {
-      if (recipe.effectiveItems.length === 0) return;
-      const matchIndices = [];
-      const workingPool = remaining.filter(r => !r.used);
-      let allFound = true;
-      for (const rName of recipe.effectiveItems) {
-        const found = workingPool.find(r => !matchIndices.includes(r.idx) && stripAmount(r.item.item_name) === rName);
-        if (found) matchIndices.push(found.idx);
-        else { allFound = false; break; }
-      }
-      if (allFound && matchIndices.length > 0) {
-        matchIndices.forEach(idx => { remaining[idx].used = true; });
-        const recipeEntries = matchIndices.map(idx => items[idx]);
-        renderBlocks.push({ type: 'recipe', recipe, entries: recipeEntries, firstIdx: Math.min(...matchIndices) });
-      }
-    });
+    function matchDashPool(pool, overrideServingIdx) {
+      const remaining = pool.map((item, idx) => ({ item, idx, used: false }));
+      recipesByLength.forEach(recipe => {
+        if (recipe.effectiveItems.length === 0) return;
+        const matchIndices = [];
+        const workingPool = remaining.filter(r => !r.used);
+        let allFound = true;
+        for (const rName of recipe.effectiveItems) {
+          const found = workingPool.find(r => !matchIndices.includes(r.idx) && stripAmount(r.item.item_name) === rName);
+          if (found) matchIndices.push(found.idx);
+          else { allFound = false; break; }
+        }
+        if (allFound && matchIndices.length > 0) {
+          matchIndices.forEach(idx => { remaining[idx].used = true; });
+          const recipeEntries = matchIndices.map(idx => pool[idx]);
+          dashRenderBlocks.push({ type: 'recipe', recipe, entries: recipeEntries, isExploded: overrideServingIdx != null, overrideServingIdx, firstIdx: Math.min(...matchIndices) });
+        }
+      });
+      remaining.filter(r => !r.used).forEach(r => {
+        dashRenderBlocks.push({ type: 'item', entry: r.item, firstIdx: r.idx });
+      });
+    }
 
-    remaining.filter(r => !r.used).forEach(r => {
-      renderBlocks.push({ type: 'item', entry: r.item, firstIdx: r.idx });
-    });
+    const mergedItems = items.filter(i => i.serving_index == null);
+    const explodedItems = items.filter(i => i.serving_index != null);
+    const dashServingGroups = {};
+    explodedItems.forEach(i => { (dashServingGroups[i.serving_index] = dashServingGroups[i.serving_index] || []).push(i); });
+    for (const [sidx, pool] of Object.entries(dashServingGroups)) matchDashPool(pool, parseInt(sidx, 10));
+    matchDashPool(mergedItems, null);
+    dashRenderBlocks.sort((a,b) => a.firstIdx - b.firstIdx);
 
-    renderBlocks.sort((a,b) => a.firstIdx - b.firstIdx);
-
-    renderBlocks.forEach(block => {
+    dashRenderBlocks.forEach(block => {
       if (block.type === 'item') {
         const e = block.entry;
         const m = { kcal: e.kcal||0, p: parseFloat(e.protein)||0, c: parseFloat(e.carbs)||0, f: parseFloat(e.fat)||0 };
@@ -1716,27 +1780,36 @@ function renderDashboard(entries) {
         checkables.push({ get checked() { return row.classList.contains('checked'); }, macros: m });
         list.appendChild(row);
       } else {
-        const { recipe, entries: recEntries } = block;
+        const { recipe, entries: recEntries, isExploded, overrideServingIdx } = block;
         const totalM = macroSum(recEntries);
         const servings = recipe.servings || 1;
-        const effectiveServings = mergeServings ? 1 : servings;
+        // Exploded: entries are already per-serving; merged: divide by recipe.servings.
+        const effectiveServings = (isExploded || mergeServings) ? 1 : servings;
+        const divisor = (isExploded || mergeServings) ? 1 : servings;
         const displayName = recipe.templateId
           ? ((allRecipes.find(r => r.id === recipe.templateId)?.name ?? '') + ' · ' + recipe.name)
           : recipe.name;
-        const portionM = mergeServings ? totalM : { kcal: totalM.kcal/servings, p: totalM.p/servings, c: totalM.c/servings, f: totalM.f/servings };
+        const portionM = { kcal: totalM.kcal/divisor, p: totalM.p/divisor, c: totalM.c/divisor, f: totalM.f/divisor };
 
         for (let s = 0; s < effectiveServings; s++) {
-          const itemKey = mergeServings ? `${meal}::${recipe.name}::0` : `${meal}::${recipe.name}::${s}`;
+          // For exploded entries the actual serving index is overrideServingIdx, not the loop var.
+          const servingIdx = isExploded ? overrideServingIdx : s;
+          const itemKey = mergeServings ? `${meal}::${recipe.name}::0` : `${meal}::${recipe.name}::${servingIdx}`;
           const rb = document.createElement('div');
           rb.className = 'recipe-row' + (currentCheckedMap[itemKey] ? ' checked' : '');
           rb.dataset.meal = meal;
           rb.dataset.entryIds = recEntries.map(x => x.id).join(',');
           rb.dataset.checkKeys = (mergeServings
             ? [`${meal}::${recipe.name}::0`]
-            : Array.from({length: servings}, (_, i) => `${meal}::${recipe.name}::${i}`)).join('|');
+            : (isExploded
+                ? [`${meal}::${recipe.name}::${servingIdx}`]
+                : Array.from({length: servings}, (_, i) => `${meal}::${recipe.name}::${i}`))).join('|');
           rb.dataset.dragKind = 'recipe';
           rb.dataset.recipeName = recipe.name;
-          const portionLabel = (!mergeServings && servings > 1) ? ` <span class="recipe-portion-tag">${s+1}/${servings}</span>` : (mergeServings && servings > 1 ? ` <span class="recipe-portion-tag">${servings}×</span>` : '');
+          rb.dataset.serving = String(servingIdx);
+          rb.dataset.servings = String(servings);
+          rb.dataset.isExploded = String(isExploded);
+          const portionLabel = (!mergeServings && servings > 1) ? ` <span class="recipe-portion-tag">${servingIdx+1}/${servings}</span>` : (mergeServings && servings > 1 ? ` <span class="recipe-portion-tag">${servings}×</span>` : '');
 
           const hdr = document.createElement('div');
           hdr.className = 'recipe-row-header';
@@ -1781,7 +1854,7 @@ function renderDashboard(entries) {
           [...recEntries].sort((a, b) => stripAmount(a.item_name).localeCompare(stripAmount(b.item_name))).forEach(ing => {
             const ingRow = document.createElement('div');
             ingRow.className = 'ingredient-row';
-            ingRow.innerHTML = `<span class="ingredient-name">${ing.item_name}</span><div class="ing-pills"><div class="ip ip-kcal">${Math.round((ing.kcal||0)/(mergeServings?1:servings))}</div><div class="ip ip-p">${(parseFloat(ing.protein||0)/(mergeServings?1:servings)).toFixed(1)}</div><div class="ip ip-c">${(parseFloat(ing.carbs||0)/(mergeServings?1:servings)).toFixed(1)}</div><div class="ip ip-f">${(parseFloat(ing.fat||0)/(mergeServings?1:servings)).toFixed(1)}</div></div>`;
+            ingRow.innerHTML = `<span class="ingredient-name">${ing.item_name}</span><div class="ing-pills"><div class="ip ip-kcal">${Math.round((ing.kcal||0)/divisor)}</div><div class="ip ip-p">${(parseFloat(ing.protein||0)/divisor).toFixed(1)}</div><div class="ip ip-c">${(parseFloat(ing.carbs||0)/divisor).toFixed(1)}</div><div class="ip ip-f">${(parseFloat(ing.fat||0)/divisor).toFixed(1)}</div></div>`;
             ingList.appendChild(ingRow);
           });
           rb.appendChild(ingList);
@@ -3913,13 +3986,45 @@ initTweaks();
     if (timelineMode && state && state.dropTlRow) {
       const hour = state.dropTlRow.dataset.hour === 'null' ? null : parseInt(state.dropTlRow.dataset.hour, 10);
       const ids = src.dataset.entryIds.split(',').map(s => s.trim()).filter(Boolean);
+      const oldKeys = src.dataset.checkKeys.split('|').filter(Boolean);
+      const kind = src.dataset.dragKind;
+      const recipeName = src.dataset.recipeName || '';
+      const fromMeal = src.dataset.meal;
+      const serving = parseInt(src.dataset.serving ?? '0', 10);
+      const servings = parseInt(src.dataset.servings ?? '1', 10);
+      const isExploded = src.dataset.isExploded === 'true';
+
       ghost.style.transition = 'opacity .15s ease';
       ghost.style.opacity = '0';
       const swallow = e => { e.stopPropagation(); e.preventDefault(); };
       document.addEventListener('click', swallow, { capture: true, once: true });
       setTimeout(() => document.removeEventListener('click', swallow, { capture: true }), 80);
       cancelDrag(false);
-      src.dataset.checkKeys.split('|').filter(Boolean).forEach(k => saveItemTime(k, hour));
+
+      const newMeal = getMealForTime(hour);
+      if (newMeal && newMeal !== fromMeal &&
+          fromMeal !== WEEKLY_TREAT_MEAL && fromMeal !== MEAL_OF_CHOICE) {
+        if (kind === 'recipe' && servings > 1) {
+          // Multi-serving recipe: move only this one serving
+          await moveSingleServing({ recipeName, serving, servings, ids, fromMeal, toMeal: newMeal, isExploded });
+          // Update time key to reflect new meal
+          const newKey = `${newMeal}::${recipeName}::${serving}`;
+          saveItemTime(newKey, hour);
+        } else {
+          // Single item or single-serving recipe: move everything
+          await moveEntries({ ids, fromMeal, toMeal: newMeal, kind, oldKeys, recipeName });
+          if (hour !== null) {
+            oldKeys.forEach(k => {
+              const parts = k.split('::');
+              parts[0] = newMeal;
+              saveItemTime(parts.join('::'), hour);
+            });
+          }
+        }
+      } else {
+        // Same meal or no time-range mapping: just update the time slot
+        oldKeys.forEach(k => saveItemTime(k, hour));
+      }
       renderTimelineDashboard(currentDayEntries);
       return;
     }
@@ -4036,6 +4141,77 @@ initTweaks();
       showMoveToast(kind === 'recipe' ? recipeName : 'Item', toMeal);
     } catch (err) {
       console.error('Move failed:', err);
+      alert('Verschieben fehlgeschlagen. Lade neu...');
+      loadDay();
+    }
+  }
+
+  // Moves exactly one serving of a multi-serving recipe to a different meal.
+  // If the recipe entries are still "merged" (serving_index=null), they are
+  // first exploded into per-serving rows in the DB before the move.
+  async function moveSingleServing({ recipeName, serving, servings, ids, fromMeal, toMeal, isExploded }) {
+    try {
+      const idSet = new Set(ids);
+      const allEntries = currentDayEntries.filter(e => idSet.has(String(e.id)));
+
+      if (isExploded) {
+        // Entries already have serving_index; just move this serving's rows.
+        const servingEntries = allEntries.filter(e => e.serving_index === serving);
+        if (!servingEntries.length) return;
+        const servingIds = servingEntries.map(e => String(e.id));
+        // Optimistic local update
+        servingEntries.forEach(e => { e.meal = toMeal; });
+        // Migrate check keys
+        const oldKey = `${fromMeal}::${recipeName}::${serving}`;
+        const newKey = `${toMeal}::${recipeName}::${serving}`;
+        if (currentCheckedMap[oldKey] !== undefined) {
+          const v = currentCheckedMap[oldKey];
+          delete currentCheckedMap[oldKey];
+          if (v) currentCheckedMap[newKey] = v;
+          await db.from('fddb_checklist_status').delete().eq('date', currentDate).eq('item_key', oldKey);
+          if (v) await db.from('fddb_checklist_status').upsert({ date: currentDate, item_key: newKey, checked: true }, { onConflict: 'date,item_key' });
+        }
+        const { error } = await db.from('fddb_daily_macros').update({ meal: toMeal }).in('id', servingIds);
+        if (error) throw error;
+      } else {
+        // Entries are merged: explode into N per-serving rows, then move target serving.
+        const newRows = [];
+        for (let s = 0; s < servings; s++) {
+          for (const entry of allEntries) {
+            newRows.push({
+              date: currentDate,
+              meal: s === serving ? toMeal : fromMeal,
+              item_name: entry.item_name,
+              kcal: Math.round((entry.kcal || 0) / servings),
+              protein: ((parseFloat(entry.protein) || 0) / servings).toFixed(1),
+              carbs: ((parseFloat(entry.carbs) || 0) / servings).toFixed(1),
+              fat: ((parseFloat(entry.fat) || 0) / servings).toFixed(1),
+              serving_index: s,
+              sort_order: entry.sort_order,
+            });
+          }
+        }
+        // Remove old merged entries from local state
+        currentDayEntries = currentDayEntries.filter(e => !idSet.has(String(e.id)));
+        // DB: delete old, insert exploded rows
+        await db.from('fddb_daily_macros').delete().in('id', ids);
+        const { data: inserted, error } = await db.from('fddb_daily_macros').insert(newRows).select();
+        if (error) throw error;
+        if (inserted) currentDayEntries.push(...inserted);
+        // Migrate check key for the moved serving
+        const oldKey = `${fromMeal}::${recipeName}::${serving}`;
+        const newKey = `${toMeal}::${recipeName}::${serving}`;
+        if (currentCheckedMap[oldKey] !== undefined) {
+          const v = currentCheckedMap[oldKey];
+          delete currentCheckedMap[oldKey];
+          if (v) currentCheckedMap[newKey] = v;
+          await db.from('fddb_checklist_status').delete().eq('date', currentDate).eq('item_key', oldKey);
+          if (v) await db.from('fddb_checklist_status').upsert({ date: currentDate, item_key: newKey, checked: true }, { onConflict: 'date,item_key' });
+        }
+      }
+      showMoveToast(recipeName, toMeal);
+    } catch (err) {
+      console.error('moveSingleServing failed:', err);
       alert('Verschieben fehlgeschlagen. Lade neu...');
       loadDay();
     }
