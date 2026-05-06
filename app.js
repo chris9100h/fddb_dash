@@ -24,7 +24,7 @@ let allRecipes = [];
 let allCategories = [];
 let allUnits = [];
 let activeFilterCat = null;
-let collapsedSections = new Set();
+let expandedSections = new Set();
 let _currentGroupKeys = [];
 let currentDayEntries = [];
 let currentCheckedMap = {};
@@ -2471,14 +2471,14 @@ function renderRecipeManage() {
     if (uncategorized.length) groups.push({ key: '__none__', label: 'No category', recipes: uncategorized });
 
     _currentGroupKeys = groups.map(g => g.key);
-    const allCollapsed = groups.every(g => collapsedSections.has(g.key));
+    const allCollapsed = groups.every(g => !expandedSections.has(g.key));
     const ctrl = document.getElementById('recipeSectionControls');
     if (ctrl) {
       ctrl.innerHTML = `<button class="recipe-collapse-btn" onclick="toggleAllSections(${allCollapsed})"><i class="fas fa-angles-${allCollapsed ? 'down' : 'up'}"></i>${allCollapsed ? 'Expand all' : 'Collapse all'}</button>`;
     }
 
     groups.forEach(group => {
-      const isCollapsed = collapsedSections.has(group.key);
+      const isCollapsed = !expandedSections.has(group.key);
       const header = document.createElement('div');
       header.className = 'recipe-section-header';
       header.innerHTML = `
@@ -2496,12 +2496,12 @@ function renderRecipeManage() {
   }
 }
 function toggleSection(key) {
-  collapsedSections.has(key) ? collapsedSections.delete(key) : collapsedSections.add(key);
+  expandedSections.has(key) ? expandedSections.delete(key) : expandedSections.add(key);
   renderRecipeManage();
 }
 function toggleAllSections(expand) {
-  if (expand) _currentGroupKeys.forEach(k => collapsedSections.delete(k));
-  else _currentGroupKeys.forEach(k => collapsedSections.add(k));
+  if (expand) _currentGroupKeys.forEach(k => expandedSections.add(k));
+  else _currentGroupKeys.forEach(k => expandedSections.delete(k));
   renderRecipeManage();
 }
 function setFilterCat(id) { activeFilterCat = id; renderRecipeManage(); }
