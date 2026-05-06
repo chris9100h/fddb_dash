@@ -4200,7 +4200,8 @@ initTweaks();
 
       const newMeal = getMealForTime(hour);
       if (newMeal && newMeal !== fromMeal &&
-          fromMeal !== WEEKLY_TREAT_MEAL && fromMeal !== MEAL_OF_CHOICE) {
+          fromMeal !== WEEKLY_TREAT_MEAL && fromMeal !== MEAL_OF_CHOICE &&
+          fromMeal !== 'training' && fromMeal !== 'insulin') {
         if (kind === 'recipe' && servings > 1) {
           // Multi-serving recipe: move only this one serving
           await moveSingleServing({ recipeName, serving, servings, ids, fromMeal, toMeal: newMeal, isExploded });
