@@ -1348,11 +1348,12 @@ function buildTlRow(minutes, blocks) {
   }
   blocks.forEach(b => slot.appendChild(makeTlChip(b)));
 
-  const foodBlocks = blocks.filter(b => (b.type === 'item' || b.type === 'recipe') && b.meal !== WEEKLY_TREAT_MEAL);
+  const foodBlocks = blocks.filter(b => b.type === 'item' || b.type === 'recipe');
+  const calcBlocks = foodBlocks.filter(b => b.meal !== WEEKLY_TREAT_MEAL);
   const isIntraSlot = minutes === INTRA_WORKOUT_SLOT || minutes === INTRA_WORKOUT_SLOT_2 ||
                       minutes === INTRA_CARDIO_SLOT  || minutes === INTRA_CARDIO_SLOT_2;
   if (settings.showSlotTotals && foodBlocks.length >= 2 && !isIntraSlot) {
-    const total = foodBlocks.reduce((acc, b) => {
+    const total = calcBlocks.reduce((acc, b) => {
       let m;
       if (b.type === 'item') {
         const e = b.entry;
