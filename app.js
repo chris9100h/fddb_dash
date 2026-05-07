@@ -4508,6 +4508,20 @@ initTweaks();
       }
     });
 
+    // Migrate time slot keys locally
+    const timeMoves = [];
+    oldKeys.forEach(oldK => {
+      const minutes = itemTimeMap[oldK];
+      if (minutes != null) {
+        const parts = oldK.split('::');
+        parts[0] = toMeal;
+        const newK = parts.join('::');
+        delete itemTimeMap[oldK];
+        itemTimeMap[newK] = minutes;
+        timeMoves.push({ oldK, newK, minutes });
+      }
+    });
+
     renderDashboard(currentDayEntries);
 
     try {
@@ -4520,6 +4534,11 @@ initTweaks();
           { date: currentDate, item_key: newK, checked: true },
           { onConflict: 'date,item_key' }
         );
+      }
+
+      for (const { oldK, newK, minutes } of timeMoves) {
+        await db.from('fddb_item_times').delete().eq('date', currentDate).eq('item_key', oldK);
+        await db.from('fddb_item_times').upsert({ date: currentDate, item_key: newK, minutes }, { onConflict: 'date,item_key' });
       }
 
       showMoveToast(kind === 'recipe' ? recipeName : 'Item', toMeal);
