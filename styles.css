@@ -2717,14 +2717,15 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
 }
 
 /* ── Timeline: Slot macro total footer ── */
+.tl-row.tl-has-items:has(.tl-slot-footer) {
+  flex-wrap: wrap;
+}
 .tl-slot-footer {
+  flex: 0 0 100%;
   display: flex;
   align-items: baseline;
   gap: 6px;
   padding: 3px 0 2px;
-  margin-top: 3px;
-  margin-left: -58px;
-  width: calc(100% + 58px);
   border-top: 1px solid var(--border);
   font-size: .72rem;
 }
