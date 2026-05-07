@@ -42,6 +42,8 @@ let mocUsedThisWeek = null; // null = unknown, false = not used, string = date i
 // Stored in fddb_item_times like any other assignment; outside the normal
 // 180–1320 range so it never collides with real time slots.
 const INTRA_WORKOUT_SLOT = 1440;
+// Sentinel for the cardio Intra Cardio row.
+const INTRA_CARDIO_SLOT = 1470;
 
 function getWeekBounds(dateStr) {
   const d = new Date(dateStr);
@@ -631,6 +633,29 @@ function saveItemTime(itemKey, minutes) {
   }, 400);
 }
 
+function openCardioDurationModal() {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay open';
+  overlay.innerHTML = `
+    <div class="modal cardio-dur-modal">
+      <div class="modal-title"><i class="fas fa-person-running"></i> Cardio Duration</div>
+      <div class="cardio-dur-options">
+        <button class="cardio-dur-btn" data-min="30">30 min</button>
+        <button class="cardio-dur-btn" data-min="60">60 min</button>
+        <button class="cardio-dur-btn" data-min="90">90 min</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.querySelectorAll('.cardio-dur-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      saveItemTime('__show_cardio', parseInt(btn.dataset.min, 10));
+      overlay.remove();
+      renderDashboard(currentDayEntries);
+    });
+  });
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+}
+
 function formatSlot(minutes) {
   return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${minutes % 60 === 0 ? '00' : '30'}`;
 }
@@ -802,6 +827,9 @@ function renderTimelineDashboard(entries) {
   if ('__show_training' in itemTimeMap) {
     allBlocks.push({ type: 'training', tlKey: 'training::session', meal: null });
   }
+  if ('__show_cardio' in itemTimeMap) {
+    allBlocks.push({ type: 'cardio', tlKey: 'cardio::session', meal: null });
+  }
   for (const meal of Object.keys(grouped)) {
     const items = (grouped[meal] || []).slice().sort((a, b) => (a.sort_order ?? Infinity) - (b.sort_order ?? Infinity));
     allBlocks.push(...buildTlRenderBlocks(meal, items));
@@ -819,7 +847,7 @@ function renderTimelineDashboard(entries) {
   if (trainingSlot != null) {
     const wm = { kcal: 0, p: 0, c: 0, f: 0 };
     allBlocks.forEach(block => {
-      if (block.type === 'training' || block.type === 'insulin') return;
+      if (block.type === 'training' || block.type === 'insulin' || block.type === 'cardio') return;
       const m = itemTimeMap[block.tlKey] ?? null;
       if (m === INTRA_WORKOUT_SLOT) {
         if (block.type === 'item') {
@@ -836,6 +864,31 @@ function renderTimelineDashboard(entries) {
     });
     const trainingBlock = allBlocks.find(b => b.type === 'training');
     if (trainingBlock) trainingBlock.windowMacros = wm;
+  }
+
+  // Compute cardio macro sum: items assigned to Intra Cardio row
+  const cardioSlot = ('__show_cardio' in itemTimeMap) ? (itemTimeMap['cardio::session'] ?? null) : null;
+  const cardioDuration = itemTimeMap['__show_cardio'] ?? 60;
+  if (cardioSlot != null) {
+    const wm = { kcal: 0, p: 0, c: 0, f: 0 };
+    allBlocks.forEach(block => {
+      if (block.type === 'cardio' || block.type === 'training' || block.type === 'insulin') return;
+      const m = itemTimeMap[block.tlKey] ?? null;
+      if (m === INTRA_CARDIO_SLOT) {
+        if (block.type === 'item') {
+          const e = block.entry;
+          wm.kcal += e.kcal||0; wm.p += parseFloat(e.protein)||0;
+          wm.c += parseFloat(e.carbs)||0; wm.f += parseFloat(e.fat)||0;
+        } else {
+          const pm = macroSum(block.entries);
+          const d = block.isExploded ? 1 : block.servings;
+          wm.kcal += pm.kcal/d; wm.p += pm.p/d;
+          wm.c += pm.c/d; wm.f += pm.f/d;
+        }
+      }
+    });
+    const cardioBlock = allBlocks.find(b => b.type === 'cardio');
+    if (cardioBlock) cardioBlock.windowMacros = wm;
   }
 
   // Compute insulin window macro sum before rendering so the chip can display it
@@ -895,6 +948,20 @@ function renderTimelineDashboard(entries) {
     });
     hdr.appendChild(trainingBtn);
 
+    const cardioBtn = document.createElement('button');
+    cardioBtn.type = 'button';
+    cardioBtn.className = 'tl-chip-add-btn' + (('__show_cardio' in itemTimeMap) ? ' active' : '');
+    cardioBtn.innerHTML = '<i class="fas fa-person-running"></i> Cardio';
+    cardioBtn.addEventListener('click', () => {
+      if ('__show_cardio' in itemTimeMap) {
+        saveItemTime('__show_cardio', null);
+        renderDashboard(currentDayEntries);
+      } else {
+        openCardioDurationModal();
+      }
+    });
+    hdr.appendChild(cardioBtn);
+
     wrap.appendChild(hdr);
   }
   wrap.appendChild(buildTlRow('null', nullBlocks));
@@ -903,6 +970,10 @@ function renderTimelineDashboard(entries) {
   // it has no parent block and floats loose in the DOM, appearing during drag.
   if (trainingSlot != null) {
     wrap.appendChild(buildTlRow(INTRA_WORKOUT_SLOT, bySlot[INTRA_WORKOUT_SLOT] || []));
+  }
+  // Same for Intra Cardio row.
+  if (cardioSlot != null) {
+    wrap.appendChild(buildTlRow(INTRA_CARDIO_SLOT, bySlot[INTRA_CARDIO_SLOT] || []));
   }
 
   // Build insulin block: a visual box wrapping the header chip row, all window
@@ -989,6 +1060,44 @@ function renderTimelineDashboard(entries) {
     summary.innerHTML =
       `<span class="tl-training-summary-label">${durLabel}</span>` +
       `<span class="tl-training-summary-vals">` +
+        `<span>${Math.round(wm?.kcal ?? 0)}<small>kcal</small></span>` +
+        `<span>${Math.round(wm?.p ?? 0)}<small>P</small></span>` +
+        `<span>${Math.round(wm?.c ?? 0)}<small>C</small></span>` +
+        `<span>${Math.round(wm?.f ?? 0)}<small>F</small></span>` +
+      `</span>`;
+    block.appendChild(summary);
+  }
+
+  // Build cardio block: same structure as training block but with Intra Cardio row.
+  if (cardioSlot != null) {
+    const slots = Math.floor(cardioDuration / 30);
+    const wm = allBlocks.find(b => b.type === 'cardio')?.windowMacros;
+
+    for (let i = 0; i < slots; i++) {
+      const coveredRow = wrap.querySelector(`[data-hour="${cardioSlot + i * 30}"]`);
+      if (coveredRow) coveredRow.classList.add('tl-cardio-covered');
+    }
+
+    const cardioRow = wrap.querySelector(`[data-hour="${cardioSlot}"]`);
+    const block = document.createElement('div');
+    block.className = 'tl-cardio-block';
+    wrap.insertBefore(block, cardioRow);
+
+    const chipBar = document.createElement('div');
+    chipBar.className = 'tl-cardio-chip-bar';
+    const cardioChip = cardioRow.querySelector('.tl-chip-cardio');
+    if (cardioChip) chipBar.appendChild(cardioChip);
+    if (!cardioRow.querySelector('.tl-chip')) cardioRow.classList.remove('tl-has-items');
+    block.appendChild(chipBar);
+
+    const intraRow = wrap.querySelector(`[data-hour="${INTRA_CARDIO_SLOT}"]`);
+    if (intraRow) block.appendChild(intraRow);
+
+    const summary = document.createElement('div');
+    summary.className = 'tl-cardio-summary';
+    summary.innerHTML =
+      `<span class="tl-cardio-summary-label"><i class="fas fa-person-running" style="margin-right:5px"></i>Ends ${formatSlot(cardioSlot + slots * 30)}</span>` +
+      `<span class="tl-cardio-summary-vals">` +
         `<span>${Math.round(wm?.kcal ?? 0)}<small>kcal</small></span>` +
         `<span>${Math.round(wm?.p ?? 0)}<small>P</small></span>` +
         `<span>${Math.round(wm?.c ?? 0)}<small>C</small></span>` +
@@ -1115,6 +1224,7 @@ function buildTlRow(minutes, blocks) {
   lbl.className = 'tl-time-label';
   lbl.textContent = isNull ? '–'
     : minutes === INTRA_WORKOUT_SLOT ? 'Intra Workout'
+    : minutes === INTRA_CARDIO_SLOT ? 'Intra Cardio'
     : formatSlot(minutes);
 
   const slot = document.createElement('div');
@@ -1149,6 +1259,29 @@ function makeTlChip(block) {
          <div class="tl-chip-body">
            <div class="tl-chip-name-row">
              <span class="tl-chip-name">Novorapid</span>
+           </div>
+         </div>`;
+    return chip;
+  }
+
+  if (block.type === 'cardio') {
+    const placed = itemTimeMap['cardio::session'] != null;
+    const timeStr = placed ? formatSlot(itemTimeMap['cardio::session']) : '';
+    chip.className = 'tl-chip tl-chip-cardio' + (placed ? ' tl-chip-cardio-placed' : '');
+    chip.dataset.entryIds = '';
+    chip.dataset.checkKeys = 'cardio::session';
+    chip.dataset.dragKind = 'item';
+    chip.dataset.meal = 'cardio';
+    chip.innerHTML = placed
+      ? `<span class="tl-cardio-summary-label">
+           <i class="fas fa-person-running" style="margin-right:5px"></i>Cardio &middot; ${timeStr}
+         </span>
+         <div class="tl-chip-grip"><i class="fas fa-grip-lines"></i></div>`
+      : `<div class="tl-chip-grip"><i class="fas fa-grip-lines"></i></div>
+         <i class="fas fa-person-running tl-chip-cardio-icon"></i>
+         <div class="tl-chip-body">
+           <div class="tl-chip-name-row">
+             <span class="tl-chip-name">Cardio</span>
            </div>
          </div>`;
     return chip;
@@ -4039,6 +4172,7 @@ initTweaks();
     rows.forEach(r => {
       r.classList.remove('tl-drop-target');
       if (r.classList.contains('tl-training-covered')) return;
+      if (r.classList.contains('tl-cardio-covered')) return;
       const b = r.getBoundingClientRect();
       if (y >= b.top && y < b.bottom) found = r;
     });
