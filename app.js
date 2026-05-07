@@ -1142,7 +1142,7 @@ function renderTimelineDashboard(entries) {
     const summary = document.createElement('div');
     summary.className = 'tl-training-summary';
     summary.innerHTML =
-      `<span class="tl-training-summary-label"><i class="fas fa-dumbbell" style="margin-right:5px"></i>Ends ${formatSlot(sess.slot + slots * 30)}</span>` +
+      `<span class="tl-training-summary-label"><i class="fas fa-dumbbell" style="margin-right:5px"></i>Ends ${formatSlot(sess.slot + sess.duration)}</span>` +
       `<span class="tl-training-summary-vals">` +
         `<span>${Math.round(wm?.kcal ?? 0)}<small>kcal</small></span>` +
         `<span>${Math.round(wm?.p ?? 0)}<small>P</small></span>` +
@@ -1183,7 +1183,7 @@ function renderTimelineDashboard(entries) {
     const summary = document.createElement('div');
     summary.className = 'tl-cardio-summary';
     summary.innerHTML =
-      `<span class="tl-cardio-summary-label"><i class="fas fa-person-running" style="margin-right:5px"></i>Ends ${formatSlot(sess.slot + slots * 30)}</span>` +
+      `<span class="tl-cardio-summary-label"><i class="fas fa-person-running" style="margin-right:5px"></i>Ends ${formatSlot(sess.slot + sess.duration)}</span>` +
       `<span class="tl-cardio-summary-vals">` +
         `<span>${Math.round(wm?.kcal ?? 0)}<small>kcal</small></span>` +
         `<span>${Math.round(wm?.p ?? 0)}<small>P</small></span>` +
