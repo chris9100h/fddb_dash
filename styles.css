@@ -2721,8 +2721,10 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   display: flex;
   align-items: baseline;
   gap: 6px;
-  padding: 3px 4px 2px;
+  padding: 3px 0 2px;
   margin-top: 3px;
+  margin-left: -58px;
+  width: calc(100% + 58px);
   border-top: 1px solid var(--border);
   font-size: .72rem;
 }
@@ -2730,8 +2732,9 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   color: var(--text-muted);
   font-weight: 600;
   font-size: .68rem;
+  display: inline;
 }
-.tl-slot-footer span {
+.tl-slot-footer span:not(.tl-sf-label) {
   font-weight: 700;
   display: flex;
   align-items: baseline;
