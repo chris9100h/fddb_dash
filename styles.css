@@ -2716,6 +2716,39 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   letter-spacing: .05em;
 }
 
+/* ── Timeline: Slot macro total footer ── */
+.tl-slot-footer {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 3px 4px 2px;
+  margin-top: 3px;
+  border-top: 1px solid var(--border);
+  font-size: .72rem;
+}
+.tl-sf-label {
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: .68rem;
+}
+.tl-slot-footer span {
+  font-weight: 700;
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+.tl-sf-kcal { color: var(--orange); }
+.tl-sf-p    { color: var(--blue); }
+.tl-sf-c    { color: var(--yellow); }
+.tl-sf-f    { color: var(--red); }
+.tl-slot-footer small {
+  font-size: .55rem;
+  font-weight: 600;
+  opacity: .65;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
 /* ── Timeline: Weekly Treat + Meal of Choice chip variants ── */
 .tl-chip-treat {
   border-color: rgba(245,158,11,.35);

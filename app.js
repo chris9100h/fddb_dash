@@ -132,6 +132,7 @@ const SETTINGS_DEFAULTS = {
   showDateStripInTimeline: false,
   showMealRail:      true,   // show meal-category coloured rail on the left of the timeline
   showNowLine:       true,   // show current-time indicator line in timeline
+  showSlotTotals:    true,   // show macro sum footer in slots with 2+ items
   timelinePrimary:   false,  // timeline is the default view; dashboard is read-only
 };
 let settings = { ...SETTINGS_DEFAULTS };
@@ -181,6 +182,7 @@ const SETTING_DB_KEYS = {
   showDateStripInTimeline: 'show_date_strip_in_timeline',
   showMealRail:        'show_meal_rail',
   showNowLine:         'show_now_line',
+  showSlotTotals:      'show_slot_totals',
   timelinePrimary:     'timeline_primary',
 };
 
@@ -428,6 +430,17 @@ function initSettingsUI() {
       settings.showMealRail = showMealRailEl.checked;
       cacheSettings();
       writeSettingToDb('showMealRail', settings.showMealRail);
+      if (timelineMode) renderTimelineDashboard(currentDayEntries);
+    });
+  }
+
+  const showSlotTotalsEl = document.getElementById('setShowSlotTotals');
+  if (showSlotTotalsEl) {
+    showSlotTotalsEl.checked = !!settings.showSlotTotals;
+    showSlotTotalsEl.addEventListener('change', () => {
+      settings.showSlotTotals = showSlotTotalsEl.checked;
+      cacheSettings();
+      writeSettingToDb('showSlotTotals', settings.showSlotTotals);
       if (timelineMode) renderTimelineDashboard(currentDayEntries);
     });
   }
@@ -1321,6 +1334,30 @@ function buildTlRow(minutes, blocks) {
     slot.innerHTML = '<div class="tl-empty-hint">Drag items here to unassign</div>';
   }
   blocks.forEach(b => slot.appendChild(makeTlChip(b)));
+
+  const foodBlocks = blocks.filter(b => b.type === 'item' || b.type === 'recipe');
+  if (settings.showSlotTotals && foodBlocks.length >= 2) {
+    const total = foodBlocks.reduce((acc, b) => {
+      let m;
+      if (b.type === 'item') {
+        const e = b.entry;
+        m = { kcal: e.kcal||0, p: parseFloat(e.protein)||0, c: parseFloat(e.carbs)||0, f: parseFloat(e.fat)||0 };
+      } else {
+        const tm = macroSum(b.entries);
+        m = b.isExploded ? tm : { kcal: tm.kcal/b.servings, p: tm.p/b.servings, c: tm.c/b.servings, f: tm.f/b.servings };
+      }
+      return { kcal: acc.kcal+m.kcal, p: acc.p+m.p, c: acc.c+m.c, f: acc.f+m.f };
+    }, {kcal:0,p:0,c:0,f:0});
+    const footer = document.createElement('div');
+    footer.className = 'tl-slot-footer';
+    footer.innerHTML =
+      `<span class="tl-sf-label">∑</span>` +
+      `<span class="tl-sf-kcal">${Math.round(total.kcal)}<small>kcal</small></span>` +
+      `<span class="tl-sf-p">${total.p.toFixed(1)}<small>P</small></span>` +
+      `<span class="tl-sf-c">${total.c.toFixed(1)}<small>C</small></span>` +
+      `<span class="tl-sf-f">${total.f.toFixed(1)}<small>F</small></span>`;
+    slot.appendChild(footer);
+  }
 
   row.appendChild(lbl);
   row.appendChild(slot);
