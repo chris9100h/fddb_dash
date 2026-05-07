@@ -866,10 +866,39 @@ function renderTimelineDashboard(entries) {
   const wrap = document.createElement('div');
   wrap.className = 'timeline-view';
   const nullBlocks = bySlot['null'] || [];
-  if (nullBlocks.length) {
+  {
     const hdr = document.createElement('div');
     hdr.className = 'tl-unassigned-header';
-    hdr.innerHTML = '<i class="fas fa-clock"></i> No time slot';
+
+    const label = document.createElement('span');
+    label.className = 'tl-unassigned-pill';
+    label.innerHTML = '<i class="fas fa-clock"></i> No time slot';
+    hdr.appendChild(label);
+
+    const insulinBtn = document.createElement('button');
+    insulinBtn.type = 'button';
+    insulinBtn.className = 'tl-chip-add-btn' + (settings.showInsulinChip ? ' active' : '');
+    insulinBtn.innerHTML = '<i class="fas fa-syringe"></i> Novorapid';
+    insulinBtn.addEventListener('click', () => {
+      settings.showInsulinChip = !settings.showInsulinChip;
+      cacheSettings();
+      writeSettingToDb('showInsulinChip', settings.showInsulinChip);
+      renderDashboard(currentDayEntries);
+    });
+    hdr.appendChild(insulinBtn);
+
+    const trainingBtn = document.createElement('button');
+    trainingBtn.type = 'button';
+    trainingBtn.className = 'tl-chip-add-btn' + (settings.showTrainingChip ? ' active' : '');
+    trainingBtn.innerHTML = '<i class="fas fa-dumbbell"></i> Training';
+    trainingBtn.addEventListener('click', () => {
+      settings.showTrainingChip = !settings.showTrainingChip;
+      cacheSettings();
+      writeSettingToDb('showTrainingChip', settings.showTrainingChip);
+      renderDashboard(currentDayEntries);
+    });
+    hdr.appendChild(trainingBtn);
+
     wrap.appendChild(hdr);
   }
   wrap.appendChild(buildTlRow('null', nullBlocks));
@@ -3711,6 +3740,9 @@ async function takeFullScreenshot() {
       max-height: 2000px !important;
       overflow: visible !important;
     }
+    /* Hide the "No time slot" section in screenshots */
+    #__screenshotStage .tl-unassigned-header,
+    #__screenshotStage .tl-row.tl-unassigned { display: none !important; }
   `;
 
   // 3) Replace every cloned <canvas> with an <img> carrying the

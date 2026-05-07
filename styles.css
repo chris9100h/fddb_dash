@@ -2069,21 +2069,69 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   padding-bottom: 10px;
 }
 
+/* Hide the drop zone when empty; reveal during drag */
+.tl-row.tl-unassigned:not(.tl-has-items) { display: none; }
+.tl-drag-active .tl-row.tl-unassigned { display: flex; }
+
 .tl-unassigned-header {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 0 6px 58px;
+  padding: 6px 0 8px 58px;
+  flex-wrap: wrap;
+}
+
+.tl-unassigned-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font-size: .68rem;
   font-weight: 700;
   letter-spacing: .08em;
   text-transform: uppercase;
   color: var(--muted);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 5px 12px;
 }
 
-.tl-unassigned-header i {
+.tl-unassigned-pill i {
   font-size: .65rem;
-  opacity: .7;
+  color: var(--accent);
+  opacity: .8;
+}
+
+.tl-chip-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
+}
+
+.tl-chip-add-btn:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.tl-chip-add-btn.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: transparent;
+}
+
+.tl-chip-add-btn i {
+  font-size: .65rem;
 }
 
 .tl-row.tl-drop-target {
