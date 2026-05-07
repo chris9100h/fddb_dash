@@ -1016,8 +1016,8 @@ function renderTimelineDashboard(entries) {
             canAdd: cnt < 2, addLabel: 'Add Dose', removeLabel: 'Remove Dose',
             onAdd: () => { saveItemTime('__show_insulin::2', 1); renderDashboard(currentDayEntries); },
             onRemove: () => {
-              if (cnt >= 2) { saveItemTime('__show_insulin::2', null); saveItemTime('insulin::novorapid::2', null); }
-              else          { saveItemTime('__show_insulin', null);   saveItemTime('insulin::novorapid', null); }
+              const last = insulinSessions[cnt - 1];
+              saveItemTime(last.block.sentinelKey, null); saveItemTime(last.block.tlKey, null);
               renderDashboard(currentDayEntries);
             },
           });
@@ -1042,8 +1042,8 @@ function renderTimelineDashboard(entries) {
             canAdd: cnt < 2, addLabel: 'Add Session', removeLabel: 'Remove Session',
             onAdd: () => { openTrainingDurationModal('__show_training::2'); },
             onRemove: () => {
-              if (cnt >= 2) { saveItemTime('__show_training::2', null); saveItemTime('training::session::2', null); }
-              else          { saveItemTime('__show_training', null);   saveItemTime('training::session', null); }
+              const last = trainingSessions[cnt - 1];
+              saveItemTime(last.block.sentinelKey, null); saveItemTime(last.block.tlKey, null);
               renderDashboard(currentDayEntries);
             },
           });
@@ -1068,8 +1068,8 @@ function renderTimelineDashboard(entries) {
             canAdd: cnt < 2, addLabel: 'Add Session', removeLabel: 'Remove Session',
             onAdd: () => { openCardioDurationModal('__show_cardio::2'); },
             onRemove: () => {
-              if (cnt >= 2) { saveItemTime('__show_cardio::2', null); saveItemTime('cardio::session::2', null); }
-              else          { saveItemTime('__show_cardio', null);   saveItemTime('cardio::session', null); }
+              const last = cardioSessions[cnt - 1];
+              saveItemTime(last.block.sentinelKey, null); saveItemTime(last.block.tlKey, null);
               renderDashboard(currentDayEntries);
             },
           });
