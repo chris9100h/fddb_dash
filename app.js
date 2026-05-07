@@ -796,10 +796,10 @@ function renderTimelineDashboard(entries) {
   tlEntries.forEach(e => (grouped[e.meal] = grouped[e.meal] || []).push(e));
 
   const allBlocks = [];
-  if (settings.showInsulinChip) {
+  if ('__show_insulin' in itemTimeMap) {
     allBlocks.push({ type: 'insulin', tlKey: 'insulin::novorapid', meal: null });
   }
-  if (settings.showTrainingChip) {
+  if ('__show_training' in itemTimeMap) {
     allBlocks.push({ type: 'training', tlKey: 'training::session', meal: null });
   }
   for (const meal of Object.keys(grouped)) {
@@ -815,7 +815,7 @@ function renderTimelineDashboard(entries) {
   });
 
   // Compute training macro sum: items assigned to Intra Workout row
-  const trainingSlot = settings.showTrainingChip ? (itemTimeMap['training::session'] ?? null) : null;
+  const trainingSlot = ('__show_training' in itemTimeMap) ? (itemTimeMap['training::session'] ?? null) : null;
   if (trainingSlot != null) {
     const wm = { kcal: 0, p: 0, c: 0, f: 0 };
     allBlocks.forEach(block => {
@@ -839,7 +839,7 @@ function renderTimelineDashboard(entries) {
   }
 
   // Compute insulin window macro sum before rendering so the chip can display it
-  const insulinSlot = settings.showInsulinChip ? (itemTimeMap['insulin::novorapid'] ?? null) : null;
+  const insulinSlot = ('__show_insulin' in itemTimeMap) ? (itemTimeMap['insulin::novorapid'] ?? null) : null;
   if (insulinSlot != null) {
     const endSlot = Math.min(insulinSlot + 4 * 60, 1320);
     const wm = { kcal: 0, p: 0, c: 0, f: 0 };
@@ -877,24 +877,20 @@ function renderTimelineDashboard(entries) {
 
     const insulinBtn = document.createElement('button');
     insulinBtn.type = 'button';
-    insulinBtn.className = 'tl-chip-add-btn' + (settings.showInsulinChip ? ' active' : '');
+    insulinBtn.className = 'tl-chip-add-btn' + (('__show_insulin' in itemTimeMap) ? ' active' : '');
     insulinBtn.innerHTML = '<i class="fas fa-syringe"></i> Novorapid';
     insulinBtn.addEventListener('click', () => {
-      settings.showInsulinChip = !settings.showInsulinChip;
-      cacheSettings();
-      writeSettingToDb('showInsulinChip', settings.showInsulinChip);
+      saveItemTime('__show_insulin', ('__show_insulin' in itemTimeMap) ? null : 1);
       renderDashboard(currentDayEntries);
     });
     hdr.appendChild(insulinBtn);
 
     const trainingBtn = document.createElement('button');
     trainingBtn.type = 'button';
-    trainingBtn.className = 'tl-chip-add-btn' + (settings.showTrainingChip ? ' active' : '');
+    trainingBtn.className = 'tl-chip-add-btn' + (('__show_training' in itemTimeMap) ? ' active' : '');
     trainingBtn.innerHTML = '<i class="fas fa-dumbbell"></i> Training';
     trainingBtn.addEventListener('click', () => {
-      settings.showTrainingChip = !settings.showTrainingChip;
-      cacheSettings();
-      writeSettingToDb('showTrainingChip', settings.showTrainingChip);
+      saveItemTime('__show_training', ('__show_training' in itemTimeMap) ? null : 1);
       renderDashboard(currentDayEntries);
     });
     hdr.appendChild(trainingBtn);
