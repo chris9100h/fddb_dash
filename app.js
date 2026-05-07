@@ -681,6 +681,24 @@ function openTrainingDurationModal(sessionKey) {
   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 }
 
+function openChipActionModal({ icon, title, canAdd, addLabel, removeLabel, onAdd, onRemove }) {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay open';
+  overlay.innerHTML = `
+    <div class="modal chip-action-modal">
+      <div class="modal-title"><i class="fas fa-${icon}"></i> ${title}</div>
+      <div class="chip-action-options">
+        ${canAdd ? `<button class="chip-action-btn chip-action-add">${addLabel}</button>` : ''}
+        <button class="chip-action-btn chip-action-remove">${removeLabel}</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  if (canAdd) {
+    overlay.querySelector('.chip-action-add').addEventListener('click', () => { overlay.remove(); onAdd(); });
+  }
+  overlay.querySelector('.chip-action-remove').addEventListener('click', () => { overlay.remove(); onRemove(); });
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+}
 function formatSlot(minutes) {
   return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${minutes % 60 === 0 ? '00' : '30'}`;
 }
@@ -956,43 +974,35 @@ function renderTimelineDashboard(entries) {
     label.innerHTML = '<i class="fas fa-clock"></i> No time slot';
     hdr.appendChild(label);
 
-    // Insulin button group (no duration modal needed)
+    // Insulin button — 0: add directly; 1–2: action modal
     {
       const cnt = insulinSessions.length;
-      const grp = document.createElement('div');
-      grp.className = 'tl-chip-btn-group';
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'tl-chip-add-btn' + (cnt > 0 ? ' active' : '');
       btn.innerHTML = `<i class="fas fa-syringe"></i>` + (cnt > 1 ? `<span class="tl-chip-count">${cnt}</span>` : '');
       btn.addEventListener('click', () => {
         if (cnt === 0) {
-          saveItemTime('__show_insulin', 1);
-          renderDashboard(currentDayEntries);
-        } else if (cnt >= 2) {
-          saveItemTime('__show_insulin::2', null); saveItemTime('insulin::novorapid::2', null);
-          renderDashboard(currentDayEntries);
+          saveItemTime('__show_insulin', 1); renderDashboard(currentDayEntries);
         } else {
-          saveItemTime('__show_insulin', null); saveItemTime('insulin::novorapid', null);
-          renderDashboard(currentDayEntries);
+          openChipActionModal({
+            icon: 'syringe', title: 'Novorapid',
+            canAdd: cnt < 2, addLabel: 'Add Dose', removeLabel: 'Remove Dose',
+            onAdd: () => { saveItemTime('__show_insulin::2', 1); renderDashboard(currentDayEntries); },
+            onRemove: () => {
+              if (cnt >= 2) { saveItemTime('__show_insulin::2', null); saveItemTime('insulin::novorapid::2', null); }
+              else          { saveItemTime('__show_insulin', null);   saveItemTime('insulin::novorapid', null); }
+              renderDashboard(currentDayEntries);
+            },
+          });
         }
       });
-      grp.appendChild(btn);
-      if (cnt === 1) {
-        const plus = document.createElement('button');
-        plus.type = 'button'; plus.className = 'tl-chip-add-btn tl-chip-add-plus';
-        plus.innerHTML = '<i class="fas fa-plus"></i>';
-        plus.addEventListener('click', () => { saveItemTime('__show_insulin::2', 1); renderDashboard(currentDayEntries); });
-        grp.appendChild(plus);
-      }
-      hdr.appendChild(grp);
+      hdr.appendChild(btn);
     }
 
-    // Training button group (duration modal per session)
+    // Training button — 0: duration modal; 1–2: action modal
     {
       const cnt = trainingSessions.length;
-      const grp = document.createElement('div');
-      grp.className = 'tl-chip-btn-group';
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'tl-chip-add-btn' + (cnt > 0 ? ' active' : '');
@@ -1000,30 +1010,25 @@ function renderTimelineDashboard(entries) {
       btn.addEventListener('click', () => {
         if (cnt === 0) {
           openTrainingDurationModal('__show_training');
-        } else if (cnt >= 2) {
-          saveItemTime('__show_training::2', null); saveItemTime('training::session::2', null);
-          renderDashboard(currentDayEntries);
         } else {
-          saveItemTime('__show_training', null); saveItemTime('training::session', null);
-          renderDashboard(currentDayEntries);
+          openChipActionModal({
+            icon: 'dumbbell', title: 'Training',
+            canAdd: cnt < 2, addLabel: 'Add Session', removeLabel: 'Remove Session',
+            onAdd: () => { openTrainingDurationModal('__show_training::2'); },
+            onRemove: () => {
+              if (cnt >= 2) { saveItemTime('__show_training::2', null); saveItemTime('training::session::2', null); }
+              else          { saveItemTime('__show_training', null);   saveItemTime('training::session', null); }
+              renderDashboard(currentDayEntries);
+            },
+          });
         }
       });
-      grp.appendChild(btn);
-      if (cnt === 1) {
-        const plus = document.createElement('button');
-        plus.type = 'button'; plus.className = 'tl-chip-add-btn tl-chip-add-plus';
-        plus.innerHTML = '<i class="fas fa-plus"></i>';
-        plus.addEventListener('click', () => { openTrainingDurationModal('__show_training::2'); });
-        grp.appendChild(plus);
-      }
-      hdr.appendChild(grp);
+      hdr.appendChild(btn);
     }
 
-    // Cardio button group (duration modal per session)
+    // Cardio button — 0: duration modal; 1–2: action modal
     {
       const cnt = cardioSessions.length;
-      const grp = document.createElement('div');
-      grp.className = 'tl-chip-btn-group';
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'tl-chip-add-btn' + (cnt > 0 ? ' active' : '');
@@ -1031,23 +1036,20 @@ function renderTimelineDashboard(entries) {
       btn.addEventListener('click', () => {
         if (cnt === 0) {
           openCardioDurationModal('__show_cardio');
-        } else if (cnt >= 2) {
-          saveItemTime('__show_cardio::2', null); saveItemTime('cardio::session::2', null);
-          renderDashboard(currentDayEntries);
         } else {
-          saveItemTime('__show_cardio', null); saveItemTime('cardio::session', null);
-          renderDashboard(currentDayEntries);
+          openChipActionModal({
+            icon: 'person-running', title: 'Cardio',
+            canAdd: cnt < 2, addLabel: 'Add Session', removeLabel: 'Remove Session',
+            onAdd: () => { openCardioDurationModal('__show_cardio::2'); },
+            onRemove: () => {
+              if (cnt >= 2) { saveItemTime('__show_cardio::2', null); saveItemTime('cardio::session::2', null); }
+              else          { saveItemTime('__show_cardio', null);   saveItemTime('cardio::session', null); }
+              renderDashboard(currentDayEntries);
+            },
+          });
         }
       });
-      grp.appendChild(btn);
-      if (cnt === 1) {
-        const plus = document.createElement('button');
-        plus.type = 'button'; plus.className = 'tl-chip-add-btn tl-chip-add-plus';
-        plus.innerHTML = '<i class="fas fa-plus"></i>';
-        plus.addEventListener('click', () => { openCardioDurationModal('__show_cardio::2'); });
-        grp.appendChild(plus);
-      }
-      hdr.appendChild(grp);
+      hdr.appendChild(btn);
     }
 
     wrap.appendChild(hdr);
