@@ -2119,16 +2119,6 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   font-size: .65rem;
 }
 
-.tl-chip-btn-group {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-}
-
-.tl-chip-add-plus {
-  padding: 5px 8px !important;
-}
-
 .tl-chip-count {
   font-size: .6rem;
   font-weight: 800;
@@ -2137,6 +2127,40 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   border-radius: 99px;
   padding: 1px 4px;
   margin-left: 1px;
+}
+
+.chip-action-modal {
+  max-width: 260px;
+  padding: 24px 20px;
+}
+
+.chip-action-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.chip-action-btn {
+  padding: 10px 16px;
+  border-radius: 99px;
+  border: none;
+  font-weight: 600;
+  font-size: .85rem;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+
+.chip-action-btn:hover { opacity: .85; }
+
+.chip-action-add {
+  background: var(--accent);
+  color: #fff;
+}
+
+.chip-action-remove {
+  background: var(--surface-2);
+  color: var(--muted);
 }
 
 .tl-row.tl-drop-target {
