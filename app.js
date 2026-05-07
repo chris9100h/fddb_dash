@@ -1357,7 +1357,10 @@ function buildTlRow(minutes, blocks) {
       `<span class="tl-sf-p">${total.p.toFixed(1)}<small>P</small></span>` +
       `<span class="tl-sf-c">${total.c.toFixed(1)}<small>C</small></span>` +
       `<span class="tl-sf-f">${total.f.toFixed(1)}<small>F</small></span>`;
-    slot.appendChild(footer);
+    row.appendChild(lbl);
+    row.appendChild(slot);
+    row.appendChild(footer);
+    return row;
   }
 
   row.appendChild(lbl);
