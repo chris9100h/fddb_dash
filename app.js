@@ -684,19 +684,45 @@ function openTrainingDurationModal(sessionKey) {
 function openChipActionModal({ icon, title, canAdd, addLabel, removeLabel, onAdd, onRemove }) {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay open';
-  overlay.innerHTML = `
-    <div class="modal chip-action-modal">
-      <div class="modal-title"><i class="fas fa-${icon}"></i> ${title}</div>
-      <div class="chip-action-options">
-        ${canAdd ? `<button class="chip-action-btn chip-action-add">${addLabel}</button>` : ''}
-        <button class="chip-action-btn chip-action-remove">${removeLabel}</button>
-      </div>
-    </div>`;
-  document.body.appendChild(overlay);
+
+  const modal = document.createElement('div');
+  modal.className = 'modal chip-action-modal';
+
+  const titleEl = document.createElement('div');
+  titleEl.className = 'modal-title';
+  titleEl.innerHTML = `<i class="fas fa-${icon}"></i> ${title}`;
+  modal.appendChild(titleEl);
+
+  const options = document.createElement('div');
+  options.className = 'chip-action-options';
+
   if (canAdd) {
-    overlay.querySelector('.chip-action-add').addEventListener('click', () => { overlay.remove(); onAdd(); });
+    const addBtn = document.createElement('button');
+    addBtn.type = 'button';
+    addBtn.className = 'chip-action-btn chip-action-add';
+    addBtn.textContent = addLabel;
+    addBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      overlay.remove();
+      onAdd();
+    });
+    options.appendChild(addBtn);
   }
-  overlay.querySelector('.chip-action-remove').addEventListener('click', () => { overlay.remove(); onRemove(); });
+
+  const removeBtn = document.createElement('button');
+  removeBtn.type = 'button';
+  removeBtn.className = 'chip-action-btn chip-action-remove';
+  removeBtn.textContent = removeLabel;
+  removeBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    overlay.remove();
+    onRemove();
+  });
+  options.appendChild(removeBtn);
+
+  modal.appendChild(options);
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 }
 function formatSlot(minutes) {
