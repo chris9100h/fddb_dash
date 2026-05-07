@@ -2561,7 +2561,7 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
 .timeline-view.tl-drag-active .tl-row.tl-cardio-covered { display: flex; }
 
 /* Cardio duration modal */
-.cardio-dur-modal { max-width: 280px; }
+.cardio-dur-modal { max-width: 280px; padding: 28px 24px; }
 .cardio-dur-options {
   display: flex;
   gap: 10px;
