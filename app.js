@@ -1336,7 +1336,9 @@ function buildTlRow(minutes, blocks) {
   blocks.forEach(b => slot.appendChild(makeTlChip(b)));
 
   const foodBlocks = blocks.filter(b => b.type === 'item' || b.type === 'recipe');
-  if (settings.showSlotTotals && foodBlocks.length >= 2) {
+  const isIntraSlot = minutes === INTRA_WORKOUT_SLOT || minutes === INTRA_WORKOUT_SLOT_2 ||
+                      minutes === INTRA_CARDIO_SLOT  || minutes === INTRA_CARDIO_SLOT_2;
+  if (settings.showSlotTotals && foodBlocks.length >= 2 && !isIntraSlot) {
     const total = foodBlocks.reduce((acc, b) => {
       let m;
       if (b.type === 'item') {
