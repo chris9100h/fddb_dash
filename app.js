@@ -4688,30 +4688,17 @@ initTweaks();
       sheet.querySelector('.tl-ctx-cancel').addEventListener('click', close);
       sheet.querySelector('#tlCtxTreat').addEventListener('click', () => doMove(WEEKLY_TREAT_MEAL));
     } else {
-      // Build meal options from current day entries (excluding treat itself)
-      const seenLabels = new Set();
-      const mealOptions = ORDER
-        .filter(m => {
-          const label = LABELS[m] || m;
-          if (seenLabels.has(label)) return false;
-          seenLabels.add(label);
-          return true;
-        })
-        .map(m => `<button class="tl-ctx-meal-btn" data-meal="${m}">${LABELS[m] || m}</button>`)
-        .join('');
+      const defaultMeal = ORDER.find(m => m !== WEEKLY_TREAT_MEAL) || ORDER[0];
       sheet.innerHTML = `
         <div class="tl-ctx-title">${name}</div>
-        <div class="tl-ctx-info"><i class="fas fa-star"></i> Weekly Treat — move back to:</div>
-        <div class="tl-ctx-meal-grid">${mealOptions}</div>
+        <button class="tl-ctx-action" id="tlCtxUntreat"><i class="fas fa-star"></i> Als Weekly Treat entfernen</button>
         <button class="tl-ctx-cancel">Cancel</button>`;
       overlay.appendChild(sheet);
       document.body.appendChild(overlay);
       requestAnimationFrame(() => overlay.classList.add('show'));
       overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
       sheet.querySelector('.tl-ctx-cancel').addEventListener('click', close);
-      sheet.querySelectorAll('.tl-ctx-meal-btn').forEach(btn => {
-        btn.addEventListener('click', () => doMove(btn.dataset.meal));
-      });
+      sheet.querySelector('#tlCtxUntreat').addEventListener('click', () => doMove(defaultMeal));
     }
   }
 
