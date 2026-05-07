@@ -2738,6 +2738,12 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
 .tl-slot-footer.tl-slot-footer-done .tl-sf-pill {
   opacity: .4;
 }
+.tl-sf-label {
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: .68rem;
+  padding-right: 4px;
+}
 .tl-slot-footer span:not(.tl-sf-label) {
   font-weight: 700;
   display: flex;
