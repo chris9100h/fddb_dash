@@ -1073,11 +1073,6 @@ function renderTimelineDashboard(entries) {
     const slots = Math.floor(cardioDuration / 30);
     const wm = allBlocks.find(b => b.type === 'cardio')?.windowMacros;
 
-    for (let i = 0; i < slots; i++) {
-      const coveredRow = wrap.querySelector(`[data-hour="${cardioSlot + i * 30}"]`);
-      if (coveredRow) coveredRow.classList.add('tl-cardio-covered');
-    }
-
     const cardioRow = wrap.querySelector(`[data-hour="${cardioSlot}"]`);
     const block = document.createElement('div');
     block.className = 'tl-cardio-block';
@@ -1085,10 +1080,19 @@ function renderTimelineDashboard(entries) {
 
     const chipBar = document.createElement('div');
     chipBar.className = 'tl-cardio-chip-bar';
-    const cardioChip = cardioRow.querySelector('.tl-chip-cardio');
+    const cardioChip = cardioRow ? cardioRow.querySelector('.tl-chip-cardio') : null;
     if (cardioChip) chipBar.appendChild(cardioChip);
-    if (!cardioRow.querySelector('.tl-chip')) cardioRow.classList.remove('tl-has-items');
     block.appendChild(chipBar);
+
+    // Move covered rows into the block and hide them via CSS — avoids
+    // any specificity fight with tl-has-items staying on the row.
+    for (let i = 0; i < slots; i++) {
+      const coveredRow = wrap.querySelector(`[data-hour="${cardioSlot + i * 30}"]`);
+      if (!coveredRow) continue;
+      coveredRow.classList.add('tl-cardio-covered');
+      coveredRow.classList.remove('tl-has-items');
+      block.appendChild(coveredRow);
+    }
 
     const intraRow = wrap.querySelector(`[data-hour="${INTRA_CARDIO_SLOT}"]`);
     if (intraRow) block.appendChild(intraRow);

@@ -2557,8 +2557,9 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   letter-spacing: .06em;
 }
 
-.tl-row.tl-cardio-covered { display: none; }
-.timeline-view.tl-drag-active .tl-row.tl-cardio-covered { display: flex; }
+/* Covered rows live inside the block; higher specificity hides them over
+   the generic .tl-cardio-block .tl-row { display: flex } rule */
+.tl-cardio-block .tl-row.tl-cardio-covered { display: none; }
 
 /* Cardio duration modal */
 .cardio-dur-modal { max-width: 280px; padding: 28px 24px; }
