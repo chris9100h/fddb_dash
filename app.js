@@ -1349,9 +1349,10 @@ function buildTlRow(minutes, blocks) {
       return { kcal: acc.kcal+m.kcal, p: acc.p+m.p, c: acc.c+m.c, f: acc.f+m.f };
     }, {kcal:0,p:0,c:0,f:0});
     const footer = document.createElement('div');
-    footer.className = 'tl-slot-footer';
+    const allDone = foodBlocks.every(b => !!currentCheckedMap[b.tlKey]);
+    footer.className = 'tl-slot-footer' + (allDone ? ' tl-slot-footer-done' : '');
     footer.innerHTML =
-      `<span class="tl-sf-label">∑</span>` +
+      `<span class="tl-sf-label">Total:</span>` +
       `<span class="tl-sf-kcal">${Math.round(total.kcal)}<small>kcal</small></span>` +
       `<span class="tl-sf-p">${total.p.toFixed(1)}<small>P</small></span>` +
       `<span class="tl-sf-c">${total.c.toFixed(1)}<small>C</small></span>` +
@@ -1542,6 +1543,19 @@ function makeTlChip(block) {
     currentCheckedMap[block.tlKey] = nowChecked;
     chip.classList.toggle('tl-chip-done', nowChecked);
     persistChecked(block.tlKey, nowChecked);
+    const slot = chip.closest('.tl-slot');
+    if (slot) {
+      const footer = slot.querySelector('.tl-slot-footer');
+      if (footer) {
+        const foodChips = [...slot.querySelectorAll('.tl-chip')].filter(
+          c => !c.classList.contains('tl-chip-insulin') &&
+               !c.classList.contains('tl-chip-training') &&
+               !c.classList.contains('tl-chip-cardio')
+        );
+        const allDone = foodChips.length > 0 && foodChips.every(c => c.classList.contains('tl-chip-done'));
+        footer.classList.toggle('tl-slot-footer-done', allDone);
+      }
+    }
   });
   return returnEl;
 }
