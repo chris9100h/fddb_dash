@@ -4707,7 +4707,9 @@ initTweaks();
       sheet.querySelector('.tl-ctx-cancel').addEventListener('click', close);
       sheet.querySelector('#tlCtxTreat').addEventListener('click', () => doMove(WEEKLY_TREAT_MEAL));
     } else {
-      const defaultMeal = ORDER.find(m => m !== WEEKLY_TREAT_MEAL) || ORDER[0];
+      const oldKeys = chipEl.dataset.checkKeys.split('|').filter(Boolean);
+      const assignedMinutes = oldKeys.reduce((found, k) => found ?? itemTimeMap[k] ?? null, null);
+      const defaultMeal = getMealForTime(assignedMinutes) || ORDER.find(m => m !== WEEKLY_TREAT_MEAL) || ORDER[0];
       sheet.innerHTML = `
         <div class="tl-ctx-title">${name}</div>
         <button class="tl-ctx-action" id="tlCtxUntreat"><i class="fas fa-star"></i> Remove Weekly Treat</button>
