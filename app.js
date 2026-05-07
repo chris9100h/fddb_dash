@@ -928,6 +928,18 @@ function renderTimelineDashboard(entries) {
     block: b, slot: itemTimeMap[b.tlKey] ?? null,
   }));
 
+  // Items assigned to intra slots of unplaced sessions would be invisible —
+  // fall them back to the unassigned slot so they remain accessible.
+  const activeIntraSlots = new Set();
+  trainingSessions.forEach(s => { if (s.slot != null) activeIntraSlots.add(s.block.intraSlot); });
+  cardioSessions.forEach(s  => { if (s.slot != null) activeIntraSlots.add(s.block.intraSlot); });
+  [INTRA_WORKOUT_SLOT, INTRA_WORKOUT_SLOT_2, INTRA_CARDIO_SLOT, INTRA_CARDIO_SLOT_2].forEach(slot => {
+    if (!activeIntraSlots.has(slot) && bySlot[slot]?.length) {
+      bySlot['null'] = (bySlot['null'] || []).concat(bySlot[slot]);
+      delete bySlot[slot];
+    }
+  });
+
   // Compute macro sums for each session
   for (const sess of trainingSessions) {
     if (sess.slot == null) continue;
