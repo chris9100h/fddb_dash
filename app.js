@@ -1353,10 +1353,12 @@ function buildTlRow(minutes, blocks) {
     footer.className = 'tl-slot-footer' + (allDone ? ' tl-slot-footer-done' : '');
     footer.innerHTML =
       `<span class="tl-sf-label">Total:</span>` +
-      `<span class="tl-sf-kcal">${Math.round(total.kcal)}<small>kcal</small></span>` +
-      `<span class="tl-sf-p">${total.p.toFixed(1)}<small>P</small></span>` +
-      `<span class="tl-sf-c">${total.c.toFixed(1)}<small>C</small></span>` +
-      `<span class="tl-sf-f">${total.f.toFixed(1)}<small>F</small></span>`;
+      `<div class="tl-sf-pill">` +
+        `<span class="tl-sf-kcal">${Math.round(total.kcal)}<small>kcal</small></span>` +
+        `<span class="tl-sf-p">${total.p.toFixed(1)}<small>P</small></span>` +
+        `<span class="tl-sf-c">${total.c.toFixed(1)}<small>C</small></span>` +
+        `<span class="tl-sf-f">${total.f.toFixed(1)}<small>F</small></span>` +
+      `</div>`;
     row.appendChild(lbl);
     row.appendChild(slot);
     row.appendChild(footer);

@@ -2725,11 +2725,20 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   display: flex;
   align-items: baseline;
   gap: 12px;
-  padding: 3px 0 2px;
-  border-top: 1px solid var(--border);
+  margin-top: 2px;
   font-size: .72rem;
 }
-.tl-slot-footer.tl-slot-footer-done {
+.tl-sf-pill {
+  flex: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 5px 10px;
+}
+.tl-slot-footer.tl-slot-footer-done .tl-sf-pill {
   opacity: .4;
 }
 .tl-sf-label {
