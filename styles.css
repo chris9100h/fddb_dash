@@ -2069,6 +2069,10 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   padding-bottom: 10px;
 }
 
+/* Hide the drop zone when empty; reveal during drag */
+.tl-row.tl-unassigned:not(.tl-has-items) { display: none; }
+.tl-drag-active .tl-row.tl-unassigned { display: flex; }
+
 .tl-unassigned-header {
   display: flex;
   align-items: center;
