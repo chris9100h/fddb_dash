@@ -1546,10 +1546,11 @@ function makeTlChip(block) {
     currentCheckedMap[block.tlKey] = nowChecked;
     chip.classList.toggle('tl-chip-done', nowChecked);
     persistChecked(block.tlKey, nowChecked);
-    const slot = chip.closest('.tl-slot');
-    if (slot) {
-      const footer = slot.querySelector('.tl-slot-footer');
+    const row = chip.closest('.tl-row');
+    if (row) {
+      const footer = row.querySelector('.tl-slot-footer');
       if (footer) {
+        const slot = row.querySelector('.tl-slot');
         const foodChips = [...slot.querySelectorAll('.tl-chip')].filter(
           c => !c.classList.contains('tl-chip-insulin') &&
                !c.classList.contains('tl-chip-training') &&
