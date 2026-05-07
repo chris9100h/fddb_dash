@@ -2722,16 +2722,13 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
 }
 .tl-slot-footer {
   flex: 0 0 100%;
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
   margin-top: 2px;
   font-size: .72rem;
 }
 .tl-sf-pill {
-  flex: 1;
   display: flex;
   align-items: baseline;
+  justify-content: center;
   gap: 8px;
   background: var(--card);
   border: 1px solid var(--border);
@@ -2740,14 +2737,6 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
 }
 .tl-slot-footer.tl-slot-footer-done .tl-sf-pill {
   opacity: .4;
-}
-.tl-sf-label {
-  flex-shrink: 0;
-  width: 46px;
-  text-align: right;
-  color: var(--text-muted);
-  font-weight: 600;
-  font-size: .68rem;
 }
 .tl-slot-footer span:not(.tl-sf-label) {
   font-weight: 700;

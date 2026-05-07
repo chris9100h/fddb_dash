@@ -1352,7 +1352,6 @@ function buildTlRow(minutes, blocks) {
     const allDone = foodBlocks.every(b => !!currentCheckedMap[b.tlKey]);
     footer.className = 'tl-slot-footer' + (allDone ? ' tl-slot-footer-done' : '');
     footer.innerHTML =
-      `<span class="tl-sf-label">Total:</span>` +
       `<div class="tl-sf-pill">` +
         `<span class="tl-sf-kcal">${Math.round(total.kcal)}<small>kcal</small></span>` +
         `<span class="tl-sf-p">${total.p.toFixed(1)}<small>P</small></span>` +
