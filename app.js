@@ -1124,6 +1124,7 @@ function renderTimelineDashboard(entries) {
         `<span>${Math.round(wm?.f ?? 0)}<small>F</small></span>` +
       `</span>`;
     block.appendChild(summary);
+    block.querySelectorAll('.tl-slot-footer').forEach(f => f.remove());
   }
 
   // Build training blocks (chip-bar + Intra Workout row + footer)
