@@ -4691,7 +4691,7 @@ initTweaks();
       const defaultMeal = ORDER.find(m => m !== WEEKLY_TREAT_MEAL) || ORDER[0];
       sheet.innerHTML = `
         <div class="tl-ctx-title">${name}</div>
-        <button class="tl-ctx-action" id="tlCtxUntreat"><i class="fas fa-star"></i> Als Weekly Treat entfernen</button>
+        <button class="tl-ctx-action" id="tlCtxUntreat"><i class="fas fa-star"></i> Remove Weekly Treat</button>
         <button class="tl-ctx-cancel">Cancel</button>`;
       overlay.appendChild(sheet);
       document.body.appendChild(overlay);
