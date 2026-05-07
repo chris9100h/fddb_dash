@@ -2119,6 +2119,26 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   font-size: .65rem;
 }
 
+.tl-chip-btn-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.tl-chip-add-plus {
+  padding: 5px 8px !important;
+}
+
+.tl-chip-count {
+  font-size: .6rem;
+  font-weight: 800;
+  line-height: 1;
+  background: rgba(255,255,255,.25);
+  border-radius: 99px;
+  padding: 1px 4px;
+  margin-left: 1px;
+}
+
 .tl-row.tl-drop-target {
   background: rgba(255,107,0,.08);
 }
