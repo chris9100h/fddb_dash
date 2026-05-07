@@ -931,7 +931,7 @@ function renderTimelineDashboard(entries) {
     const insulinBtn = document.createElement('button');
     insulinBtn.type = 'button';
     insulinBtn.className = 'tl-chip-add-btn' + (('__show_insulin' in itemTimeMap) ? ' active' : '');
-    insulinBtn.innerHTML = '<i class="fas fa-syringe"></i> Novorapid';
+    insulinBtn.innerHTML = '<i class="fas fa-syringe"></i>';
     insulinBtn.addEventListener('click', () => {
       saveItemTime('__show_insulin', ('__show_insulin' in itemTimeMap) ? null : 1);
       renderDashboard(currentDayEntries);
@@ -941,7 +941,7 @@ function renderTimelineDashboard(entries) {
     const trainingBtn = document.createElement('button');
     trainingBtn.type = 'button';
     trainingBtn.className = 'tl-chip-add-btn' + (('__show_training' in itemTimeMap) ? ' active' : '');
-    trainingBtn.innerHTML = '<i class="fas fa-dumbbell"></i> Training';
+    trainingBtn.innerHTML = '<i class="fas fa-dumbbell"></i>';
     trainingBtn.addEventListener('click', () => {
       saveItemTime('__show_training', ('__show_training' in itemTimeMap) ? null : 1);
       renderDashboard(currentDayEntries);
@@ -951,7 +951,7 @@ function renderTimelineDashboard(entries) {
     const cardioBtn = document.createElement('button');
     cardioBtn.type = 'button';
     cardioBtn.className = 'tl-chip-add-btn' + (('__show_cardio' in itemTimeMap) ? ' active' : '');
-    cardioBtn.innerHTML = '<i class="fas fa-person-running"></i> Cardio';
+    cardioBtn.innerHTML = '<i class="fas fa-person-running"></i>';
     cardioBtn.addEventListener('click', () => {
       if ('__show_cardio' in itemTimeMap) {
         saveItemTime('__show_cardio', null);
@@ -4383,7 +4383,7 @@ initTweaks();
       const newMeal = getMealForTime(hour);
       if (newMeal && newMeal !== fromMeal &&
           fromMeal !== WEEKLY_TREAT_MEAL && fromMeal !== MEAL_OF_CHOICE &&
-          fromMeal !== 'training' && fromMeal !== 'insulin') {
+          fromMeal !== 'training' && fromMeal !== 'insulin' && fromMeal !== 'cardio') {
         if (kind === 'recipe' && servings > 1) {
           // Multi-serving recipe: move only this one serving
           await moveSingleServing({ recipeName, serving, servings, ids, fromMeal, toMeal: newMeal, isExploded });
