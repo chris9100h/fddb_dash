@@ -635,51 +635,33 @@ function saveItemTime(itemKey, minutes) {
   }, 400);
 }
 
-function openCardioDurationModal(sessionKey) {
+function openDurationModal(sessionKey, icon, title) {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay open';
   overlay.innerHTML = `
     <div class="modal cardio-dur-modal">
-      <div class="modal-title"><i class="fas fa-person-running"></i> Cardio Duration</div>
+      <div class="modal-title"><i class="fas fa-${icon}"></i> ${title}</div>
       <div class="cardio-dur-options">
         <button class="cardio-dur-btn" data-min="30">30 min</button>
         <button class="cardio-dur-btn" data-min="60">60 min</button>
         <button class="cardio-dur-btn" data-min="90">90 min</button>
       </div>
+      <select class="dur-custom-select">
+        <option value="" disabled selected>Custom…</option>
+        ${Array.from({length: 24}, (_, i) => (i + 1) * 5).map(m => `<option value="${m}">${m} min</option>`).join('')}
+      </select>
     </div>`;
   document.body.appendChild(overlay);
+  const confirm = (min) => { saveItemTime(sessionKey, min); overlay.remove(); renderDashboard(currentDayEntries); };
   overlay.querySelectorAll('.cardio-dur-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      saveItemTime(sessionKey, parseInt(btn.dataset.min, 10));
-      overlay.remove();
-      renderDashboard(currentDayEntries);
-    });
+    btn.addEventListener('click', () => confirm(parseInt(btn.dataset.min, 10)));
   });
+  overlay.querySelector('.dur-custom-select').addEventListener('change', e => confirm(parseInt(e.target.value, 10)));
   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 }
 
-function openTrainingDurationModal(sessionKey) {
-  const overlay = document.createElement('div');
-  overlay.className = 'modal-overlay open';
-  overlay.innerHTML = `
-    <div class="modal cardio-dur-modal">
-      <div class="modal-title"><i class="fas fa-dumbbell"></i> Training Duration</div>
-      <div class="cardio-dur-options">
-        <button class="cardio-dur-btn" data-min="30">30 min</button>
-        <button class="cardio-dur-btn" data-min="60">60 min</button>
-        <button class="cardio-dur-btn" data-min="90">90 min</button>
-      </div>
-    </div>`;
-  document.body.appendChild(overlay);
-  overlay.querySelectorAll('.cardio-dur-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      saveItemTime(sessionKey, parseInt(btn.dataset.min, 10));
-      overlay.remove();
-      renderDashboard(currentDayEntries);
-    });
-  });
-  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
-}
+function openCardioDurationModal(sessionKey)   { openDurationModal(sessionKey, 'person-running', 'Cardio Duration'); }
+function openTrainingDurationModal(sessionKey) { openDurationModal(sessionKey, 'dumbbell', 'Training Duration'); }
 
 function openChipActionModal({ icon, title, canAdd, addLabel, removeLabel, onAdd, onRemove }) {
   const overlay = document.createElement('div');
@@ -726,7 +708,7 @@ function openChipActionModal({ icon, title, canAdd, addLabel, removeLabel, onAdd
   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 }
 function formatSlot(minutes) {
-  return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${minutes % 60 === 0 ? '00' : '30'}`;
+  return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
 }
 
 const TL_COLORS = {
