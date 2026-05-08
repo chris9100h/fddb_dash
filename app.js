@@ -760,10 +760,9 @@ function getMealForTime(minutes) {
 }
 
 // Returns the set of recipe names that have been "exploded" into per-serving DB rows.
-// A recipe is exploded when ≥2 distinct (meal, serving_index) groups each contain ALL
-// of the recipe's effective ingredients. Requiring completeness prevents false positives
-// where an unrelated item in another meal (e.g. an HBCD shake) happens to share one
-// ingredient name with the recipe and carries a different serving_index.
+// Primary signal: fddb_group_id — two distinct groups each containing all recipe
+// ingredients means the recipe is exploded. Falls back to the (meal × serving_index)
+// heuristic for legacy rows that pre-date the group-id column.
 function computeExplodedRecipes() {
   const recipeTemplateMap = new Map(allRecipes.map(r => [r.id, r]));
   const exploded = new Set();
@@ -773,18 +772,80 @@ function computeExplodedRecipes() {
       ? [...new Set([...(recipeTemplateMap.get(recipe.templateId)?.items || []), ...recipe.items])]
       : recipe.items;
     if (!effectiveItems.length) return;
-    const groups = {};
+
+    // Primary: fddb_group_id
+    const byGroup = {};
+    currentDayEntries.forEach(e => {
+      if (!e.fddb_group_id) return;
+      const stripped = stripAmount(e.item_name);
+      if (effectiveItems.includes(stripped))
+        (byGroup[e.fddb_group_id] = byGroup[e.fddb_group_id] || new Set()).add(stripped);
+    });
+    const completeById = Object.values(byGroup).filter(s => effectiveItems.every(i => s.has(i)));
+    if (completeById.length >= 2) { exploded.add(recipe.name); return; }
+
+    // Fallback: (meal x serving_index) for legacy data
+    const bySi = {};
     currentDayEntries.forEach(e => {
       if (e.serving_index == null) return;
       const stripped = stripAmount(e.item_name);
       if (!effectiveItems.includes(stripped)) return;
       const key = `${e.meal}::${e.serving_index}`;
-      (groups[key] = groups[key] || new Set()).add(stripped);
+      (bySi[key] = bySi[key] || new Set()).add(stripped);
     });
-    const completeGroups = Object.values(groups).filter(s => effectiveItems.every(item => s.has(item)));
-    if (completeGroups.length >= 2) exploded.add(recipe.name);
+    const completeBySi = Object.values(bySi).filter(s => effectiveItems.every(i => s.has(i)));
+    if (completeBySi.length >= 2) exploded.add(recipe.name);
   });
   return exploded;
+}
+
+// Assigns a stable fddb_group_id to items belonging to the same recipe instance.
+// Runs once after each day-load for freshly-synced rows (fddb_group_id = null).
+// At this point the FDDB meal assignments are still intact, so matching is
+// unambiguous even if the user later drags items between meal slots.
+async function assignGroupIds(dateVal) {
+  const unassigned = currentDayEntries.filter(e => !e.fddb_group_id);
+  if (!unassigned.length) return;
+
+  const recipeTemplateMap = new Map(allRecipes.map(r => [r.id, r]));
+  const recipesByLength = [...allRecipes]
+    .map(r => {
+      if (r.templateId) {
+        const tmpl = recipeTemplateMap.get(r.templateId);
+        if (tmpl) return { ...r, effectiveItems: [...new Set([...tmpl.items, ...r.items])] };
+      }
+      return { ...r, effectiveItems: r.items };
+    })
+    .filter(r => r.effectiveItems.length > 0)
+    .sort((a, b) => b.effectiveItems.length - a.effectiveItems.length);
+
+  const byMeal = {};
+  unassigned.forEach(e => (byMeal[e.meal] = byMeal[e.meal] || []).push(e));
+
+  const updates = [];
+  for (const mealItems of Object.values(byMeal)) {
+    const remaining = mealItems.map(item => ({ item, used: false }));
+    for (const recipe of recipesByLength) {
+      for (let s = 0; s < (recipe.servings || 1); s++) {
+        const matched = [];
+        let allFound = true;
+        for (const rName of recipe.effectiveItems) {
+          const found = remaining.find(r => !r.used && !matched.includes(r) && stripAmount(r.item.item_name) === rName);
+          if (found) matched.push(found);
+          else { allFound = false; break; }
+        }
+        if (allFound && matched.length > 0) {
+          const groupId = crypto.randomUUID();
+          matched.forEach(r => { r.used = true; updates.push({ id: r.item.id, fddb_group_id: groupId }); });
+        } else break;
+      }
+    }
+  }
+
+  if (!updates.length) return;
+  await Promise.all(updates.map(u => db.from('fddb_daily_macros').update({ fddb_group_id: u.fddb_group_id }).eq('id', u.id)));
+  const map = new Map(updates.map(u => [u.id, u.fddb_group_id]));
+  currentDayEntries.forEach(e => { if (map.has(e.id)) e.fddb_group_id = map.get(e.id); });
 }
 
 function buildTlRenderBlocks(meal, items) {
@@ -806,32 +867,64 @@ function buildTlRenderBlocks(meal, items) {
     const isExploded = explodedRecipeNames.has(recipe.name);
 
     if (isExploded) {
-      // Recipe was explicitly split: group items in this meal by serving_index,
-      // match the recipe independently within each group.
-      const siGroups = {};
-      remaining.forEach(r => {
-        if (r.used) return;
-        const si = r.item.serving_index ?? 0;
-        (siGroups[si] = siGroups[si] || []).push(r);
-      });
-      for (const [si, pool] of Object.entries(siGroups)) {
-        const matched = [];
-        let allFound = true;
-        for (const rName of recipe.effectiveItems) {
-          const found = pool.find(r => !matched.includes(r) && stripAmount(r.item.item_name) === rName);
-          if (found) matched.push(found);
-          else { allFound = false; break; }
+      // Primary: group by fddb_group_id when available.
+      // Fallback: group by serving_index for legacy rows without a group id.
+      const useGroupIds = remaining.some(r => !r.used && r.item.fddb_group_id);
+      if (useGroupIds) {
+        const gidGroups = {};
+        remaining.forEach(r => {
+          if (r.used || !r.item.fddb_group_id) return;
+          (gidGroups[r.item.fddb_group_id] = gidGroups[r.item.fddb_group_id] || []).push(r);
+        });
+        const sortedGroups = Object.entries(gidGroups)
+          .sort(([, a], [, b]) => Math.min(...a.map(r => r.idx)) - Math.min(...b.map(r => r.idx)));
+        let servingIdx = 0;
+        for (const [, pool] of sortedGroups) {
+          const matched = [];
+          let allFound = true;
+          for (const rName of recipe.effectiveItems) {
+            const found = pool.find(r => !matched.includes(r) && stripAmount(r.item.item_name) === rName);
+            if (found) matched.push(found);
+            else { allFound = false; break; }
+          }
+          if (allFound && matched.length > 0) {
+            matched.forEach(r => { remaining[r.idx].used = true; });
+            renderBlocks.push({
+              type: 'recipe', recipe, entries: matched.map(r => r.item),
+              serving: servingIdx, servings: recipe.servings || 1, isExploded: true,
+              firstIdx: Math.min(...matched.map(r => r.idx)), meal,
+              tlKey: `${meal}::${recipe.name}::${servingIdx}`,
+            });
+            servingIdx++;
+          }
         }
-        if (allFound && matched.length > 0) {
-          matched.forEach(r => { remaining[r.idx].used = true; });
-          const recEntries = matched.map(r => r.item);
-          const servingIdx = parseInt(si, 10);
-          renderBlocks.push({
-            type: 'recipe', recipe, entries: recEntries,
-            serving: servingIdx, servings: recipe.servings || 1, isExploded: true,
-            firstIdx: Math.min(...matched.map(r => r.idx)), meal,
-            tlKey: `${meal}::${recipe.name}::${servingIdx}`,
-          });
+      } else {
+        const siGroups = {};
+        remaining.forEach(r => {
+          if (r.used) return;
+          const si = r.item.serving_index ?? 0;
+          (siGroups[si] = siGroups[si] || []).push(r);
+        });
+        for (const [si, pool] of Object.entries(siGroups)) {
+          const matched = [];
+          let allFound = true;
+          const siNum = parseInt(si, 10);
+          for (const rName of recipe.effectiveItems) {
+            const found = pool.find(r => !matched.includes(r) && stripAmount(r.item.item_name) === rName && r.item.serving_index === siNum)
+              || pool.find(r => !matched.includes(r) && stripAmount(r.item.item_name) === rName);
+            if (found) matched.push(found);
+            else { allFound = false; break; }
+          }
+          if (allFound && matched.length > 0) {
+            matched.forEach(r => { remaining[r.idx].used = true; });
+            const servingIdx = parseInt(si, 10);
+            renderBlocks.push({
+              type: 'recipe', recipe, entries: matched.map(r => r.item),
+              serving: servingIdx, servings: recipe.servings || 1, isExploded: true,
+              firstIdx: Math.min(...matched.map(r => r.idx)), meal,
+              tlKey: `${meal}::${recipe.name}::${servingIdx}`,
+            });
+          }
         }
       }
     } else {
@@ -1742,6 +1835,7 @@ async function loadDay() {
     await db.from('fddb_day_type').upsert({ date: dateVal, type: 'training' }, { onConflict: 'date' });
   }
   renderDayTypeToggle();
+  await assignGroupIds(dateVal);
   setTodayView(timelineMode ? 'timeline' : 'dashboard');
 }
 
@@ -2279,24 +2373,51 @@ function renderDashboard(entries) {
       const isExploded = explodedRecipeNames.has(recipe.name);
 
       if (isExploded) {
-        const siGroups = {};
-        dashRemaining.forEach(r => {
-          if (r.used) return;
-          const si = r.item.serving_index ?? 0;
-          (siGroups[si] = siGroups[si] || []).push(r);
-        });
-        for (const [si, pool] of Object.entries(siGroups)) {
-          const matched = [];
-          let allFound = true;
-          for (const rName of recipe.effectiveItems) {
-            const found = pool.find(r => !matched.includes(r) && stripAmount(r.item.item_name) === rName);
-            if (found) matched.push(found);
-            else { allFound = false; break; }
+        const useGroupIds = dashRemaining.some(r => !r.used && r.item.fddb_group_id);
+        if (useGroupIds) {
+          const gidGroups = {};
+          dashRemaining.forEach(r => {
+            if (r.used || !r.item.fddb_group_id) return;
+            (gidGroups[r.item.fddb_group_id] = gidGroups[r.item.fddb_group_id] || []).push(r);
+          });
+          const sortedGroups = Object.entries(gidGroups)
+            .sort(([, a], [, b]) => Math.min(...a.map(r => r.idx)) - Math.min(...b.map(r => r.idx)));
+          let overrideIdx = 0;
+          for (const [, pool] of sortedGroups) {
+            const matched = [];
+            let allFound = true;
+            for (const rName of recipe.effectiveItems) {
+              const found = pool.find(r => !matched.includes(r) && stripAmount(r.item.item_name) === rName);
+              if (found) matched.push(found);
+              else { allFound = false; break; }
+            }
+            if (allFound && matched.length > 0) {
+              matched.forEach(r => { dashRemaining[r.idx].used = true; });
+              dashRenderBlocks.push({ type: 'recipe', recipe, entries: matched.map(r => r.item), isExploded: true, overrideServingIdx: overrideIdx, firstIdx: Math.min(...matched.map(r => r.idx)) });
+              overrideIdx++;
+            }
           }
-          if (allFound && matched.length > 0) {
-            matched.forEach(r => { dashRemaining[r.idx].used = true; });
-            const recipeEntries = matched.map(r => r.item);
-            dashRenderBlocks.push({ type: 'recipe', recipe, entries: recipeEntries, isExploded: true, overrideServingIdx: parseInt(si, 10), firstIdx: Math.min(...matched.map(r => r.idx)) });
+        } else {
+          const siGroups = {};
+          dashRemaining.forEach(r => {
+            if (r.used) return;
+            const si = r.item.serving_index ?? 0;
+            (siGroups[si] = siGroups[si] || []).push(r);
+          });
+          for (const [si, pool] of Object.entries(siGroups)) {
+            const matched = [];
+            let allFound = true;
+            const siNum = parseInt(si, 10);
+            for (const rName of recipe.effectiveItems) {
+              const found = pool.find(r => !matched.includes(r) && stripAmount(r.item.item_name) === rName && r.item.serving_index === siNum)
+                || pool.find(r => !matched.includes(r) && stripAmount(r.item.item_name) === rName);
+              if (found) matched.push(found);
+              else { allFound = false; break; }
+            }
+            if (allFound && matched.length > 0) {
+              matched.forEach(r => { dashRemaining[r.idx].used = true; });
+              dashRenderBlocks.push({ type: 'recipe', recipe, entries: matched.map(r => r.item), isExploded: true, overrideServingIdx: parseInt(si, 10), firstIdx: Math.min(...matched.map(r => r.idx)) });
+            }
           }
         }
       } else {
