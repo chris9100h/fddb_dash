@@ -869,7 +869,9 @@ function buildTlRenderBlocks(meal, items) {
     if (isExploded) {
       // Primary: group by fddb_group_id when available.
       // Fallback: group by serving_index for legacy rows without a group id.
-      const useGroupIds = remaining.some(r => !r.used && r.item.fddb_group_id);
+      const recipePoolItems = remaining.filter(r => !r.used && recipe.effectiveItems.includes(stripAmount(r.item.item_name)));
+      const hasSiItems = recipePoolItems.some(r => r.item.serving_index != null);
+      const useGroupIds = !hasSiItems && recipePoolItems.some(r => r.item.fddb_group_id);
       if (useGroupIds) {
         const gidGroups = {};
         remaining.forEach(r => {
@@ -2373,7 +2375,9 @@ function renderDashboard(entries) {
       const isExploded = explodedRecipeNames.has(recipe.name);
 
       if (isExploded) {
-        const useGroupIds = dashRemaining.some(r => !r.used && r.item.fddb_group_id);
+        const recipePoolItems = dashRemaining.filter(r => !r.used && recipe.effectiveItems.includes(stripAmount(r.item.item_name)));
+        const hasSiItems = recipePoolItems.some(r => r.item.serving_index != null);
+        const useGroupIds = !hasSiItems && recipePoolItems.some(r => r.item.fddb_group_id);
         if (useGroupIds) {
           const gidGroups = {};
           dashRemaining.forEach(r => {
@@ -4909,6 +4913,7 @@ initTweaks();
         // Entries are merged: explode into N per-serving rows, then move target serving.
         const newRows = [];
         for (let s = 0; s < servings; s++) {
+          const groupId = crypto.randomUUID();
           for (const entry of allEntries) {
             newRows.push({
               date: currentDate,
@@ -4920,6 +4925,7 @@ initTweaks();
               fat: ((parseFloat(entry.fat) || 0) / servings).toFixed(1),
               serving_index: s,
               sort_order: entry.sort_order,
+              fddb_group_id: groupId,
             });
           }
         }
