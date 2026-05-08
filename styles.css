@@ -2689,7 +2689,11 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   padding-right: 32px;
 }
 
-.insulin-dose-modal { max-width: 300px; padding: 28px 24px 24px; }
+/* insulin-dose-modal sets --dur-accent so shared custom-slider CSS picks up gold */
+.insulin-dose-modal {
+  max-width: 300px; padding: 28px 24px 24px;
+  --dur-accent: var(--gold); --dur-shadow: rgba(245,158,11,.4);
+}
 .insulin-dose-display {
   display: flex; align-items: baseline; justify-content: center; gap: 6px;
   margin: 20px 0 18px;
@@ -2698,42 +2702,17 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   font-size: 3.2rem; font-weight: 800; line-height: 1;
   color: var(--gold); letter-spacing: -.04em;
 }
-.insulin-dose-unit {
-  font-size: 1.2rem; font-weight: 600; color: var(--text-dim);
-}
-.insulin-dose-slider {
-  -webkit-appearance: none; appearance: none;
-  width: 100%; height: 6px;
-  border-radius: 99px;
-  background: var(--border);
-  outline: none; cursor: pointer;
-}
-.insulin-dose-slider::-webkit-slider-thumb {
-  -webkit-appearance: none; appearance: none;
-  width: 42px; height: 42px; border-radius: 50%;
-  background: var(--gold);
-  box-shadow: 0 2px 8px rgba(245,158,11,.4);
-  cursor: pointer; transition: transform .1s;
-}
-.insulin-dose-slider::-webkit-slider-thumb:active { transform: scale(1.1); }
-.insulin-dose-slider::-moz-range-thumb {
-  width: 42px; height: 42px; border-radius: 50%; border: none;
-  background: var(--gold);
-  box-shadow: 0 2px 8px rgba(245,158,11,.4);
-  cursor: pointer;
-}
+.insulin-dose-unit { font-size: 1.2rem; font-weight: 600; color: var(--text-dim); }
 .insulin-dose-ticks {
   display: flex; justify-content: space-between;
-  padding: 20px 2px 0;
+  padding: 16px 2px 0;
   font-size: .72rem; color: var(--gold); font-weight: 600;
 }
 .insulin-dose-confirm {
-  display: block; width: 100%; margin-top: 20px;
-  padding: 13px;
+  display: block; width: 100%; margin-top: 20px; padding: 13px;
   border-radius: 12px; border: none;
   background: var(--gold); color: #000;
-  font-size: 1rem; font-weight: 700; cursor: pointer;
-  transition: background .15s;
+  font-size: 1rem; font-weight: 700; cursor: pointer; transition: background .15s;
 }
 .insulin-dose-confirm:hover { background: #d97706; }
 
@@ -2748,44 +2727,53 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   font-size: 3.2rem; font-weight: 800; line-height: 1;
   color: var(--dur-accent, #888); letter-spacing: -.04em;
 }
-.dur-slider-unit {
-  font-size: 1.2rem; font-weight: 600; color: var(--text-dim);
-}
-.dur-slider-input {
-  -webkit-appearance: none; appearance: none;
-  width: 100%; height: 6px;
-  border-radius: 99px;
-  background: var(--border);
-  outline: none; cursor: pointer;
-}
-.dur-slider-input::-webkit-slider-thumb {
-  -webkit-appearance: none; appearance: none;
-  width: 42px; height: 42px; border-radius: 50%;
-  background: var(--dur-accent, #888);
-  box-shadow: 0 2px 8px var(--dur-shadow, rgba(0,0,0,.3));
-  cursor: pointer; transition: transform .1s;
-}
-.dur-slider-input::-webkit-slider-thumb:active { transform: scale(1.1); }
-.dur-slider-input::-moz-range-thumb {
-  width: 42px; height: 42px; border-radius: 50%; border: none;
-  background: var(--dur-accent, #888);
-  box-shadow: 0 2px 8px var(--dur-shadow, rgba(0,0,0,.3));
-  cursor: pointer;
-}
+.dur-slider-unit { font-size: 1.2rem; font-weight: 600; color: var(--text-dim); }
 .dur-slider-ticks {
   display: flex; justify-content: space-between;
-  padding: 20px 2px 0;
+  padding: 16px 2px 0;
   font-size: .72rem; color: var(--dur-accent); font-weight: 600;
 }
 .dur-slider-confirm {
-  display: block; width: 100%; margin-top: 20px;
-  padding: 13px;
-  border-radius: 12px; border: none;
-  color: #fff;
-  font-size: 1rem; font-weight: 700; cursor: pointer;
-  transition: filter .15s;
+  display: block; width: 100%; margin-top: 20px; padding: 13px;
+  border-radius: 12px; border: none; color: #fff;
+  font-size: 1rem; font-weight: 700; cursor: pointer; transition: filter .15s;
 }
 .dur-slider-confirm:hover { filter: brightness(1.15); }
+
+/* Custom touch-friendly slider — used by all three modals */
+.custom-slider {
+  position: relative;
+  padding: 20px 0;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none; -webkit-user-select: none;
+}
+.custom-slider-track {
+  position: relative;
+  height: 6px;
+  border-radius: 99px;
+  background: var(--border);
+  overflow: visible;
+}
+.custom-slider-fill {
+  position: absolute;
+  left: 0; top: 0; bottom: 0; width: 0;
+  border-radius: 99px;
+  background: var(--dur-accent, #888);
+  pointer-events: none;
+}
+.custom-slider-thumb {
+  position: absolute;
+  top: 50%; left: 0;
+  transform: translate(-50%, -50%);
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: var(--dur-accent, #888);
+  box-shadow: 0 2px 10px var(--dur-shadow, rgba(0,0,0,.3));
+  pointer-events: none;
+  transition: transform .1s;
+}
+.custom-slider:active .custom-slider-thumb { transform: translate(-50%, -50%) scale(1.12); }
 
 /* Current-time indicator */
 .tl-now-line {

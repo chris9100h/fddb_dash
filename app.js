@@ -660,6 +660,46 @@ async function saveBgValue(slotMinutes, value) {
   renderTimelineDashboard(currentDayEntries);
 }
 
+function initCustomSlider(container, onChange) {
+  const track = container.querySelector('.custom-slider-track');
+  const thumb = container.querySelector('.custom-slider-thumb');
+  const fill  = container.querySelector('.custom-slider-fill');
+  const min   = parseFloat(container.dataset.min);
+  const max   = parseFloat(container.dataset.max);
+  const step  = parseFloat(container.dataset.step);
+
+  const setVal = (v) => {
+    const clamped = Math.round(Math.max(min, Math.min(max, v)) / step) * step;
+    container.dataset.current = clamped;
+    const pct = (clamped - min) / (max - min) * 100;
+    thumb.style.left = pct + '%';
+    fill.style.width  = pct + '%';
+    onChange(clamped);
+  };
+
+  setVal(parseFloat(container.dataset.value));
+
+  const fromPointer = (clientX) => {
+    const rect = track.getBoundingClientRect();
+    return min + ((clientX - rect.left) / rect.width) * (max - min);
+  };
+
+  let active = false;
+  container.addEventListener('pointerdown', (e) => {
+    active = true;
+    container.setPointerCapture(e.pointerId);
+    setVal(fromPointer(e.clientX));
+    e.preventDefault();
+  }, { passive: false });
+  container.addEventListener('pointermove', (e) => {
+    if (!active) return;
+    setVal(fromPointer(e.clientX));
+    e.preventDefault();
+  }, { passive: false });
+  container.addEventListener('pointerup',     () => { active = false; });
+  container.addEventListener('pointercancel', () => { active = false; });
+}
+
 function openDurationModal(sessionKey, icon, title, accentColor, accentShadow, defaultVal = 60, maxVal = 120) {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay open';
@@ -667,18 +707,23 @@ function openDurationModal(sessionKey, icon, title, accentColor, accentShadow, d
     <div class="modal dur-slider-modal" style="--dur-accent:${accentColor};--dur-shadow:${accentShadow}">
       <div class="modal-title"><i class="fas fa-${icon}"></i> ${title}</div>
       <div class="dur-slider-display"><span class="dur-slider-value">${defaultVal}</span><span class="dur-slider-unit">min</span></div>
-      <input class="dur-slider-input" type="range" min="5" max="${maxVal}" value="${defaultVal}" step="5">
+      <div class="custom-slider" data-min="5" data-max="${maxVal}" data-value="${defaultVal}" data-step="5">
+        <div class="custom-slider-track">
+          <div class="custom-slider-fill"></div>
+          <div class="custom-slider-thumb"></div>
+        </div>
+      </div>
       <div class="dur-slider-ticks">
         <span>5</span><span>${Math.round(maxVal * .25 / 5) * 5}</span><span>${Math.round(maxVal * .5 / 5) * 5}</span><span>${Math.round(maxVal * .75 / 5) * 5}</span><span>${maxVal}</span>
       </div>
       <button class="dur-slider-confirm" style="background:${accentColor}">Speichern</button>
     </div>`;
   document.body.appendChild(overlay);
-  const slider = overlay.querySelector('.dur-slider-input');
-  const valueEl = overlay.querySelector('.dur-slider-value');
-  slider.addEventListener('input', () => { valueEl.textContent = slider.value; });
+  const sliderEl = overlay.querySelector('.custom-slider');
+  const valueEl  = overlay.querySelector('.dur-slider-value');
+  initCustomSlider(sliderEl, (v) => { valueEl.textContent = v; });
   overlay.querySelector('.dur-slider-confirm').addEventListener('click', () => {
-    saveItemTime(sessionKey, parseInt(slider.value, 10));
+    saveItemTime(sessionKey, parseInt(sliderEl.dataset.current, 10));
     overlay.remove();
     renderDashboard(currentDayEntries);
   });
@@ -695,18 +740,22 @@ function openInsulinDoseModal(sentinelKey, iuKey, onConfirm) {
     <div class="modal insulin-dose-modal">
       <div class="modal-title"><i class="fas fa-syringe"></i> Novorapid – Dosis</div>
       <div class="insulin-dose-display"><span class="insulin-dose-value">4</span><span class="insulin-dose-unit">iu</span></div>
-      <input class="insulin-dose-slider" type="range" min="1" max="20" value="4" step="1">
+      <div class="custom-slider" data-min="1" data-max="20" data-value="4" data-step="1">
+        <div class="custom-slider-track">
+          <div class="custom-slider-fill"></div>
+          <div class="custom-slider-thumb"></div>
+        </div>
+      </div>
       <div class="insulin-dose-ticks"><span>1</span><span>5</span><span>10</span><span>15</span><span>20</span></div>
       <button class="insulin-dose-confirm">Injizieren</button>
     </div>`;
   document.body.appendChild(overlay);
-  const slider = overlay.querySelector('.insulin-dose-slider');
-  const valueEl = overlay.querySelector('.insulin-dose-value');
-  slider.addEventListener('input', () => { valueEl.textContent = slider.value; });
+  const sliderEl = overlay.querySelector('.custom-slider');
+  const valueEl  = overlay.querySelector('.insulin-dose-value');
+  initCustomSlider(sliderEl, (v) => { valueEl.textContent = v; });
   overlay.querySelector('.insulin-dose-confirm').addEventListener('click', () => {
-    const iu = parseInt(slider.value, 10);
     saveItemTime(sentinelKey, 1);
-    saveItemTime(iuKey, iu);
+    saveItemTime(iuKey, parseInt(sliderEl.dataset.current, 10));
     overlay.remove();
     onConfirm();
   });
