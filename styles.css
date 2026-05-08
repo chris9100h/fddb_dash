@@ -2738,6 +2738,8 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
 .insulin-dose-confirm:hover { background: #d97706; }
 
 .dur-slider-modal { max-width: 300px; padding: 28px 24px 24px; }
+.dur-slider-modal .modal-title { text-align: center; color: var(--dur-accent); }
+.insulin-dose-modal .modal-title { text-align: center; color: var(--gold); }
 .dur-slider-display {
   display: flex; align-items: baseline; justify-content: center; gap: 6px;
   margin: 20px 0 18px;
