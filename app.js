@@ -700,12 +700,15 @@ function initCustomSlider(container, onChange) {
   container.addEventListener('pointercancel', () => { active = false; });
 }
 
-function openDurationModal(sessionKey, icon, title, accentColor, accentShadow, defaultVal = 60, maxVal = 120) {
+function openDurationModal(sessionKey, icon, title, accentColor, accentShadow, accentSoft, defaultVal = 60, maxVal = 120) {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay open';
   overlay.innerHTML = `
-    <div class="modal dur-slider-modal" style="--dur-accent:${accentColor};--dur-shadow:${accentShadow}">
-      <div class="modal-title"><i class="fas fa-${icon}"></i> ${title}</div>
+    <div class="modal dur-slider-modal" style="--dur-accent:${accentColor};--dur-shadow:${accentShadow};--dur-soft:${accentSoft}">
+      <div class="slider-modal-header">
+        <div class="slider-modal-icon-wrap"><i class="fas fa-${icon}"></i></div>
+        <div class="slider-modal-label">${title}</div>
+      </div>
       <div class="dur-slider-display"><span class="dur-slider-value">${defaultVal}</span><span class="dur-slider-unit">min</span></div>
       <div class="custom-slider" data-min="5" data-max="${maxVal}" data-value="${defaultVal}" data-step="5">
         <div class="custom-slider-track">
@@ -730,15 +733,18 @@ function openDurationModal(sessionKey, icon, title, accentColor, accentShadow, d
   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 }
 
-function openCardioDurationModal(sessionKey)   { openDurationModal(sessionKey, 'person-running', 'Cardio', '#0891b2', 'rgba(8,145,178,.4)', 30, 120); }
-function openTrainingDurationModal(sessionKey) { openDurationModal(sessionKey, 'dumbbell', 'Training', '#b91c1c', 'rgba(185,28,28,.4)', 60, 180); }
+function openCardioDurationModal(sessionKey)   { openDurationModal(sessionKey, 'person-running', 'Cardio',   '#0891b2', 'rgba(8,145,178,.4)',  'rgba(8,145,178,.12)',  30, 120); }
+function openTrainingDurationModal(sessionKey) { openDurationModal(sessionKey, 'dumbbell',       'Training', '#b91c1c', 'rgba(185,28,28,.4)', 'rgba(185,28,28,.12)', 60, 180); }
 
 function openInsulinDoseModal(sentinelKey, iuKey, onConfirm) {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay open';
   overlay.innerHTML = `
     <div class="modal insulin-dose-modal">
-      <div class="modal-title"><i class="fas fa-syringe"></i> Novorapid – Dosis</div>
+      <div class="slider-modal-header">
+        <div class="slider-modal-icon-wrap"><i class="fas fa-syringe"></i></div>
+        <div class="slider-modal-label">Novorapid – Dosis</div>
+      </div>
       <div class="insulin-dose-display"><span class="insulin-dose-value">4</span><span class="insulin-dose-unit">iu</span></div>
       <div class="custom-slider" data-min="1" data-max="20" data-value="4" data-step="1">
         <div class="custom-slider-track">

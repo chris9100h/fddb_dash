@@ -2692,7 +2692,7 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
 /* insulin-dose-modal sets --dur-accent so shared custom-slider CSS picks up gold */
 .insulin-dose-modal {
   max-width: 300px; padding: 28px 24px 24px;
-  --dur-accent: var(--gold); --dur-shadow: rgba(245,158,11,.4);
+  --dur-accent: var(--gold); --dur-shadow: rgba(245,158,11,.4); --dur-soft: rgba(245,158,11,.12);
 }
 .insulin-dose-display {
   display: flex; align-items: baseline; justify-content: center; gap: 6px;
@@ -2717,8 +2717,21 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
 .insulin-dose-confirm:hover { background: #d97706; }
 
 .dur-slider-modal { max-width: 300px; padding: 28px 24px 24px; }
-.dur-slider-modal .modal-title { text-align: center; color: var(--dur-accent); }
-.insulin-dose-modal .modal-title { text-align: center; color: var(--gold); }
+.slider-modal-header {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  margin-bottom: 6px;
+}
+.slider-modal-icon-wrap {
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--dur-soft, rgba(136,136,136,.12));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem;
+  color: var(--dur-accent, #888);
+}
+.slider-modal-label {
+  font-size: 1.15rem; font-weight: 700; letter-spacing: -.02em;
+  color: var(--dur-accent, #888);
+}
 .dur-slider-display {
   display: flex; align-items: baseline; justify-content: center; gap: 6px;
   margin: 20px 0 18px;
