@@ -967,27 +967,40 @@ function buildTlRenderBlocks(meal, items) {
       // cross-recipe ingredient stealing when two recipes share an ingredient name
       // in the same meal (e.g. OO and HBCD both contain "Whey Protein WPC80").
       let matchIndices = null;
+      // Track the gid that partially matched the most ingredients — used as preference
+      // in the unanchored fallback when the full gid match fails (e.g. name mismatch
+      // between recipe template and DB item like "Banane" vs "Banane frisch").
+      let bestPartialGid = null;
+      let bestPartialCount = 0;
       const gidMap = {};
       remaining.forEach(r => {
         if (r.used || !r.item.fddb_group_id) return;
         (gidMap[r.item.fddb_group_id] = gidMap[r.item.fddb_group_id] || []).push(r);
       });
-      for (const pool of Object.values(gidMap)) {
+      for (const [gid, pool] of Object.entries(gidMap)) {
         const idxs = [];
+        let count = 0;
         let allFound = true;
         for (const rName of recipe.effectiveItems) {
           const found = pool.find(r => !idxs.includes(r.idx) && stripAmount(r.item.item_name) === rName);
-          if (found) idxs.push(found.idx);
+          if (found) { idxs.push(found.idx); count++; }
           else { allFound = false; break; }
         }
         if (allFound && idxs.length > 0) { matchIndices = idxs; break; }
+        if (count > bestPartialCount) { bestPartialCount = count; bestPartialGid = gid; }
       }
       if (matchIndices === null) {
         const idxs = [];
         const workingPool = remaining.filter(r => !r.used);
         let allFound = true;
         for (const rName of recipe.effectiveItems) {
-          const found = workingPool.find(r => !idxs.includes(r.idx) && stripAmount(r.item.item_name) === rName);
+          // Preference order: (1) items from the best partial gid match (guards against
+          // name-mismatched recipes stealing gid-locked ingredients from other recipes),
+          // (2) unclaimed no-gid items (fresh scraper rows not yet assigned to any recipe),
+          // (3) any remaining item.
+          const found = (bestPartialGid ? workingPool.find(r => !idxs.includes(r.idx) && r.item.fddb_group_id === bestPartialGid && stripAmount(r.item.item_name) === rName) : null)
+            || workingPool.find(r => !idxs.includes(r.idx) && !r.item.fddb_group_id && stripAmount(r.item.item_name) === rName)
+            || workingPool.find(r => !idxs.includes(r.idx) && stripAmount(r.item.item_name) === rName);
           if (found) idxs.push(found.idx);
           else { allFound = false; break; }
         }
@@ -2480,27 +2493,33 @@ function renderDashboard(entries) {
         }
       } else {
         let matchIndices = null;
+        let bestPartialGid = null;
+        let bestPartialCount = 0;
         const gidMap = {};
         dashRemaining.forEach(r => {
           if (r.used || !r.item.fddb_group_id) return;
           (gidMap[r.item.fddb_group_id] = gidMap[r.item.fddb_group_id] || []).push(r);
         });
-        for (const pool of Object.values(gidMap)) {
+        for (const [gid, pool] of Object.entries(gidMap)) {
           const idxs = [];
+          let count = 0;
           let allFound = true;
           for (const rName of recipe.effectiveItems) {
             const found = pool.find(r => !idxs.includes(r.idx) && stripAmount(r.item.item_name) === rName);
-            if (found) idxs.push(found.idx);
+            if (found) { idxs.push(found.idx); count++; }
             else { allFound = false; break; }
           }
           if (allFound && idxs.length > 0) { matchIndices = idxs; break; }
+          if (count > bestPartialCount) { bestPartialCount = count; bestPartialGid = gid; }
         }
         if (matchIndices === null) {
           const idxs = [];
           const workingPool = dashRemaining.filter(r => !r.used);
           let allFound = true;
           for (const rName of recipe.effectiveItems) {
-            const found = workingPool.find(r => !idxs.includes(r.idx) && stripAmount(r.item.item_name) === rName);
+            const found = (bestPartialGid ? workingPool.find(r => !idxs.includes(r.idx) && r.item.fddb_group_id === bestPartialGid && stripAmount(r.item.item_name) === rName) : null)
+              || workingPool.find(r => !idxs.includes(r.idx) && !r.item.fddb_group_id && stripAmount(r.item.item_name) === rName)
+              || workingPool.find(r => !idxs.includes(r.idx) && stripAmount(r.item.item_name) === rName);
             if (found) idxs.push(found.idx);
             else { allFound = false; break; }
           }
