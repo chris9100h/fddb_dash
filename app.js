@@ -692,30 +692,24 @@ function openInsulinDoseModal(sentinelKey, iuKey, onConfirm) {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay open';
   overlay.innerHTML = `
-    <div class="modal cardio-dur-modal">
+    <div class="modal insulin-dose-modal">
       <div class="modal-title"><i class="fas fa-syringe"></i> Novorapid – Dosis</div>
-      <div class="cardio-dur-options">
-        <button class="cardio-dur-btn" data-iu="2">2 iu</button>
-        <button class="cardio-dur-btn" data-iu="4">4 iu</button>
-        <button class="cardio-dur-btn" data-iu="6">6 iu</button>
-        <button class="cardio-dur-btn" data-iu="8">8 iu</button>
-      </div>
-      <select class="dur-custom-select">
-        <option value="" disabled selected>Custom…</option>
-        ${Array.from({length: 20}, (_, i) => i + 1).map(n => `<option value="${n}">${n} iu</option>`).join('')}
-      </select>
+      <div class="insulin-dose-display"><span class="insulin-dose-value">4</span><span class="insulin-dose-unit">iu</span></div>
+      <input class="insulin-dose-slider" type="range" min="1" max="20" value="4" step="1">
+      <div class="insulin-dose-ticks"><span>1</span><span>5</span><span>10</span><span>15</span><span>20</span></div>
+      <button class="insulin-dose-confirm">Injizieren</button>
     </div>`;
   document.body.appendChild(overlay);
-  const confirm = (iu) => {
+  const slider = overlay.querySelector('.insulin-dose-slider');
+  const valueEl = overlay.querySelector('.insulin-dose-value');
+  slider.addEventListener('input', () => { valueEl.textContent = slider.value; });
+  overlay.querySelector('.insulin-dose-confirm').addEventListener('click', () => {
+    const iu = parseInt(slider.value, 10);
     saveItemTime(sentinelKey, 1);
     saveItemTime(iuKey, iu);
     overlay.remove();
     onConfirm();
-  };
-  overlay.querySelectorAll('.cardio-dur-btn').forEach(btn => {
-    btn.addEventListener('click', () => confirm(parseInt(btn.dataset.iu, 10)));
   });
-  overlay.querySelector('.dur-custom-select').addEventListener('change', e => confirm(parseInt(e.target.value, 10)));
   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 }
 
