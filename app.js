@@ -5344,13 +5344,18 @@ initTweaks();
     sheet.className = 'tl-ctx-sheet';
 
     const timeLabel = formatSlot(slotMinutes);
-    const inputId = 'bgValueInput';
+    const defaultVal = Math.min(250, Math.max(50, currentValue ?? 100));
     sheet.innerHTML = `
       <div class="tl-ctx-title"><i class="fas fa-droplet" style="color:#e74c3c;margin-right:6px"></i>Blood Glucose at ${timeLabel}</div>
-      <div class="tl-bg-input-row">
-        <input id="${inputId}" class="tl-bg-input" type="number" inputmode="numeric" min="20" max="600"
-          placeholder="e.g. 95" value="${currentValue ?? ''}" />
-        <span class="tl-bg-unit">mg/dL</span>
+      <div class="tl-bg-slider-wrap" style="--dur-accent:#e74c3c;--dur-shadow:rgba(231,76,60,.4);--dur-soft:rgba(231,76,60,.12)">
+        <div class="dur-slider-display"><span class="dur-slider-value">${defaultVal}</span><span class="dur-slider-unit">mg/dL</span></div>
+        <div class="custom-slider" data-min="50" data-max="250" data-value="${defaultVal}" data-step="1">
+          <div class="custom-slider-track">
+            <div class="custom-slider-fill"></div>
+            <div class="custom-slider-thumb"></div>
+          </div>
+        </div>
+        <div class="dur-slider-ticks"><span>50</span><span>100</span><span>150</span><span>200</span><span>250</span></div>
       </div>
       ${currentValue != null ? '<button class="tl-ctx-action tl-ctx-action-danger" id="tlBgDelete"><i class="fas fa-trash"></i> Remove value</button>' : ''}
       <button class="tl-ctx-action" id="tlBgSave"><i class="fas fa-check"></i> Save</button>
@@ -5363,21 +5368,17 @@ initTweaks();
 
     overlay.appendChild(sheet);
     document.body.appendChild(overlay);
-    requestAnimationFrame(() => {
-      overlay.classList.add('show');
-      sheet.querySelector(`#${inputId}`)?.focus();
-    });
+    requestAnimationFrame(() => { overlay.classList.add('show'); });
+
+    const sliderEl = sheet.querySelector('.custom-slider');
+    const valueEl  = sheet.querySelector('.dur-slider-value');
+    initCustomSlider(sliderEl, (v) => { valueEl.textContent = v; });
 
     overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
     sheet.querySelector('.tl-ctx-cancel').addEventListener('click', close);
     sheet.querySelector('#tlBgSave').addEventListener('click', async () => {
-      const raw = parseInt(sheet.querySelector(`#${inputId}`).value, 10);
-      if (isNaN(raw) || raw < 20 || raw > 600) {
-        sheet.querySelector(`#${inputId}`).classList.add('tl-bg-input-error');
-        return;
-      }
       close();
-      await saveBgValue(slotMinutes, raw);
+      await saveBgValue(slotMinutes, parseInt(sliderEl.dataset.current, 10));
     });
     if (currentValue != null) {
       sheet.querySelector('#tlBgDelete').addEventListener('click', async () => {
