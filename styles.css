@@ -2696,7 +2696,7 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
 }
 .insulin-dose-value {
   font-size: 3.2rem; font-weight: 800; line-height: 1;
-  color: #0891b2; letter-spacing: -.04em;
+  color: var(--gold); letter-spacing: -.04em;
 }
 .insulin-dose-unit {
   font-size: 1.2rem; font-weight: 600; color: var(--text-dim);
@@ -2711,15 +2711,15 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
 .insulin-dose-slider::-webkit-slider-thumb {
   -webkit-appearance: none; appearance: none;
   width: 26px; height: 26px; border-radius: 50%;
-  background: #0891b2;
-  box-shadow: 0 2px 8px rgba(8,145,178,.4);
+  background: var(--gold);
+  box-shadow: 0 2px 8px rgba(245,158,11,.4);
   cursor: pointer; transition: transform .1s;
 }
 .insulin-dose-slider::-webkit-slider-thumb:active { transform: scale(1.15); }
 .insulin-dose-slider::-moz-range-thumb {
   width: 26px; height: 26px; border-radius: 50%; border: none;
-  background: #0891b2;
-  box-shadow: 0 2px 8px rgba(8,145,178,.4);
+  background: var(--gold);
+  box-shadow: 0 2px 8px rgba(245,158,11,.4);
   cursor: pointer;
 }
 .insulin-dose-ticks {
@@ -2731,11 +2731,11 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   display: block; width: 100%; margin-top: 20px;
   padding: 13px;
   border-radius: 12px; border: none;
-  background: #0891b2; color: #fff;
+  background: var(--gold); color: #000;
   font-size: 1rem; font-weight: 700; cursor: pointer;
   transition: background .15s;
 }
-.insulin-dose-confirm:hover { background: #0e7490; }
+.insulin-dose-confirm:hover { background: #d97706; }
 
 /* Current-time indicator */
 .tl-now-line {
