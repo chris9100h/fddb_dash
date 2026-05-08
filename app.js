@@ -949,10 +949,26 @@ function buildTlRenderBlocks(meal, items) {
           let allFound = true;
           const siNum = parseInt(si, 10);
           for (const rName of recipe.effectiveItems) {
-            const found = pool.find(r => !matched.includes(r) && stripAmount(r.item.item_name) === rName && r.item.serving_index === siNum)
-              || pool.find(r => !matched.includes(r) && stripAmount(r.item.item_name) === rName);
-            if (found) matched.push(found);
-            else { allFound = false; break; }
+            const candidates = pool.filter(r => !matched.includes(r) && (stripAmount(r.item.item_name) === rName));
+            if (!candidates.length) { allFound = false; break; }
+            let found;
+            if (candidates.length === 1) {
+              found = candidates[0];
+            } else {
+              const matchedOrders = matched.map(r => r.item.sort_order).filter(v => v != null);
+              if (matchedOrders.length > 0) {
+                const avg = matchedOrders.reduce((a, b) => a + b, 0) / matchedOrders.length;
+                found = candidates.reduce((best, c) => {
+                  const bd = Math.abs((best.item.sort_order ?? avg) - avg);
+                  const cd = Math.abs((c.item.sort_order ?? avg) - avg);
+                  return cd < bd ? c : best;
+                });
+              } else {
+                const matchedGids = new Set(matched.map(r => r.item.fddb_group_id).filter(Boolean));
+                found = candidates.find(r => matchedGids.has(r.item.fddb_group_id)) || candidates[0];
+              }
+            }
+            matched.push(found);
           }
           if (allFound && matched.length > 0) {
             matched.forEach(r => { remaining[r.idx].used = true; });
@@ -2503,10 +2519,26 @@ function renderDashboard(entries) {
             let allFound = true;
             const siNum = parseInt(si, 10);
             for (const rName of recipe.effectiveItems) {
-              const found = pool.find(r => !matched.includes(r) && stripAmount(r.item.item_name) === rName && r.item.serving_index === siNum)
-                || pool.find(r => !matched.includes(r) && stripAmount(r.item.item_name) === rName);
-              if (found) matched.push(found);
-              else { allFound = false; break; }
+              const candidates = pool.filter(r => !matched.includes(r) && stripAmount(r.item.item_name) === rName);
+              if (!candidates.length) { allFound = false; break; }
+              let found;
+              if (candidates.length === 1) {
+                found = candidates[0];
+              } else {
+                const matchedOrders = matched.map(r => r.item.sort_order).filter(v => v != null);
+                if (matchedOrders.length > 0) {
+                  const avg = matchedOrders.reduce((a, b) => a + b, 0) / matchedOrders.length;
+                  found = candidates.reduce((best, c) => {
+                    const bd = Math.abs((best.item.sort_order ?? avg) - avg);
+                    const cd = Math.abs((c.item.sort_order ?? avg) - avg);
+                    return cd < bd ? c : best;
+                  });
+                } else {
+                  const matchedGids = new Set(matched.map(r => r.item.fddb_group_id).filter(Boolean));
+                  found = candidates.find(r => matchedGids.has(r.item.fddb_group_id)) || candidates[0];
+                }
+              }
+              matched.push(found);
             }
             if (allFound && matched.length > 0) {
               matched.forEach(r => { dashRemaining[r.idx].used = true; });
