@@ -812,7 +812,7 @@ async function assignGroupIds(dateVal) {
   if (!toAssign.length) return;
   // Clear stale group IDs in memory so matching runs fresh.
   toAssign.forEach(e => { e.fddb_group_id = null; });
-  console.debug('[assignGroupIds] toAssign item_names:', toAssign.map(e => `${e.meal}|${e.item_name}`));
+  console.log('[assignGroupIds] toAssign item_names:', toAssign.map(e => `${e.meal}|${e.item_name}`));
 
   const recipeTemplateMap = new Map(allRecipes.map(r => [r.id, r]));
   const recipesByLength = [...allRecipes]
@@ -880,7 +880,7 @@ async function assignGroupIds(dateVal) {
   ]);
   const map = new Map(updates.map(u => [u.id, u.fddb_group_id]));
   currentDayEntries.forEach(e => { if (map.has(e.id)) e.fddb_group_id = map.get(e.id); });
-  console.debug('[assignGroupIds] result:', currentDayEntries.map(e => `${e.item_name}|meal=${e.meal}|si=${e.serving_index}|gid=${e.fddb_group_id?.slice(0,8)}`));
+  console.log('[assignGroupIds] result:', currentDayEntries.map(e => `${e.item_name}|meal=${e.meal}|si=${e.serving_index}|gid=${e.fddb_group_id?.slice(0,8)}`));
 }
 
 function buildTlRenderBlocks(meal, items) {
@@ -900,7 +900,7 @@ function buildTlRenderBlocks(meal, items) {
   recipesByLength.forEach(recipe => {
     if (recipe.effectiveItems.length === 0) return;
     const isExploded = explodedRecipeNames.has(recipe.name);
-    console.debug(`[buildTl] meal=${meal} recipe=${recipe.name} isExploded=${isExploded}`);
+    console.log(`[buildTl] meal=${meal} recipe=${recipe.name} isExploded=${isExploded}`);
 
     if (isExploded) {
       // Primary: group by fddb_group_id when available.
@@ -908,7 +908,7 @@ function buildTlRenderBlocks(meal, items) {
       const recipePoolItems = remaining.filter(r => !r.used && recipe.effectiveItems.includes(stripAmount(r.item.item_name)));
       const hasSiItems = recipePoolItems.some(r => r.item.serving_index != null);
       const useGroupIds = !hasSiItems && recipePoolItems.some(r => r.item.fddb_group_id);
-      console.debug(`[buildTl exploded] recipe=${recipe.name} hasSiItems=${hasSiItems} useGroupIds=${useGroupIds} poolItems=${recipePoolItems.map(r=>`${r.item.item_name}|si=${r.item.serving_index}|gid=${r.item.fddb_group_id?.slice(0,8)}`)}`);
+      console.log(`[buildTl exploded] recipe=${recipe.name} hasSiItems=${hasSiItems} useGroupIds=${useGroupIds} poolItems=${recipePoolItems.map(r=>`${r.item.item_name}|si=${r.item.serving_index}|gid=${r.item.fddb_group_id?.slice(0,8)}`)}`);
       if (useGroupIds) {
         const gidGroups = {};
         remaining.forEach(r => {
@@ -970,8 +970,8 @@ function buildTlRenderBlocks(meal, items) {
       // Prefer matching all ingredients within a single fddb_group_id to prevent
       // cross-recipe ingredient stealing when two recipes share an ingredient name
       // in the same meal (e.g. OO and HBCD both contain "Whey Protein WPC80").
-      console.debug(`[buildTl non-exploded] meal=${meal} recipe=${recipe.name} effectiveItems=${JSON.stringify(recipe.effectiveItems)}`);
-      console.debug(`[buildTl non-exploded] remaining (unused):`, remaining.filter(r=>!r.used).map(r=>`${r.item.item_name}|gid=${r.item.fddb_group_id?.slice(0,8)}|si=${r.item.serving_index}`));
+      console.log(`[buildTl non-exploded] meal=${meal} recipe=${recipe.name} effectiveItems=${JSON.stringify(recipe.effectiveItems)}`);
+      console.log(`[buildTl non-exploded] remaining (unused):`, remaining.filter(r=>!r.used).map(r=>`${r.item.item_name}|gid=${r.item.fddb_group_id?.slice(0,8)}|si=${r.item.serving_index}`));
       let matchIndices = null;
       // Track the gid that partially matched the most ingredients — used as preference
       // in the unanchored fallback when the full gid match fails (e.g. name mismatch
@@ -1012,9 +1012,9 @@ function buildTlRenderBlocks(meal, items) {
         }
         if (allFound && idxs.length > 0) matchIndices = idxs;
       }
-      console.debug(`[buildTl non-exploded] recipe=${recipe.name} matchIndices=${JSON.stringify(matchIndices)} bestPartialGid=${bestPartialGid?.slice(0,8)}`);
+      console.log(`[buildTl non-exploded] recipe=${recipe.name} matchIndices=${JSON.stringify(matchIndices)} bestPartialGid=${bestPartialGid?.slice(0,8)}`);
       if (matchIndices && matchIndices.length > 0) {
-        console.debug(`[buildTl non-exploded] matched items:`, matchIndices.map(idx => `${items[idx].item_name}|gid=${items[idx].fddb_group_id?.slice(0,8)}`));
+        console.log(`[buildTl non-exploded] matched items:`, matchIndices.map(idx => `${items[idx].item_name}|gid=${items[idx].fddb_group_id?.slice(0,8)}`));
         matchIndices.forEach(idx => { remaining[idx].used = true; });
         const servings = recipe.servings || 1;
         const recEntries = matchIndices.map(idx => items[idx]);
