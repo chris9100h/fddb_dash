@@ -812,7 +812,6 @@ async function assignGroupIds(dateVal) {
   if (!toAssign.length) return;
   // Clear stale group IDs in memory so matching runs fresh.
   toAssign.forEach(e => { e.fddb_group_id = null; });
-  console.log('[assignGroupIds] toAssign item_names:', toAssign.map(e => `${e.meal}|${e.item_name}`));
 
   const recipeTemplateMap = new Map(allRecipes.map(r => [r.id, r]));
   const recipesByLength = [...allRecipes]
@@ -827,7 +826,10 @@ async function assignGroupIds(dateVal) {
     .sort((a, b) => b.effectiveItems.length - a.effectiveItems.length);
 
   const byMeal = {};
-  toAssign.forEach(e => (byMeal[e.meal] = byMeal[e.meal] || []).push(e));
+  toAssign.forEach(e => {
+    const key = e.serving_index != null ? `${e.meal}::${e.serving_index}` : e.meal;
+    (byMeal[key] = byMeal[key] || []).push(e);
+  });
 
   const updates = [];
   for (const mealItems of Object.values(byMeal)) {
@@ -880,7 +882,6 @@ async function assignGroupIds(dateVal) {
   ]);
   const map = new Map(updates.map(u => [u.id, u.fddb_group_id]));
   currentDayEntries.forEach(e => { if (map.has(e.id)) e.fddb_group_id = map.get(e.id); });
-  console.log('[assignGroupIds] result:', currentDayEntries.map(e => `${e.item_name}|meal=${e.meal}|si=${e.serving_index}|gid=${e.fddb_group_id?.slice(0,8)}`));
 }
 
 function buildTlRenderBlocks(meal, items) {
@@ -906,7 +907,7 @@ function buildTlRenderBlocks(meal, items) {
       // Fallback: group by serving_index for legacy rows without a group id.
       const recipePoolItems = remaining.filter(r => !r.used && recipe.effectiveItems.includes(stripAmount(r.item.item_name)));
       const hasSiItems = recipePoolItems.some(r => r.item.serving_index != null);
-      const useGroupIds = !hasSiItems && recipePoolItems.some(r => r.item.fddb_group_id);
+      const useGroupIds = recipePoolItems.some(r => r.item.fddb_group_id);
       if (useGroupIds) {
         const gidGroups = {};
         remaining.forEach(r => {
@@ -2477,7 +2478,7 @@ function renderDashboard(entries) {
       if (isExploded) {
         const recipePoolItems = dashRemaining.filter(r => !r.used && recipe.effectiveItems.includes(stripAmount(r.item.item_name)));
         const hasSiItems = recipePoolItems.some(r => r.item.serving_index != null);
-        const useGroupIds = !hasSiItems && recipePoolItems.some(r => r.item.fddb_group_id);
+        const useGroupIds = recipePoolItems.some(r => r.item.fddb_group_id);
         if (useGroupIds) {
           const gidGroups = {};
           dashRemaining.forEach(r => {
