@@ -2725,7 +2725,7 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
 .insulin-dose-ticks {
   display: flex; justify-content: space-between;
   padding: 4px 2px 0;
-  font-size: .72rem; color: var(--text-dim); font-weight: 600;
+  font-size: .72rem; color: var(--gold); font-weight: 600;
 }
 .insulin-dose-confirm {
   display: block; width: 100%; margin-top: 20px;
@@ -2775,7 +2775,7 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
 .dur-slider-ticks {
   display: flex; justify-content: space-between;
   padding: 4px 2px 0;
-  font-size: .72rem; color: var(--text-dim); font-weight: 600;
+  font-size: .72rem; color: var(--dur-accent); font-weight: 600;
 }
 .dur-slider-confirm {
   display: block; width: 100%; margin-top: 20px;
