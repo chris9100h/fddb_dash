@@ -2737,6 +2737,54 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
 }
 .insulin-dose-confirm:hover { background: #d97706; }
 
+.dur-slider-modal { max-width: 300px; padding: 28px 24px 24px; }
+.dur-slider-display {
+  display: flex; align-items: baseline; justify-content: center; gap: 6px;
+  margin: 20px 0 18px;
+}
+.dur-slider-value {
+  font-size: 3.2rem; font-weight: 800; line-height: 1;
+  color: var(--dur-accent, #888); letter-spacing: -.04em;
+}
+.dur-slider-unit {
+  font-size: 1.2rem; font-weight: 600; color: var(--text-dim);
+}
+.dur-slider-input {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 6px;
+  border-radius: 99px;
+  background: var(--border);
+  outline: none; cursor: pointer;
+}
+.dur-slider-input::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--dur-accent, #888);
+  box-shadow: 0 2px 8px var(--dur-shadow, rgba(0,0,0,.3));
+  cursor: pointer; transition: transform .1s;
+}
+.dur-slider-input::-webkit-slider-thumb:active { transform: scale(1.15); }
+.dur-slider-input::-moz-range-thumb {
+  width: 26px; height: 26px; border-radius: 50%; border: none;
+  background: var(--dur-accent, #888);
+  box-shadow: 0 2px 8px var(--dur-shadow, rgba(0,0,0,.3));
+  cursor: pointer;
+}
+.dur-slider-ticks {
+  display: flex; justify-content: space-between;
+  padding: 4px 2px 0;
+  font-size: .72rem; color: var(--text-dim); font-weight: 600;
+}
+.dur-slider-confirm {
+  display: block; width: 100%; margin-top: 20px;
+  padding: 13px;
+  border-radius: 12px; border: none;
+  color: #fff;
+  font-size: 1rem; font-weight: 700; cursor: pointer;
+  transition: filter .15s;
+}
+.dur-slider-confirm:hover { filter: brightness(1.15); }
+
 /* Current-time indicator */
 .tl-now-line {
   position: relative;

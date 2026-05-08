@@ -660,33 +660,33 @@ async function saveBgValue(slotMinutes, value) {
   renderTimelineDashboard(currentDayEntries);
 }
 
-function openDurationModal(sessionKey, icon, title) {
+function openDurationModal(sessionKey, icon, title, accentColor, accentShadow, defaultVal = 60, maxVal = 120) {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay open';
   overlay.innerHTML = `
-    <div class="modal cardio-dur-modal">
+    <div class="modal dur-slider-modal">
       <div class="modal-title"><i class="fas fa-${icon}"></i> ${title}</div>
-      <div class="cardio-dur-options">
-        <button class="cardio-dur-btn" data-min="30">30 min</button>
-        <button class="cardio-dur-btn" data-min="60">60 min</button>
-        <button class="cardio-dur-btn" data-min="90">90 min</button>
+      <div class="dur-slider-display"><span class="dur-slider-value">${defaultVal}</span><span class="dur-slider-unit">min</span></div>
+      <input class="dur-slider-input" type="range" min="5" max="${maxVal}" value="${defaultVal}" step="5" style="--dur-accent:${accentColor};--dur-shadow:${accentShadow}">
+      <div class="dur-slider-ticks">
+        <span>5</span><span>${Math.round(maxVal * .25 / 5) * 5}</span><span>${Math.round(maxVal * .5 / 5) * 5}</span><span>${Math.round(maxVal * .75 / 5) * 5}</span><span>${maxVal}</span>
       </div>
-      <select class="dur-custom-select">
-        <option value="" disabled selected>Custom…</option>
-        ${Array.from({length: 24}, (_, i) => (i + 1) * 5).map(m => `<option value="${m}">${m} min</option>`).join('')}
-      </select>
+      <button class="dur-slider-confirm" style="background:${accentColor}">Speichern</button>
     </div>`;
   document.body.appendChild(overlay);
-  const confirm = (min) => { saveItemTime(sessionKey, min); overlay.remove(); renderDashboard(currentDayEntries); };
-  overlay.querySelectorAll('.cardio-dur-btn').forEach(btn => {
-    btn.addEventListener('click', () => confirm(parseInt(btn.dataset.min, 10)));
+  const slider = overlay.querySelector('.dur-slider-input');
+  const valueEl = overlay.querySelector('.dur-slider-value');
+  slider.addEventListener('input', () => { valueEl.textContent = slider.value; });
+  overlay.querySelector('.dur-slider-confirm').addEventListener('click', () => {
+    saveItemTime(sessionKey, parseInt(slider.value, 10));
+    overlay.remove();
+    renderDashboard(currentDayEntries);
   });
-  overlay.querySelector('.dur-custom-select').addEventListener('change', e => confirm(parseInt(e.target.value, 10)));
   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 }
 
-function openCardioDurationModal(sessionKey)   { openDurationModal(sessionKey, 'person-running', 'Cardio Duration'); }
-function openTrainingDurationModal(sessionKey) { openDurationModal(sessionKey, 'dumbbell', 'Training Duration'); }
+function openCardioDurationModal(sessionKey)   { openDurationModal(sessionKey, 'person-running', 'Cardio', '#0891b2', 'rgba(8,145,178,.4)', 30, 120); }
+function openTrainingDurationModal(sessionKey) { openDurationModal(sessionKey, 'dumbbell', 'Training', '#b91c1c', 'rgba(185,28,28,.4)', 60, 180); }
 
 function openInsulinDoseModal(sentinelKey, iuKey, onConfirm) {
   const overlay = document.createElement('div');
