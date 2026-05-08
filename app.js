@@ -664,10 +664,10 @@ function openDurationModal(sessionKey, icon, title, accentColor, accentShadow, d
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay open';
   overlay.innerHTML = `
-    <div class="modal dur-slider-modal">
+    <div class="modal dur-slider-modal" style="--dur-accent:${accentColor};--dur-shadow:${accentShadow}">
       <div class="modal-title"><i class="fas fa-${icon}"></i> ${title}</div>
       <div class="dur-slider-display"><span class="dur-slider-value">${defaultVal}</span><span class="dur-slider-unit">min</span></div>
-      <input class="dur-slider-input" type="range" min="5" max="${maxVal}" value="${defaultVal}" step="5" style="--dur-accent:${accentColor};--dur-shadow:${accentShadow}">
+      <input class="dur-slider-input" type="range" min="5" max="${maxVal}" value="${defaultVal}" step="5">
       <div class="dur-slider-ticks">
         <span>5</span><span>${Math.round(maxVal * .25 / 5) * 5}</span><span>${Math.round(maxVal * .5 / 5) * 5}</span><span>${Math.round(maxVal * .75 / 5) * 5}</span><span>${maxVal}</span>
       </div>
