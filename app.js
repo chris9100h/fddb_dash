@@ -5000,6 +5000,7 @@ initTweaks();
 
   document.addEventListener('pointerdown', onDown);
   window.showTlContextMenu = showTlContextMenu;
+  window.showBgEditSheet = showBgEditSheet;
 })();
 
 /* ──────────────────────────────────────────────────────────
