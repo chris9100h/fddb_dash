@@ -648,6 +648,18 @@ function saveItemTime(itemKey, minutes) {
   }, 400);
 }
 
+async function saveBgValue(slotMinutes, value) {
+  const bgKey = `bg::${slotMinutes}`;
+  if (value == null) {
+    delete itemTimeMap[bgKey];
+    await db.from('fddb_item_times').delete().eq('date', currentDate).eq('item_key', bgKey);
+  } else {
+    itemTimeMap[bgKey] = value;
+    await db.from('fddb_item_times').upsert({ date: currentDate, item_key: bgKey, minutes: value }, { onConflict: 'date,item_key' });
+  }
+  renderTimelineDashboard(currentDayEntries);
+}
+
 function openDurationModal(sessionKey, icon, title) {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay open';
@@ -1137,6 +1149,18 @@ function renderTimelineDashboard(entries) {
       `</span>`;
     block.appendChild(summary);
     block.querySelectorAll('.tl-slot-footer').forEach(f => f.remove());
+
+    // Inject BG chips into insulin-range rows that have a saved BG value
+    const endSlot = Math.min(sess.slot + 4 * 60, 1320);
+    for (let m = sess.slot; m <= endSlot; m += 30) {
+      const bgVal = itemTimeMap[`bg::${m}`];
+      if (bgVal == null) continue;
+      const rangeRow = block.querySelector(`[data-hour="${m}"]`);
+      if (!rangeRow) continue;
+      const tlSlot = rangeRow.querySelector('.tl-slot');
+      if (!tlSlot) continue;
+      tlSlot.insertBefore(makeBgChip(m, bgVal), tlSlot.firstChild);
+    }
   }
 
   // Build training blocks (chip-bar + Intra Workout row + footer)
@@ -1585,6 +1609,25 @@ function makeTlChip(block) {
     }
   });
   return returnEl;
+}
+
+function makeBgChip(slotMinutes, bgValue) {
+  const chip = document.createElement('div');
+  chip.className = 'tl-chip tl-chip-bg';
+  chip.dataset.bgSlot = String(slotMinutes);
+  chip.innerHTML = `
+    <div class="tl-chip-body">
+      <div class="tl-chip-name-row">
+        <span class="tl-chip-name"><i class="fas fa-droplet tl-bg-icon"></i>Pre meal Blood Glucose: ${bgValue} mg/dL</span>
+      </div>
+    </div>
+    <div class="tl-chip-edit"><i class="fas fa-pencil"></i></div>`;
+  chip.querySelector('.tl-chip-edit').addEventListener('pointerdown', ev => ev.stopPropagation());
+  chip.querySelector('.tl-chip-edit').addEventListener('click', ev => {
+    ev.stopPropagation();
+    if (typeof showBgEditSheet === 'function') showBgEditSheet(slotMinutes, bgValue);
+  });
+  return chip;
 }
 
 /* ── View switching ── */
@@ -4836,6 +4879,14 @@ initTweaks();
     const isTreat = chipEl.dataset.meal === WEEKLY_TREAT_MEAL;
     const name = chipEl.querySelector('.tl-chip-name')?.textContent || 'Item';
 
+    // Detect if chip is inside an insulin window row (and is a food chip)
+    const row = chipEl.closest('.tl-row');
+    const slotMinutes = row ? parseInt(row.dataset.hour, 10) : NaN;
+    const isInInsulinWindow = !isNaN(slotMinutes) &&
+      row.classList.contains('tl-insulin-range') &&
+      chipEl.dataset.meal !== 'insulin';
+    const existingBg = isInInsulinWindow ? (itemTimeMap[`bg::${slotMinutes}`] ?? null) : null;
+
     const overlay = document.createElement('div');
     overlay.className = 'tl-ctx-overlay';
 
@@ -4857,9 +4908,14 @@ initTweaks();
       await moveEntries({ ids, fromMeal, toMeal, kind, oldKeys, recipeName });
     };
 
+    const bgBtn = isInInsulinWindow
+      ? `<button class="tl-ctx-action tl-ctx-action-bg" id="tlCtxBg"><i class="fas fa-droplet"></i> ${existingBg != null ? `Edit Blood Glucose (${existingBg} mg/dL)` : 'Add Blood Glucose'}</button>`
+      : '';
+
     if (!isTreat) {
       sheet.innerHTML = `
         <div class="tl-ctx-title">${name}</div>
+        ${bgBtn}
         <button class="tl-ctx-action" id="tlCtxTreat"><i class="fas fa-star"></i> Mark as Weekly Treat</button>
         <button class="tl-ctx-cancel">Cancel</button>`;
       overlay.appendChild(sheet);
@@ -4874,6 +4930,7 @@ initTweaks();
       const defaultMeal = getMealForTime(assignedMinutes) || ORDER.find(m => m !== WEEKLY_TREAT_MEAL) || ORDER[0];
       sheet.innerHTML = `
         <div class="tl-ctx-title">${name}</div>
+        ${bgBtn}
         <button class="tl-ctx-action" id="tlCtxUntreat"><i class="fas fa-star"></i> Remove Weekly Treat</button>
         <button class="tl-ctx-cancel">Cancel</button>`;
       overlay.appendChild(sheet);
@@ -4882,6 +4939,63 @@ initTweaks();
       overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
       sheet.querySelector('.tl-ctx-cancel').addEventListener('click', close);
       sheet.querySelector('#tlCtxUntreat').addEventListener('click', () => doMove(defaultMeal));
+    }
+    if (isInInsulinWindow) {
+      sheet.querySelector('#tlCtxBg').addEventListener('click', () => {
+        close();
+        if (typeof showBgEditSheet === 'function') showBgEditSheet(slotMinutes, existingBg);
+      });
+    }
+  }
+
+  function showBgEditSheet(slotMinutes, currentValue) {
+    const overlay = document.createElement('div');
+    overlay.className = 'tl-ctx-overlay';
+
+    const sheet = document.createElement('div');
+    sheet.className = 'tl-ctx-sheet';
+
+    const timeLabel = formatSlot(slotMinutes);
+    const inputId = 'bgValueInput';
+    sheet.innerHTML = `
+      <div class="tl-ctx-title"><i class="fas fa-droplet" style="color:#e74c3c;margin-right:6px"></i>Blood Glucose at ${timeLabel}</div>
+      <div class="tl-bg-input-row">
+        <input id="${inputId}" class="tl-bg-input" type="number" inputmode="numeric" min="20" max="600"
+          placeholder="e.g. 95" value="${currentValue ?? ''}" />
+        <span class="tl-bg-unit">mg/dL</span>
+      </div>
+      ${currentValue != null ? '<button class="tl-ctx-action tl-ctx-action-danger" id="tlBgDelete"><i class="fas fa-trash"></i> Remove value</button>' : ''}
+      <button class="tl-ctx-action" id="tlBgSave"><i class="fas fa-check"></i> Save</button>
+      <button class="tl-ctx-cancel">Cancel</button>`;
+
+    const close = () => {
+      overlay.classList.remove('show');
+      setTimeout(() => overlay.remove(), 220);
+    };
+
+    overlay.appendChild(sheet);
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => {
+      overlay.classList.add('show');
+      sheet.querySelector(`#${inputId}`)?.focus();
+    });
+
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+    sheet.querySelector('.tl-ctx-cancel').addEventListener('click', close);
+    sheet.querySelector('#tlBgSave').addEventListener('click', async () => {
+      const raw = parseInt(sheet.querySelector(`#${inputId}`).value, 10);
+      if (isNaN(raw) || raw < 20 || raw > 600) {
+        sheet.querySelector(`#${inputId}`).classList.add('tl-bg-input-error');
+        return;
+      }
+      close();
+      await saveBgValue(slotMinutes, raw);
+    });
+    if (currentValue != null) {
+      sheet.querySelector('#tlBgDelete').addEventListener('click', async () => {
+        close();
+        await saveBgValue(slotMinutes, null);
+      });
     }
   }
 
