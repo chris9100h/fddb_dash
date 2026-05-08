@@ -1732,6 +1732,52 @@ body.dnd-active {
   cursor: pointer; transition: background .15s;
 }
 .tl-ctx-cancel:active { background: var(--surface-2); }
+.tl-ctx-action-bg { background: rgba(231,76,60,.1) !important; border-color: rgba(231,76,60,.25) !important; color: #e74c3c !important; }
+.tl-ctx-action-bg:active { background: rgba(231,76,60,.2) !important; }
+.tl-ctx-action-danger { background: rgba(231,76,60,.08) !important; border-color: rgba(231,76,60,.2) !important; color: #e05e4e !important; }
+.tl-ctx-action-danger:active { background: rgba(231,76,60,.18) !important; }
+
+/* BG input row inside sheet */
+.tl-bg-input-row {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 12px; padding: 8px 14px;
+}
+.tl-bg-input {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: var(--text); font-size: 1.5rem; font-weight: 700;
+  width: 0; min-width: 0;
+}
+.tl-bg-input::placeholder { color: var(--muted); }
+.tl-bg-input.tl-bg-input-error { color: #e74c3c; animation: shake .25s; }
+.tl-bg-unit { color: var(--muted); font-size: .85rem; font-weight: 600; flex-shrink: 0; }
+
+/* BG chip in timeline slot */
+.tl-chip-bg {
+  cursor: default;
+  background: rgba(231,76,60,.07);
+  border-color: rgba(231,76,60,.22);
+}
+.tl-chip-bg .tl-chip-name { font-size: .78rem; color: var(--text-dim); }
+.tl-bg-icon { color: #e74c3c; font-size: .72rem; margin-right: 5px; }
+
+/* Pencil edit button on BG chip (mirrors .tl-chip-cb) */
+.tl-chip-edit {
+  width: 18px; height: 18px; border-radius: 5px;
+  border: 1.5px solid rgba(231,76,60,.35);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  font-size: .6rem; color: #e74c3c;
+  transition: all .15s;
+  cursor: pointer;
+}
+.tl-chip-edit:active { background: rgba(231,76,60,.15); }
+
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
 
 /* ════════════════════════════════════════════════════════
    WEEKLY TREAT CARD
