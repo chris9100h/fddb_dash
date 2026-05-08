@@ -1751,6 +1751,7 @@ body.dnd-active {
 .tl-bg-input::placeholder { color: var(--muted); }
 .tl-bg-input.tl-bg-input-error { color: #e74c3c; animation: shake .25s; }
 .tl-bg-unit { color: var(--muted); font-size: .85rem; font-weight: 600; flex-shrink: 0; }
+.tl-bg-slider-wrap { padding: 4px 0 8px; }
 
 /* BG chip in timeline slot — standalone, does NOT extend .tl-chip */
 .tl-chip-bg {
