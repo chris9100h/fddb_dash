@@ -929,11 +929,14 @@ function buildTlRenderBlocks(meal, items) {
           }
           if (allFound && matched.length > 0) {
             matched.forEach(r => { remaining[r.idx].used = true; });
+            // Use the actual serving_index from the items so moveSingleServing
+            // can later filter by e.serving_index === serving correctly.
+            const actualSi = matched[0].item.serving_index ?? servingIdx;
             renderBlocks.push({
               type: 'recipe', recipe, entries: matched.map(r => r.item),
-              serving: servingIdx, servings: maxServings, isExploded: true,
+              serving: actualSi, servings: maxServings, isExploded: true,
               firstIdx: Math.min(...matched.map(r => r.idx)), meal,
-              tlKey: `${meal}::${recipe.name}::${servingIdx}`,
+              tlKey: `${meal}::${recipe.name}::${actualSi}`,
             });
             servingIdx++;
           }
@@ -2502,7 +2505,8 @@ function renderDashboard(entries) {
             }
             if (allFound && matched.length > 0) {
               matched.forEach(r => { dashRemaining[r.idx].used = true; });
-              dashRenderBlocks.push({ type: 'recipe', recipe, entries: matched.map(r => r.item), isExploded: true, overrideServingIdx: overrideIdx, firstIdx: Math.min(...matched.map(r => r.idx)) });
+              const actualSi = matched[0].item.serving_index ?? overrideIdx;
+              dashRenderBlocks.push({ type: 'recipe', recipe, entries: matched.map(r => r.item), isExploded: true, overrideServingIdx: actualSi, firstIdx: Math.min(...matched.map(r => r.idx)) });
               overrideIdx++;
             }
           }
