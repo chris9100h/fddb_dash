@@ -1752,12 +1752,19 @@ body.dnd-active {
 .tl-bg-input.tl-bg-input-error { color: #e74c3c; animation: shake .25s; }
 .tl-bg-unit { color: var(--muted); font-size: .85rem; font-weight: 600; flex-shrink: 0; }
 
-/* BG chip in timeline slot */
+/* BG chip in timeline slot — standalone, does NOT extend .tl-chip */
 .tl-chip-bg {
-  cursor: default;
+  display: flex; align-items: center; gap: 8px;
   background: rgba(231,76,60,.07);
-  border-color: rgba(231,76,60,.22);
+  border: 1px solid rgba(231,76,60,.22);
+  border-radius: 10px;
+  padding: 7px 10px;
+  cursor: default;
+  user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  animation: slideUp .22s cubic-bezier(.22,.68,0,1.2) both;
 }
+.tl-chip-bg .tl-chip-body { flex: 1; min-width: 0; }
+.tl-chip-bg .tl-chip-name-row { display: flex; align-items: baseline; gap: 6px; }
 .tl-chip-bg .tl-chip-name { font-size: .78rem; color: var(--text-dim); }
 .tl-bg-icon { color: #e74c3c; font-size: .72rem; margin-right: 5px; }
 

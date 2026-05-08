@@ -1612,7 +1612,7 @@ function makeTlChip(block) {
 
 function makeBgChip(slotMinutes, bgValue) {
   const chip = document.createElement('div');
-  chip.className = 'tl-chip tl-chip-bg';
+  chip.className = 'tl-chip-bg';
   chip.dataset.bgSlot = String(slotMinutes);
   chip.innerHTML = `
     <div class="tl-chip-body">
