@@ -5344,18 +5344,18 @@ initTweaks();
     sheet.className = 'tl-ctx-sheet';
 
     const timeLabel = formatSlot(slotMinutes);
-    const defaultVal = currentValue ?? 100;
+    const defaultVal = Math.min(250, Math.max(50, currentValue ?? 100));
     sheet.innerHTML = `
       <div class="tl-ctx-title"><i class="fas fa-droplet" style="color:#e74c3c;margin-right:6px"></i>Blood Glucose at ${timeLabel}</div>
       <div class="tl-bg-slider-wrap" style="--dur-accent:#e74c3c;--dur-shadow:rgba(231,76,60,.4);--dur-soft:rgba(231,76,60,.12)">
         <div class="dur-slider-display"><span class="dur-slider-value">${defaultVal}</span><span class="dur-slider-unit">mg/dL</span></div>
-        <div class="custom-slider" data-min="40" data-max="400" data-value="${defaultVal}" data-step="1">
+        <div class="custom-slider" data-min="50" data-max="250" data-value="${defaultVal}" data-step="1">
           <div class="custom-slider-track">
             <div class="custom-slider-fill"></div>
             <div class="custom-slider-thumb"></div>
           </div>
         </div>
-        <div class="dur-slider-ticks"><span>40</span><span>130</span><span>220</span><span>310</span><span>400</span></div>
+        <div class="dur-slider-ticks"><span>50</span><span>100</span><span>150</span><span>200</span><span>250</span></div>
       </div>
       ${currentValue != null ? '<button class="tl-ctx-action tl-ctx-action-danger" id="tlBgDelete"><i class="fas fa-trash"></i> Remove value</button>' : ''}
       <button class="tl-ctx-action" id="tlBgSave"><i class="fas fa-check"></i> Save</button>
