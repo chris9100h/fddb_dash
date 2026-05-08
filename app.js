@@ -4913,6 +4913,7 @@ initTweaks();
         // Entries are merged: explode into N per-serving rows, then move target serving.
         const newRows = [];
         for (let s = 0; s < servings; s++) {
+          const groupId = crypto.randomUUID();
           for (const entry of allEntries) {
             newRows.push({
               date: currentDate,
@@ -4924,6 +4925,7 @@ initTweaks();
               fat: ((parseFloat(entry.fat) || 0) / servings).toFixed(1),
               serving_index: s,
               sort_order: entry.sort_order,
+              fddb_group_id: groupId,
             });
           }
         }
