@@ -760,9 +760,10 @@ function getMealForTime(minutes) {
 }
 
 // Returns the set of recipe names that have been "exploded" into per-serving DB rows.
-// A recipe is considered exploded only when its entries span ≥2 distinct non-null
-// serving_index values across all meals for the current day. This correctly handles
-// both NULL defaults and integer 0 defaults for the serving_index column.
+// A recipe is considered exploded only when its entries within the SAME meal span ≥2
+// distinct non-null serving_index values. Checking per-meal prevents cross-meal
+// serving_index collisions (e.g. an HBCD shake in meal B sharing an ingredient name
+// with a recipe in meal A) from incorrectly triggering exploded mode.
 function computeExplodedRecipes() {
   const recipeTemplateMap = new Map(allRecipes.map(r => [r.id, r]));
   const exploded = new Set();
@@ -772,13 +773,13 @@ function computeExplodedRecipes() {
       ? [...new Set([...(recipeTemplateMap.get(recipe.templateId)?.items || []), ...recipe.items])]
       : recipe.items;
     if (!effectiveItems.length) return;
-    const indices = new Set(
-      currentDayEntries
-        .filter(e => effectiveItems.includes(stripAmount(e.item_name)))
-        .map(e => e.serving_index)
-        .filter(v => v != null)
-    );
-    if (indices.size >= 2) exploded.add(recipe.name);
+    const byMeal = {};
+    currentDayEntries.forEach(e => {
+      if (effectiveItems.includes(stripAmount(e.item_name)) && e.serving_index != null) {
+        (byMeal[e.meal] = byMeal[e.meal] || new Set()).add(e.serving_index);
+      }
+    });
+    if (Object.values(byMeal).some(s => s.size >= 2)) exploded.add(recipe.name);
   });
   return exploded;
 }
