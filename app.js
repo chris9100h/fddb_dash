@@ -804,8 +804,14 @@ function computeExplodedRecipes() {
 // At this point the FDDB meal assignments are still intact, so matching is
 // unambiguous even if the user later drags items between meal slots.
 async function assignGroupIds(dateVal) {
-  const unassigned = currentDayEntries.filter(e => !e.fddb_group_id);
-  if (!unassigned.length) return;
+  // Always re-assign items without serving_index (original scraper rows). Items with
+  // serving_index were explicitly exploded by moveSingleServing and already carry
+  // correct per-serving UUIDs — leave those alone.
+  // Re-running every load corrects any stale wrong assignments from previous runs.
+  const toAssign = currentDayEntries.filter(e => e.serving_index == null);
+  if (!toAssign.length) return;
+  // Clear stale group IDs in memory so matching runs fresh.
+  toAssign.forEach(e => { e.fddb_group_id = null; });
 
   const recipeTemplateMap = new Map(allRecipes.map(r => [r.id, r]));
   const recipesByLength = [...allRecipes]
@@ -820,19 +826,41 @@ async function assignGroupIds(dateVal) {
     .sort((a, b) => b.effectiveItems.length - a.effectiveItems.length);
 
   const byMeal = {};
-  unassigned.forEach(e => (byMeal[e.meal] = byMeal[e.meal] || []).push(e));
+  toAssign.forEach(e => (byMeal[e.meal] = byMeal[e.meal] || []).push(e));
 
   const updates = [];
   for (const mealItems of Object.values(byMeal)) {
     const remaining = mealItems.map(item => ({ item, used: false }));
     for (const recipe of recipesByLength) {
+      // Identify ingredient names shared with other recipes so we can match
+      // exclusive ingredients first — they anchor the sort_order for shared ones.
+      const otherNames = new Set(
+        recipesByLength.filter(r => r.name !== recipe.name).flatMap(r => r.effectiveItems)
+      );
+      const sortedItems = [...recipe.effectiveItems].sort(
+        (a, b) => (otherNames.has(a) ? 1 : 0) - (otherNames.has(b) ? 1 : 0)
+      );
       for (let s = 0; s < (recipe.servings || 1); s++) {
         const matched = [];
         let allFound = true;
-        for (const rName of recipe.effectiveItems) {
-          const found = remaining.find(r => !r.used && !matched.includes(r) && stripAmount(r.item.item_name) === rName);
-          if (found) matched.push(found);
-          else { allFound = false; break; }
+        for (const rName of sortedItems) {
+          const candidates = remaining.filter(r => !r.used && !matched.includes(r) && stripAmount(r.item.item_name) === rName);
+          if (!candidates.length) { allFound = false; break; }
+          // When multiple candidates exist for a shared ingredient, pick the one
+          // whose sort_order is closest to the items already matched in this group.
+          let best = candidates[0];
+          if (candidates.length > 1 && matched.length > 0) {
+            const orders = matched.map(r => r.item.sort_order).filter(v => v != null);
+            if (orders.length) {
+              const avg = orders.reduce((a, b) => a + b, 0) / orders.length;
+              best = candidates.reduce((prev, c) => {
+                const d = Math.abs((c.item.sort_order ?? avg) - avg);
+                const pd = Math.abs((prev.item.sort_order ?? avg) - avg);
+                return d < pd ? c : prev;
+              });
+            }
+          }
+          matched.push(best);
         }
         if (allFound && matched.length > 0) {
           const groupId = crypto.randomUUID();
@@ -842,8 +870,13 @@ async function assignGroupIds(dateVal) {
     }
   }
 
-  if (!updates.length) return;
-  await Promise.all(updates.map(u => db.from('fddb_daily_macros').update({ fddb_group_id: u.fddb_group_id }).eq('id', u.id)));
+  const assignedIds = new Set(updates.map(u => u.id));
+  // Items that had a stale group ID but weren't re-matched need to be cleared in DB too.
+  const toClear = toAssign.filter(e => !assignedIds.has(e.id));
+  await Promise.all([
+    ...updates.map(u => db.from('fddb_daily_macros').update({ fddb_group_id: u.fddb_group_id }).eq('id', u.id)),
+    ...toClear.map(e => db.from('fddb_daily_macros').update({ fddb_group_id: null }).eq('id', e.id)),
+  ]);
   const map = new Map(updates.map(u => [u.id, u.fddb_group_id]));
   currentDayEntries.forEach(e => { if (map.has(e.id)) e.fddb_group_id = map.get(e.id); });
 }
@@ -4951,9 +4984,11 @@ initTweaks();
         if (error) throw error;
       } else {
         // Entries are merged: explode into N per-serving rows, then move target serving.
+        const servingGroupIds = {};
         const newRows = [];
         for (let s = 0; s < servings; s++) {
           const groupId = crypto.randomUUID();
+          servingGroupIds[s] = groupId;
           for (const entry of allEntries) {
             newRows.push({
               date: currentDate,
@@ -4975,7 +5010,14 @@ initTweaks();
         await db.from('fddb_daily_macros').delete().in('id', ids);
         const { data: inserted, error } = await db.from('fddb_daily_macros').insert(newRows).select();
         if (error) throw error;
-        if (inserted) currentDayEntries.push(...inserted);
+        if (inserted) {
+          // Supabase INSERT-returning may omit fddb_group_id; patch it from our local data.
+          inserted.forEach(row => {
+            if (!row.fddb_group_id && row.serving_index != null)
+              row.fddb_group_id = servingGroupIds[row.serving_index];
+          });
+          currentDayEntries.push(...inserted);
+        }
         // Migrate check key for the moved serving
         const oldKey = `${fromMeal}::${recipeName}::${serving}`;
         const newKey = `${toMeal}::${recipeName}::${serving}`;
