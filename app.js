@@ -804,11 +804,11 @@ function computeExplodedRecipes() {
 // At this point the FDDB meal assignments are still intact, so matching is
 // unambiguous even if the user later drags items between meal slots.
 async function assignGroupIds(dateVal) {
-  // Always re-assign items without serving_index (original scraper rows). Items with
-  // serving_index were explicitly exploded by moveSingleServing and already carry
-  // correct per-serving UUIDs — leave those alone.
+  // Re-assign items that don't yet have a group ID. This covers original scraper rows
+  // (serving_index == null) AND items produced by moveSingleServing that lost their
+  // gid (e.g. because the optimistic-render path never wrote them to DB).
   // Re-running every load corrects any stale wrong assignments from previous runs.
-  const toAssign = currentDayEntries.filter(e => e.serving_index == null);
+  const toAssign = currentDayEntries.filter(e => !e.fddb_group_id);
   if (!toAssign.length) return;
   // Clear stale group IDs in memory so matching runs fresh.
   toAssign.forEach(e => { e.fddb_group_id = null; });
@@ -1000,15 +1000,30 @@ function buildTlRenderBlocks(meal, items) {
         const workingPool = remaining.filter(r => !r.used);
         let allFound = true;
         for (const rName of recipe.effectiveItems) {
-          // Preference order: (1) items from the best partial gid match (guards against
-          // name-mismatched recipes stealing gid-locked ingredients from other recipes),
-          // (2) unclaimed no-gid items (fresh scraper rows not yet assigned to any recipe),
-          // (3) any remaining item.
-          const found = (bestPartialGid ? workingPool.find(r => !idxs.includes(r.idx) && r.item.fddb_group_id === bestPartialGid && stripAmount(r.item.item_name) === rName) : null)
-            || workingPool.find(r => !idxs.includes(r.idx) && !r.item.fddb_group_id && stripAmount(r.item.item_name) === rName)
-            || workingPool.find(r => !idxs.includes(r.idx) && stripAmount(r.item.item_name) === rName);
-          if (found) idxs.push(found.idx);
-          else { allFound = false; break; }
+          const candidates = workingPool.filter(r => !idxs.includes(r.idx) && stripAmount(r.item.item_name) === rName);
+          if (!candidates.length) { allFound = false; break; }
+          let found;
+          if (candidates.length === 1) {
+            found = candidates[0];
+          } else {
+            // When multiple items share the same ingredient name, pick by sort_order
+            // proximity to already-matched items — this prevents cross-recipe stealing
+            // (e.g. OO and HBCD both contain "Whey Protein" in the same meal slot).
+            const matchedOrders = idxs.map(i => items[i].sort_order).filter(v => v != null);
+            if (matchedOrders.length > 0) {
+              const avg = matchedOrders.reduce((a, b) => a + b, 0) / matchedOrders.length;
+              found = candidates.reduce((best, c) => {
+                const bd = Math.abs((best.item.sort_order ?? avg) - avg);
+                const cd = Math.abs((c.item.sort_order ?? avg) - avg);
+                return cd < bd ? c : best;
+              });
+            } else {
+              found = (bestPartialGid ? candidates.find(r => r.item.fddb_group_id === bestPartialGid) : null)
+                || candidates.find(r => !r.item.fddb_group_id)
+                || candidates[0];
+            }
+          }
+          idxs.push(found.idx);
         }
         if (allFound && idxs.length > 0) matchIndices = idxs;
       }
@@ -2525,11 +2540,27 @@ function renderDashboard(entries) {
           const workingPool = dashRemaining.filter(r => !r.used);
           let allFound = true;
           for (const rName of recipe.effectiveItems) {
-            const found = (bestPartialGid ? workingPool.find(r => !idxs.includes(r.idx) && r.item.fddb_group_id === bestPartialGid && stripAmount(r.item.item_name) === rName) : null)
-              || workingPool.find(r => !idxs.includes(r.idx) && !r.item.fddb_group_id && stripAmount(r.item.item_name) === rName)
-              || workingPool.find(r => !idxs.includes(r.idx) && stripAmount(r.item.item_name) === rName);
-            if (found) idxs.push(found.idx);
-            else { allFound = false; break; }
+            const candidates = workingPool.filter(r => !idxs.includes(r.idx) && stripAmount(r.item.item_name) === rName);
+            if (!candidates.length) { allFound = false; break; }
+            let found;
+            if (candidates.length === 1) {
+              found = candidates[0];
+            } else {
+              const matchedOrders = idxs.map(i => items[i].sort_order).filter(v => v != null);
+              if (matchedOrders.length > 0) {
+                const avg = matchedOrders.reduce((a, b) => a + b, 0) / matchedOrders.length;
+                found = candidates.reduce((best, c) => {
+                  const bd = Math.abs((best.item.sort_order ?? avg) - avg);
+                  const cd = Math.abs((c.item.sort_order ?? avg) - avg);
+                  return cd < bd ? c : best;
+                });
+              } else {
+                found = (bestPartialGid ? candidates.find(r => r.item.fddb_group_id === bestPartialGid) : null)
+                  || candidates.find(r => !r.item.fddb_group_id)
+                  || candidates[0];
+              }
+            }
+            idxs.push(found.idx);
           }
           if (allFound && idxs.length > 0) matchIndices = idxs;
         }
