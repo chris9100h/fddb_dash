@@ -688,6 +688,37 @@ function openDurationModal(sessionKey, icon, title) {
 function openCardioDurationModal(sessionKey)   { openDurationModal(sessionKey, 'person-running', 'Cardio Duration'); }
 function openTrainingDurationModal(sessionKey) { openDurationModal(sessionKey, 'dumbbell', 'Training Duration'); }
 
+function openInsulinDoseModal(sentinelKey, iuKey, onConfirm) {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay open';
+  overlay.innerHTML = `
+    <div class="modal cardio-dur-modal">
+      <div class="modal-title"><i class="fas fa-syringe"></i> Novorapid – Dosis</div>
+      <div class="cardio-dur-options">
+        <button class="cardio-dur-btn" data-iu="2">2 iu</button>
+        <button class="cardio-dur-btn" data-iu="4">4 iu</button>
+        <button class="cardio-dur-btn" data-iu="6">6 iu</button>
+        <button class="cardio-dur-btn" data-iu="8">8 iu</button>
+      </div>
+      <select class="dur-custom-select">
+        <option value="" disabled selected>Custom…</option>
+        ${Array.from({length: 20}, (_, i) => i + 1).map(n => `<option value="${n}">${n} iu</option>`).join('')}
+      </select>
+    </div>`;
+  document.body.appendChild(overlay);
+  const confirm = (iu) => {
+    saveItemTime(sentinelKey, 1);
+    saveItemTime(iuKey, iu);
+    overlay.remove();
+    onConfirm();
+  };
+  overlay.querySelectorAll('.cardio-dur-btn').forEach(btn => {
+    btn.addEventListener('click', () => confirm(parseInt(btn.dataset.iu, 10)));
+  });
+  overlay.querySelector('.dur-custom-select').addEventListener('change', e => confirm(parseInt(e.target.value, 10)));
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+}
+
 function openChipActionModal({ icon, title, canAdd, addLabel, removeLabel, onAdd, onRemove }) {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay open';
@@ -1104,10 +1135,10 @@ function renderTimelineDashboard(entries) {
   const allBlocks = [];
   // Up to 2 sessions per chip type; session 1 uses unprefixed keys, session 2 uses ::2 suffix.
   if ('__show_insulin' in itemTimeMap) {
-    allBlocks.push({ type: 'insulin', tlKey: 'insulin::novorapid', sentinelKey: '__show_insulin', sessionIdx: 1, intraSlot: null, meal: null });
+    allBlocks.push({ type: 'insulin', tlKey: 'insulin::novorapid', sentinelKey: '__show_insulin', iuKey: '__insulin_iu', sessionIdx: 1, intraSlot: null, meal: null });
   }
   if ('__show_insulin::2' in itemTimeMap) {
-    allBlocks.push({ type: 'insulin', tlKey: 'insulin::novorapid::2', sentinelKey: '__show_insulin::2', sessionIdx: 2, intraSlot: null, meal: null });
+    allBlocks.push({ type: 'insulin', tlKey: 'insulin::novorapid::2', sentinelKey: '__show_insulin::2', iuKey: '__insulin_iu::2', sessionIdx: 2, intraSlot: null, meal: null });
   }
   if ('__show_training' in itemTimeMap) {
     allBlocks.push({ type: 'training', tlKey: 'training::session', sentinelKey: '__show_training', sessionIdx: 1, intraSlot: INTRA_WORKOUT_SLOT, meal: null });
@@ -1142,7 +1173,7 @@ function renderTimelineDashboard(entries) {
     block: b, slot: itemTimeMap[b.tlKey] ?? null, duration: itemTimeMap[b.sentinelKey] ?? 60,
   }));
   const insulinSessions = allBlocks.filter(b => b.type === 'insulin').map(b => ({
-    block: b, slot: itemTimeMap[b.tlKey] ?? null,
+    block: b, slot: itemTimeMap[b.tlKey] ?? null, iu: itemTimeMap[b.iuKey] ?? null,
   }));
 
   // Items assigned to intra slots of unplaced sessions would be invisible —
@@ -1233,15 +1264,16 @@ function renderTimelineDashboard(entries) {
       btn.innerHTML = `<i class="fas fa-syringe"></i>` + (cnt > 1 ? `<span class="tl-chip-count">${cnt}</span>` : '');
       btn.addEventListener('click', () => {
         if (cnt === 0) {
-          saveItemTime('__show_insulin', 1); renderDashboard(currentDayEntries);
+          openInsulinDoseModal('__show_insulin', '__insulin_iu', () => renderDashboard(currentDayEntries));
         } else {
           openChipActionModal({
             icon: 'syringe', title: 'Novorapid',
             canAdd: cnt < 2, addLabel: 'Add Dose', removeLabel: 'Remove Dose',
-            onAdd: () => { saveItemTime('__show_insulin::2', 1); renderDashboard(currentDayEntries); },
+            onAdd: () => { openInsulinDoseModal('__show_insulin::2', '__insulin_iu::2', () => renderDashboard(currentDayEntries)); },
             onRemove: () => {
               const last = insulinSessions[cnt - 1];
               saveItemTime(last.block.sentinelKey, null); saveItemTime(last.block.tlKey, null);
+              saveItemTime(last.block.iuKey, null);
               renderDashboard(currentDayEntries);
             },
           });
@@ -1344,8 +1376,9 @@ function renderTimelineDashboard(entries) {
 
     const summary = document.createElement('div');
     summary.className = 'tl-insulin-summary';
+    const sessIuStr = sess.iu ? ` ${sess.iu}iu ·` : '';
     summary.innerHTML =
-      `<span class="tl-insulin-summary-label"><i class="fas fa-syringe" style="margin-right:5px"></i>Active until ${formatSlot(Math.min(sess.slot + 4 * 60, 1320))}</span>` +
+      `<span class="tl-insulin-summary-label"><i class="fas fa-syringe" style="margin-right:5px"></i>Novorapid${sessIuStr} Active until ${formatSlot(Math.min(sess.slot + 4 * 60, 1320))}</span>` +
       `<span class="tl-insulin-summary-vals">` +
         `<span>${Math.round(wm?.kcal ?? 0)}<small>kcal</small></span>` +
         `<span>${Math.round(wm?.p ?? 0)}<small>P</small></span>` +
@@ -1624,6 +1657,8 @@ function makeTlChip(block) {
 
   if (block.type === 'insulin') {
     const placed = itemTimeMap[block.tlKey] != null;
+    const iu = block.iuKey ? (itemTimeMap[block.iuKey] ?? null) : null;
+    const iuStr = iu ? ` ${iu}iu` : '';
     chip.className = 'tl-chip tl-chip-insulin' + (placed ? ' tl-chip-insulin-placed' : '');
     chip.dataset.entryIds = '';
     chip.dataset.checkKeys = block.tlKey;
@@ -1631,7 +1666,7 @@ function makeTlChip(block) {
     chip.dataset.meal = 'insulin';
     chip.innerHTML = placed
       ? `<span class="tl-insulin-summary-label">
-           <i class="fas fa-syringe" style="margin-right:5px"></i>Novorapid &middot; injected ${formatSlot(itemTimeMap[block.tlKey])}
+           <i class="fas fa-syringe" style="margin-right:5px"></i>Novorapid${iuStr} &middot; injected ${formatSlot(itemTimeMap[block.tlKey])}
          </span>
          <div class="tl-chip-grip"><i class="fas fa-grip-lines"></i></div>`
       : `<div class="tl-chip-grip"><i class="fas fa-grip-lines"></i></div>
