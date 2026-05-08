@@ -917,7 +917,9 @@ function buildTlRenderBlocks(meal, items) {
         const sortedGroups = Object.entries(gidGroups)
           .sort(([, a], [, b]) => Math.min(...a.map(r => r.idx)) - Math.min(...b.map(r => r.idx)));
         let servingIdx = 0;
+        const maxServings = recipe.servings || 1;
         for (const [, pool] of sortedGroups) {
+          if (servingIdx >= maxServings) break;
           const matched = [];
           let allFound = true;
           for (const rName of recipe.effectiveItems) {
@@ -929,7 +931,7 @@ function buildTlRenderBlocks(meal, items) {
             matched.forEach(r => { remaining[r.idx].used = true; });
             renderBlocks.push({
               type: 'recipe', recipe, entries: matched.map(r => r.item),
-              serving: servingIdx, servings: recipe.servings || 1, isExploded: true,
+              serving: servingIdx, servings: maxServings, isExploded: true,
               firstIdx: Math.min(...matched.map(r => r.idx)), meal,
               tlKey: `${meal}::${recipe.name}::${servingIdx}`,
             });
@@ -2488,7 +2490,9 @@ function renderDashboard(entries) {
           const sortedGroups = Object.entries(gidGroups)
             .sort(([, a], [, b]) => Math.min(...a.map(r => r.idx)) - Math.min(...b.map(r => r.idx)));
           let overrideIdx = 0;
+          const maxServings = recipe.servings || 1;
           for (const [, pool] of sortedGroups) {
+            if (overrideIdx >= maxServings) break;
             const matched = [];
             let allFound = true;
             for (const rName of recipe.effectiveItems) {
