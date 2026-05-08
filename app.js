@@ -760,10 +760,10 @@ function getMealForTime(minutes) {
 }
 
 // Returns the set of recipe names that have been "exploded" into per-serving DB rows.
-// A recipe is considered exploded only when its entries within the SAME meal span ≥2
-// distinct non-null serving_index values. Checking per-meal prevents cross-meal
-// serving_index collisions (e.g. an HBCD shake in meal B sharing an ingredient name
-// with a recipe in meal A) from incorrectly triggering exploded mode.
+// A recipe is exploded when ≥2 distinct (meal, serving_index) groups each contain ALL
+// of the recipe's effective ingredients. Requiring completeness prevents false positives
+// where an unrelated item in another meal (e.g. an HBCD shake) happens to share one
+// ingredient name with the recipe and carries a different serving_index.
 function computeExplodedRecipes() {
   const recipeTemplateMap = new Map(allRecipes.map(r => [r.id, r]));
   const exploded = new Set();
@@ -773,13 +773,16 @@ function computeExplodedRecipes() {
       ? [...new Set([...(recipeTemplateMap.get(recipe.templateId)?.items || []), ...recipe.items])]
       : recipe.items;
     if (!effectiveItems.length) return;
-    const byMeal = {};
+    const groups = {};
     currentDayEntries.forEach(e => {
-      if (effectiveItems.includes(stripAmount(e.item_name)) && e.serving_index != null) {
-        (byMeal[e.meal] = byMeal[e.meal] || new Set()).add(e.serving_index);
-      }
+      if (e.serving_index == null) return;
+      const stripped = stripAmount(e.item_name);
+      if (!effectiveItems.includes(stripped)) return;
+      const key = `${e.meal}::${e.serving_index}`;
+      (groups[key] = groups[key] || new Set()).add(stripped);
     });
-    if (Object.values(byMeal).some(s => s.size >= 2)) exploded.add(recipe.name);
+    const completeGroups = Object.values(groups).filter(s => effectiveItems.every(item => s.has(item)));
+    if (completeGroups.length >= 2) exploded.add(recipe.name);
   });
   return exploded;
 }
