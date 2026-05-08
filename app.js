@@ -1151,7 +1151,6 @@ function renderTimelineDashboard(entries) {
     block.querySelectorAll('.tl-slot-footer').forEach(f => f.remove());
 
     // Inject BG chips into insulin-range rows that have a saved BG value
-    const endSlot = Math.min(sess.slot + 4 * 60, 1320);
     for (let m = sess.slot; m <= endSlot; m += 30) {
       const bgVal = itemTimeMap[`bg::${m}`];
       if (bgVal == null) continue;
