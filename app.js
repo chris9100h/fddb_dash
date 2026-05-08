@@ -817,8 +817,13 @@ function buildTlRenderBlocks(meal, items) {
       for (const [si, pool] of Object.entries(siGroups)) {
         const matched = [];
         let allFound = true;
+        const siNum = parseInt(si, 10);
         for (const rName of recipe.effectiveItems) {
-          const found = pool.find(r => !matched.includes(r) && stripAmount(r.item.item_name) === rName);
+          // Prefer items with an explicit serving_index over null-coerced items so that
+          // an unrelated recipe sharing an ingredient name (e.g. Whey in an HBCD shake
+          // with si=null) doesn't get claimed by the exploded recipe's si group.
+          const found = pool.find(r => !matched.includes(r) && stripAmount(r.item.item_name) === rName && r.item.serving_index === siNum)
+            || pool.find(r => !matched.includes(r) && stripAmount(r.item.item_name) === rName);
           if (found) matched.push(found);
           else { allFound = false; break; }
         }
@@ -2288,8 +2293,10 @@ function renderDashboard(entries) {
         for (const [si, pool] of Object.entries(siGroups)) {
           const matched = [];
           let allFound = true;
+          const siNum = parseInt(si, 10);
           for (const rName of recipe.effectiveItems) {
-            const found = pool.find(r => !matched.includes(r) && stripAmount(r.item.item_name) === rName);
+            const found = pool.find(r => !matched.includes(r) && stripAmount(r.item.item_name) === rName && r.item.serving_index === siNum)
+              || pool.find(r => !matched.includes(r) && stripAmount(r.item.item_name) === rName);
             if (found) matched.push(found);
             else { allFound = false; break; }
           }
