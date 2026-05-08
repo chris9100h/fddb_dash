@@ -930,16 +930,37 @@ function buildTlRenderBlocks(meal, items) {
         }
       }
     } else {
-      // Standard: all entries in this meal represent all servings combined.
-      const matchIndices = [];
-      const workingPool = remaining.filter(r => !r.used);
-      let allFound = true;
-      for (const rName of recipe.effectiveItems) {
-        const found = workingPool.find(r => !matchIndices.includes(r.idx) && stripAmount(r.item.item_name) === rName);
-        if (found) matchIndices.push(found.idx);
-        else { allFound = false; break; }
+      // Prefer matching all ingredients within a single fddb_group_id to prevent
+      // cross-recipe ingredient stealing when two recipes share an ingredient name
+      // in the same meal (e.g. OO and HBCD both contain "Whey Protein WPC80").
+      let matchIndices = null;
+      const gidMap = {};
+      remaining.forEach(r => {
+        if (r.used || !r.item.fddb_group_id) return;
+        (gidMap[r.item.fddb_group_id] = gidMap[r.item.fddb_group_id] || []).push(r);
+      });
+      for (const pool of Object.values(gidMap)) {
+        const idxs = [];
+        let allFound = true;
+        for (const rName of recipe.effectiveItems) {
+          const found = pool.find(r => !idxs.includes(r.idx) && stripAmount(r.item.item_name) === rName);
+          if (found) idxs.push(found.idx);
+          else { allFound = false; break; }
+        }
+        if (allFound && idxs.length > 0) { matchIndices = idxs; break; }
       }
-      if (allFound && matchIndices.length > 0) {
+      if (matchIndices === null) {
+        const idxs = [];
+        const workingPool = remaining.filter(r => !r.used);
+        let allFound = true;
+        for (const rName of recipe.effectiveItems) {
+          const found = workingPool.find(r => !idxs.includes(r.idx) && stripAmount(r.item.item_name) === rName);
+          if (found) idxs.push(found.idx);
+          else { allFound = false; break; }
+        }
+        if (allFound && idxs.length > 0) matchIndices = idxs;
+      }
+      if (matchIndices && matchIndices.length > 0) {
         matchIndices.forEach(idx => { remaining[idx].used = true; });
         const servings = recipe.servings || 1;
         const recEntries = matchIndices.map(idx => items[idx]);
@@ -2425,15 +2446,34 @@ function renderDashboard(entries) {
           }
         }
       } else {
-        const matchIndices = [];
-        const workingPool = dashRemaining.filter(r => !r.used);
-        let allFound = true;
-        for (const rName of recipe.effectiveItems) {
-          const found = workingPool.find(r => !matchIndices.includes(r.idx) && stripAmount(r.item.item_name) === rName);
-          if (found) matchIndices.push(found.idx);
-          else { allFound = false; break; }
+        let matchIndices = null;
+        const gidMap = {};
+        dashRemaining.forEach(r => {
+          if (r.used || !r.item.fddb_group_id) return;
+          (gidMap[r.item.fddb_group_id] = gidMap[r.item.fddb_group_id] || []).push(r);
+        });
+        for (const pool of Object.values(gidMap)) {
+          const idxs = [];
+          let allFound = true;
+          for (const rName of recipe.effectiveItems) {
+            const found = pool.find(r => !idxs.includes(r.idx) && stripAmount(r.item.item_name) === rName);
+            if (found) idxs.push(found.idx);
+            else { allFound = false; break; }
+          }
+          if (allFound && idxs.length > 0) { matchIndices = idxs; break; }
         }
-        if (allFound && matchIndices.length > 0) {
+        if (matchIndices === null) {
+          const idxs = [];
+          const workingPool = dashRemaining.filter(r => !r.used);
+          let allFound = true;
+          for (const rName of recipe.effectiveItems) {
+            const found = workingPool.find(r => !idxs.includes(r.idx) && stripAmount(r.item.item_name) === rName);
+            if (found) idxs.push(found.idx);
+            else { allFound = false; break; }
+          }
+          if (allFound && idxs.length > 0) matchIndices = idxs;
+        }
+        if (matchIndices && matchIndices.length > 0) {
           matchIndices.forEach(idx => { dashRemaining[idx].used = true; });
           const recipeEntries = matchIndices.map(idx => items[idx]);
           dashRenderBlocks.push({ type: 'recipe', recipe, entries: recipeEntries, isExploded: false, overrideServingIdx: null, firstIdx: Math.min(...matchIndices) });
