@@ -2026,12 +2026,17 @@ function confirmSync() {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay open';
   overlay.innerHTML = `
-    <div class="modal" style="max-width:320px;text-align:center;padding:1.5rem">
-      <div style="font-size:1.1rem;font-weight:700;margin-bottom:.5rem">FDDB Sync starten?</div>
-      <div style="font-size:.85rem;opacity:.6;margin-bottom:1.4rem">Daten werden von FDDB neu geladen.</div>
-      <div style="display:flex;gap:.75rem;justify-content:center">
-        <button class="pill-btn" onclick="this.closest('.modal-overlay').remove()">Abbrechen</button>
-        <button class="pill-btn accent" onclick="this.closest('.modal-overlay').remove();triggerScraper()">Sync</button>
+    <div class="modal sheet-sm">
+      <div class="modal-handle"></div>
+      <div class="modal-header">
+        <span class="modal-title">Sync FDDB?</span>
+      </div>
+      <div class="modal-body" style="padding-top:0">
+        <p style="font-size:.88rem;color:var(--text-dim);margin:0">This will reload today's data from FDDB.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="pill-btn" style="flex:1" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
+        <button class="pill-btn accent" style="flex:1" onclick="this.closest('.modal-overlay').remove();triggerScraper()">Sync</button>
       </div>
     </div>`;
   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
@@ -2124,10 +2129,10 @@ function macroSum(items) {
   return items.reduce((a,e) => ({ kcal: a.kcal+(e.kcal||0), p: a.p+(parseFloat(e.protein)||0), c: a.c+(parseFloat(e.carbs)||0), f: a.f+(parseFloat(e.fat)||0) }), {kcal:0,p:0,c:0,f:0});
 }
 function tlMacrosHTML(m) {
-  return `<span>${Math.round(m.kcal)}<small>kcal</small></span>` +
-         `<span>${m.p.toFixed(1)}<small>P</small></span>` +
-         `<span>${m.c.toFixed(1)}<small>C</small></span>` +
-         `<span>${m.f.toFixed(1)}<small>F</small></span>`;
+  return `<span>${Math.round(m.kcal)}</span><small>kcal</small>` +
+         `<span>${m.p.toFixed(1)}</span><small>P</small>` +
+         `<span>${m.c.toFixed(1)}</span><small>C</small>` +
+         `<span>${m.f.toFixed(1)}</span><small>F</small>`;
 }
 function pillsHTML(m) {
   return `<span>${Math.round(m.kcal)}<small>kcal</small></span>` +

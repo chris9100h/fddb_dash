@@ -2847,29 +2847,34 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
 /* Inline macro text in chips */
 .tl-chip-macros {
   display: grid;
-  grid-template-columns: 3.4rem 2.6rem 3.2rem 2.4rem;
-  column-gap: 4px;
-  justify-items: end;
+  grid-template-columns: 2.2rem max-content 2.4rem max-content 2.2rem max-content 1.9rem max-content;
+  align-items: baseline;
+  column-gap: 2px;
   margin-top: 2px;
 }
 .tl-chip-macros span {
   font-size: .78rem;
   font-weight: 700;
-  display: flex;
-  align-items: baseline;
-  gap: 2px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 .tl-chip-macros span:nth-child(1) { color: var(--orange); }
-.tl-chip-macros span:nth-child(2) { color: var(--blue); }
-.tl-chip-macros span:nth-child(3) { color: var(--yellow); }
-.tl-chip-macros span:nth-child(4) { color: var(--red); }
+.tl-chip-macros span:nth-child(3) { color: var(--blue); }
+.tl-chip-macros span:nth-child(5) { color: var(--yellow); }
+.tl-chip-macros span:nth-child(7) { color: var(--red); }
 .tl-chip-macros small {
   font-size: .55rem;
   font-weight: 600;
   opacity: .65;
   text-transform: uppercase;
   letter-spacing: .05em;
+  padding-right: 5px;
 }
+.tl-chip-macros small:last-child { padding-right: 0; }
+.tl-chip-macros small:nth-child(2) { color: var(--orange); }
+.tl-chip-macros small:nth-child(4) { color: var(--blue); }
+.tl-chip-macros small:nth-child(6) { color: var(--yellow); }
+.tl-chip-macros small:nth-child(8) { color: var(--red); }
 
 /* ── Timeline: Slot macro total footer ── */
 .tl-row.tl-has-items:has(.tl-slot-footer) {
