@@ -16,7 +16,6 @@ const ORDER = ['frühstück','zwischenmahlzeit 1','snack_2','mittagessen','zwisc
 const LABELS = { 'frühstück':'Breakfast','zwischenmahlzeit 1':'Snack 1','snack_2':'Snack 2','mittagessen':'Lunch','zwischenmahlzeit 2':'Snack 3','snack_4':'Snack 4','abendbrot':'Dinner','abendessen':'Dinner','weekly_treat':'Weekly Treat','meal_of_choice':'Meal of Choice' };
 const WEEKLY_TREAT_MEAL = 'weekly_treat';
 const MEAL_OF_CHOICE = 'meal_of_choice';
-const MOC_KCAL = 1200;
 
 let checkables = [];
 let totals = { kcal:0, p:0, c:0, f:0 };
@@ -124,7 +123,6 @@ const SETTINGS_DEFAULTS = {
   freezePerWeek: 2,         // max freeze days allowed per window
   freezeWindow: 1,          // window size in weeks (1 / 2 / 4)
   weeklyTreatMaxKcal: 0,    // 0 = no limit; excess kcal above threshold count against totals
-  mocKcal: 1200,            // kcal budget for one Meal of Choice
   showWeightChart:   true,   // overlay weight as secondary axis on deviation chart
   showInsulinChip:   false,  // show synthetic Insulin – Novorapid chip in timeline
   showTrainingChip:  false,  // show draggable Training block in timeline
@@ -174,7 +172,6 @@ const SETTING_DB_KEYS = {
   freezePerWeek:       'freeze_per_week',
   freezeWindow:        'freeze_window',
   weeklyTreatMaxKcal:  'weekly_treat_max_kcal',
-  mocKcal:             'moc_kcal',
   showWeightChart:     'show_weight_chart',
   showInsulinChip:     'show_insulin_chip',
   showTrainingChip:    'show_training_chip',
@@ -249,12 +246,10 @@ function applySettingsToUI() {
   const freezePerWeekEl   = document.getElementById('setFreezePerWeek');
   const freezeWindowEl    = document.getElementById('setFreezeWindow');
   const treatMaxKcalEl    = document.getElementById('setTreatMaxKcal');
-  const mocKcalEl         = document.getElementById('setMocKcal');
   const showWeightChartEl = document.getElementById('setShowWeightChart');
   if (freezePerWeekEl)   freezePerWeekEl.value   = settings.freezePerWeek;
   if (freezeWindowEl)    freezeWindowEl.value    = settings.freezeWindow;
   if (treatMaxKcalEl)    treatMaxKcalEl.value    = settings.weeklyTreatMaxKcal;
-  if (mocKcalEl)         mocKcalEl.value         = settings.mocKcal;
   if (showWeightChartEl) showWeightChartEl.checked = !!settings.showWeightChart;
   applySickModeOverlay();
 }
@@ -344,15 +339,6 @@ function initSettingsUI() {
       cacheSettings();
       writeSettingToDb('weeklyTreatMaxKcal', settings.weeklyTreatMaxKcal);
       if (currentDate) renderDashboard(currentDayEntries);
-    });
-  }
-
-  const mocKcalEl = document.getElementById('setMocKcal');
-  if (mocKcalEl) {
-    mocKcalEl.addEventListener('change', () => {
-      settings.mocKcal = parseInt(mocKcalEl.value, 10);
-      cacheSettings();
-      writeSettingToDb('mocKcal', settings.mocKcal);
     });
   }
 
@@ -735,6 +721,44 @@ function openDurationModal(sessionKey, icon, title, accentColor, accentShadow, a
 
 function openCardioDurationModal(sessionKey)   { openDurationModal(sessionKey, 'person-running', 'Cardio',   '#0891b2', 'rgba(8,145,178,.4)',  'rgba(8,145,178,.12)',  30, 120); }
 function openTrainingDurationModal(sessionKey) { openDurationModal(sessionKey, 'dumbbell',       'Training', '#b91c1c', 'rgba(185,28,28,.4)', 'rgba(185,28,28,.12)', 60, 180); }
+
+function openMocKcalModal(freeKcal, onConfirm) {
+  const maxVal     = Math.max(500, Math.ceil((freeKcal + 100) / 50) * 50);
+  const defaultVal = Math.min(1200, maxVal);
+  const t1 = Math.round((500 + (maxVal - 500) * 0.25) / 50) * 50;
+  const t2 = Math.round((500 + (maxVal - 500) * 0.50) / 50) * 50;
+  const t3 = Math.round((500 + (maxVal - 500) * 0.75) / 50) * 50;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay open';
+  overlay.innerHTML = `
+    <div class="modal dur-slider-modal" style="--dur-accent:#a78bfa;--dur-shadow:rgba(167,139,250,.4);--dur-soft:rgba(167,139,250,.14)">
+      <div class="slider-modal-header">
+        <div class="slider-modal-icon-wrap"><i class="fas fa-utensils"></i></div>
+        <div class="slider-modal-label">Meal of Choice</div>
+      </div>
+      <div class="dur-slider-display"><span class="dur-slider-value">${defaultVal}</span><span class="dur-slider-unit">kcal</span></div>
+      <div class="custom-slider" data-min="500" data-max="${maxVal}" data-value="${defaultVal}" data-step="50">
+        <div class="custom-slider-track">
+          <div class="custom-slider-fill"></div>
+          <div class="custom-slider-thumb"></div>
+        </div>
+      </div>
+      <div class="dur-slider-ticks">
+        <span>500</span><span>${t1}</span><span>${t2}</span><span>${t3}</span><span>${maxVal}</span>
+      </div>
+      <button class="dur-slider-confirm" style="background:#a78bfa">Hinzufügen</button>
+    </div>`;
+  document.body.appendChild(overlay);
+  const sliderEl = overlay.querySelector('.custom-slider');
+  const valueEl  = overlay.querySelector('.dur-slider-value');
+  initCustomSlider(sliderEl, (v) => { valueEl.textContent = v; });
+  overlay.querySelector('.dur-slider-confirm').addEventListener('click', () => {
+    overlay.remove();
+    onConfirm(parseInt(sliderEl.dataset.current, 10));
+  });
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+}
 
 function openInsulinDoseModal(sentinelKey, iuKey, onConfirm) {
   const overlay = document.createElement('div');
@@ -2906,7 +2930,7 @@ function renderMealOfChoiceCard(items, container) {
   card.innerHTML = `<div class="meal-title moc-title">
     <span class="moc-icon">🍽️</span>
     <div class="meal-name moc-name">Meal of Choice</div>
-    <div class="moc-badge">${settings.mocKcal} kcal</div>
+    <div class="moc-badge">${m.kcal} kcal</div>
     <button class="moc-remove-btn" onclick="removeMealOfChoice('${entry.id}')"><i class="fas fa-trash-alt"></i></button>
   </div>`;
 
@@ -2929,14 +2953,10 @@ function openMocNamePrompt() {
 async function confirmAddMealOfChoice() {
   const name = document.getElementById('mocNameInput').value.trim();
   document.getElementById('mocNameOverlay').classList.remove('open');
-  await addMealOfChoice(name);
-}
 
-async function addMealOfChoice(name) {
   const { monday, sunday } = getWeekBounds(currentDate);
   const { data: weekMoC } = await db.from('fddb_daily_macros')
     .select('id, date').eq('meal', MEAL_OF_CHOICE).gte('date', monday).lte('date', sunday);
-
   if (weekMoC && weekMoC.length > 0 && weekMoC[0].date !== currentDate) {
     showToast('Meal of Choice already used this week', 'error'); return;
   }
@@ -2945,19 +2965,22 @@ async function addMealOfChoice(name) {
   }
 
   const tgt = coachTargets[currentDayType] || {};
-  const consumed = { kcal: 0, p: 0, c: 0, f: 0 };
+  let consumedKcal = 0;
+  currentDayEntries.forEach(e => { if (e.meal !== MEAL_OF_CHOICE) consumedKcal += e.kcal || 0; });
+  const freeKcal = Math.max(0, (tgt.kcal || 0) - consumedKcal);
+
+  openMocKcalModal(freeKcal, (mocKcal) => addMealOfChoice(name, mocKcal));
+}
+
+async function addMealOfChoice(name, mocKcal) {
+  const tgt = coachTargets[currentDayType] || {};
+  const consumed = { p: 0, c: 0, f: 0 };
   currentDayEntries.forEach(e => {
     if (e.meal === MEAL_OF_CHOICE) return;
-    consumed.kcal += e.kcal || 0;
     consumed.p += parseFloat(e.protein) || 0;
     consumed.c += parseFloat(e.carbs) || 0;
     consumed.f += parseFloat(e.fat) || 0;
   });
-
-  const mocKcal = settings.mocKcal || MOC_KCAL;
-  if ((tgt.kcal || 0) - consumed.kcal < mocKcal - 100) {
-    showToast(`Need ${mocKcal - 100} kcal free`, 'error'); return;
-  }
 
   const remP = Math.max(0, (tgt.p || 0) - consumed.p);
   const remC = Math.max(0, (tgt.c || 0) - consumed.c);
