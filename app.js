@@ -2124,10 +2124,10 @@ function macroSum(items) {
   return items.reduce((a,e) => ({ kcal: a.kcal+(e.kcal||0), p: a.p+(parseFloat(e.protein)||0), c: a.c+(parseFloat(e.carbs)||0), f: a.f+(parseFloat(e.fat)||0) }), {kcal:0,p:0,c:0,f:0});
 }
 function tlMacrosHTML(m) {
-  return `<span>${Math.round(m.kcal)}<small>kcal</small></span>` +
-         `<span>${m.p.toFixed(1)}<small>P</small></span>` +
-         `<span>${m.c.toFixed(1)}<small>C</small></span>` +
-         `<span>${m.f.toFixed(1)}<small>F</small></span>`;
+  return `<span>${Math.round(m.kcal)}</span><small>kcal</small>` +
+         `<span>${m.p.toFixed(1)}</span><small>P</small>` +
+         `<span>${m.c.toFixed(1)}</span><small>C</small>` +
+         `<span>${m.f.toFixed(1)}</span><small>F</small>`;
 }
 function pillsHTML(m) {
   return `<span>${Math.round(m.kcal)}<small>kcal</small></span>` +
