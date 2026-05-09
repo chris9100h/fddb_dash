@@ -2846,8 +2846,9 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
 
 /* Inline macro text in chips */
 .tl-chip-macros {
-  display: flex;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: 3.4rem 2.6rem 3.2rem auto;
+  column-gap: 4px;
   margin-top: 2px;
 }
 .tl-chip-macros span {
@@ -2857,9 +2858,9 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   align-items: baseline;
   gap: 2px;
 }
-.tl-chip-macros span:nth-child(1) { color: var(--orange); min-width: 4.6rem; }
-.tl-chip-macros span:nth-child(2) { color: var(--blue);   min-width: 2.9rem; }
-.tl-chip-macros span:nth-child(3) { color: var(--yellow); min-width: 3.9rem; }
+.tl-chip-macros span:nth-child(1) { color: var(--orange); }
+.tl-chip-macros span:nth-child(2) { color: var(--blue); }
+.tl-chip-macros span:nth-child(3) { color: var(--yellow); }
 .tl-chip-macros span:nth-child(4) { color: var(--red); }
 .tl-chip-macros small {
   font-size: .55rem;
