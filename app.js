@@ -1286,7 +1286,7 @@ function renderTimelineDashboard(entries) {
   }));
   _insulinOffsets = insulinSessions
     .filter(s => s.slot != null && (s.exactMin ?? 0) > 0)
-    .map(s => ({ from: s.slot, to: Math.min(s.slot + 4 * 60, 1320), exactMin: s.exactMin }));
+    .map(s => ({ from: s.slot, to: Math.min(s.slot + s.exactMin + 4 * 60, 1320), exactMin: s.exactMin }));
 
   // Items assigned to intra slots of unplaced sessions would be invisible —
   // fall them back to the unassigned slot so they remain accessible.
