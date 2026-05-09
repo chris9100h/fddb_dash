@@ -2847,7 +2847,7 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
 /* Inline macro text in chips */
 .tl-chip-macros {
   display: grid;
-  grid-template-columns: 3.4rem 2.6rem 3.2rem auto;
+  grid-template-columns: 3.4rem 2.6rem 3.2rem 2.4rem;
   column-gap: 4px;
   justify-items: end;
   margin-top: 2px;

@@ -2022,6 +2022,21 @@ async function loadRecipes() {
 }
 
 /* ── Scraper trigger ── */
+function confirmSync() {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay open';
+  overlay.innerHTML = `
+    <div class="modal" style="max-width:320px;text-align:center;padding:1.5rem">
+      <div style="font-size:1.1rem;font-weight:700;margin-bottom:.5rem">FDDB Sync starten?</div>
+      <div style="font-size:.85rem;opacity:.6;margin-bottom:1.4rem">Daten werden von FDDB neu geladen.</div>
+      <div style="display:flex;gap:.75rem;justify-content:center">
+        <button class="pill-btn" onclick="this.closest('.modal-overlay').remove()">Abbrechen</button>
+        <button class="pill-btn accent" onclick="this.closest('.modal-overlay').remove();triggerScraper()">Sync</button>
+      </div>
+    </div>`;
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
 async function triggerScraper() {
   const btn = document.getElementById('syncBtn');
   btn.classList.add('syncing'); btn.disabled = true;

@@ -61,7 +61,7 @@
               <circle class="sync-ring-track" cx="24" cy="24" r="21"/>
               <circle class="sync-ring-fill" id="syncRingFill" cx="24" cy="24" r="21"/>
             </svg>
-            <button class="pill-btn accent" id="syncBtn" onclick="triggerScraper()" title="Sync FDDB">
+            <button class="pill-btn accent" id="syncBtn" onclick="confirmSync()" title="Sync FDDB">
               <i class="fas fa-arrows-rotate"></i>
             </button>
           </div>
@@ -626,7 +626,7 @@
         </div>
         <i class="fas fa-chevron-right"></i>
       </button>
-      <button class="action-tile" onclick="closeActionChooser(); triggerScraper()">
+      <button class="action-tile" onclick="closeActionChooser(); confirmSync()">
         <div class="action-tile-icon bg-orange"><i class="fas fa-cloud-arrow-down"></i></div>
         <div class="action-tile-text">
           <div class="action-tile-label">Sync with FDDB</div>
