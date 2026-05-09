@@ -3017,6 +3017,46 @@ async function removeMealOfChoice(id) {
   await loadDay();
 }
 
+async function editMealOfChoice(id) {
+  const tgt = coachTargets[currentDayType] || {};
+  let consumedKcal = 0;
+  currentDayEntries.forEach(e => { if (e.meal !== MEAL_OF_CHOICE) consumedKcal += e.kcal || 0; });
+  const freeKcal = Math.max(0, (tgt.kcal || 0) - consumedKcal);
+
+  openMocKcalModal(freeKcal, async (mocKcal) => {
+    const tgt2 = coachTargets[currentDayType] || {};
+    const consumed = { p: 0, c: 0, f: 0 };
+    currentDayEntries.forEach(e => {
+      if (e.meal === MEAL_OF_CHOICE) return;
+      consumed.p += parseFloat(e.protein) || 0;
+      consumed.c += parseFloat(e.carbs)   || 0;
+      consumed.f += parseFloat(e.fat)     || 0;
+    });
+    const remP = Math.max(0, (tgt2.p || 0) - consumed.p);
+    const remC = Math.max(0, (tgt2.c || 0) - consumed.c);
+    const remF = Math.max(0, (tgt2.f || 0) - consumed.f);
+    const remKcal = remP * 4 + remC * 4 + remF * 9;
+    let finalP, finalC, finalF;
+    if (remKcal > 0) {
+      const k = mocKcal / remKcal;
+      finalP = remP * k; finalC = remC * k; finalF = remF * k;
+    } else {
+      finalP = (mocKcal * 0.30) / 4;
+      finalC = (mocKcal * 0.40) / 4;
+      finalF = (mocKcal * 0.30) / 9;
+    }
+    const { error } = await db.from('fddb_daily_macros').update({
+      kcal: mocKcal,
+      protein: parseFloat(finalP.toFixed(1)),
+      carbs:   parseFloat(finalC.toFixed(1)),
+      fat:     parseFloat(finalF.toFixed(1)),
+    }).eq('id', id);
+    if (error) { showToast('Error updating Meal of Choice', 'error'); return; }
+    showToast('Meal of Choice updated 🍽️');
+    await loadDay();
+  });
+}
+
 /* ── Action chooser ── */
 function openActionChooser() { document.getElementById('actionChooserOverlay').classList.add('open'); }
 function closeActionChooser() { document.getElementById('actionChooserOverlay').classList.remove('open'); }
@@ -5328,6 +5368,7 @@ initTweaks();
       const entryId = chipEl.dataset.entryIds;
       sheet.innerHTML = `
         <div class="tl-ctx-title">${name}</div>
+        <button class="tl-ctx-action" id="tlCtxEditMoc"><i class="fas fa-sliders"></i> Edit Meal of Choice</button>
         <button class="tl-ctx-action tl-ctx-action-danger" id="tlCtxRemoveMoc"><i class="fas fa-trash-alt"></i> Remove Meal of Choice</button>
         <button class="tl-ctx-cancel">Cancel</button>`;
       overlay.appendChild(sheet);
@@ -5335,6 +5376,10 @@ initTweaks();
       requestAnimationFrame(() => overlay.classList.add('show'));
       overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
       sheet.querySelector('.tl-ctx-cancel').addEventListener('click', close);
+      sheet.querySelector('#tlCtxEditMoc').addEventListener('click', () => {
+        close();
+        editMealOfChoice(entryId);
+      });
       sheet.querySelector('#tlCtxRemoveMoc').addEventListener('click', () => {
         close();
         removeMealOfChoice(entryId);
