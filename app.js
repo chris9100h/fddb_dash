@@ -716,7 +716,7 @@ function openDurationModal(sessionKey, icon, title, accentColor, accentShadow, a
       <div class="dur-slider-ticks">
         <span>5</span><span>${Math.round(maxVal * .25 / 5) * 5}</span><span>${Math.round(maxVal * .5 / 5) * 5}</span><span>${Math.round(maxVal * .75 / 5) * 5}</span><span>${maxVal}</span>
       </div>
-      <button class="dur-slider-confirm" style="background:${accentColor}">Speichern</button>
+      <button class="dur-slider-confirm" style="background:${accentColor}">Save</button>
     </div>`;
   document.body.appendChild(overlay);
   const sliderEl = overlay.querySelector('.custom-slider');
@@ -758,7 +758,7 @@ function openMocKcalModal(freeKcal, onConfirm) {
       <div class="dur-slider-ticks">
         <span>500</span><span>${t1}</span><span>${t2}</span><span>${t3}</span><span>${maxVal}</span>
       </div>
-      <button class="dur-slider-confirm" style="background:#a78bfa">Hinzufügen</button>
+      <button class="dur-slider-confirm" style="background:#a78bfa">Add</button>
     </div>`;
   document.body.appendChild(overlay);
   const sliderEl = overlay.querySelector('.custom-slider');
@@ -778,7 +778,7 @@ function openInsulinDoseModal(sentinelKey, iuKey, onConfirm) {
     <div class="modal insulin-dose-modal">
       <div class="slider-modal-header">
         <div class="slider-modal-icon-wrap"><i class="fas fa-syringe"></i></div>
-        <div class="slider-modal-label">Novorapid – Dosis</div>
+        <div class="slider-modal-label">Novorapid – Dose</div>
       </div>
       <div class="insulin-dose-display"><span class="insulin-dose-value">4</span><span class="insulin-dose-unit">iu</span></div>
       <div class="custom-slider" data-min="1" data-max="20" data-value="4" data-step="1">
@@ -788,7 +788,7 @@ function openInsulinDoseModal(sentinelKey, iuKey, onConfirm) {
         </div>
       </div>
       <div class="insulin-dose-ticks"><span>1</span><span>5</span><span>10</span><span>15</span><span>20</span></div>
-      <button class="insulin-dose-confirm">Injizieren</button>
+      <button class="insulin-dose-confirm">Inject</button>
     </div>`;
   document.body.appendChild(overlay);
   const sliderEl = overlay.querySelector('.custom-slider');
@@ -811,7 +811,7 @@ function openInsulinTimeModal(slotMinutes, currentExactMin, exactMinKey, onConfi
     <div class="modal insulin-dose-modal">
       <div class="slider-modal-header">
         <div class="slider-modal-icon-wrap"><i class="fas fa-clock"></i></div>
-        <div class="slider-modal-label">Injektionszeitpunkt</div>
+        <div class="slider-modal-label">Injection Time</div>
       </div>
       <div class="insulin-dose-display"><span class="insulin-dose-value">${formatSlot(slotMinutes + defaultVal)}</span></div>
       <div class="custom-slider" data-min="0" data-max="29" data-value="${defaultVal}" data-step="1">
@@ -826,7 +826,7 @@ function openInsulinTimeModal(slotMinutes, currentExactMin, exactMinKey, onConfi
         <span>${formatSlot(slotMinutes + 20)}</span>
         <span>${formatSlot(slotMinutes + 29)}</span>
       </div>
-      <button class="insulin-dose-confirm">Bestätigen</button>
+      <button class="insulin-dose-confirm">Confirm</button>
     </div>`;
   document.body.appendChild(overlay);
   const sliderEl = overlay.querySelector('.custom-slider');
@@ -1993,7 +1993,7 @@ function makeBgChip(slotMinutes, bgValue) {
   chip.innerHTML = `
     <div class="tl-chip-body">
       <div class="tl-chip-name-row">
-        <span class="tl-chip-name"><i class="fas fa-droplet tl-bg-icon"></i>Pre meal Blood Glucose: ${bgValue} mg/dL</span>
+        <span class="tl-chip-name"><i class="fas fa-droplet tl-bg-icon"></i>Pre-Meal BG: ${bgValue} mg/dL</span>
       </div>
     </div>
     <div class="tl-chip-edit"><i class="fas fa-pencil"></i></div>`;
