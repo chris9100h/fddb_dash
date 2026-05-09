@@ -792,6 +792,44 @@ function openInsulinDoseModal(sentinelKey, iuKey, onConfirm) {
   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 }
 
+function openInsulinTimeModal(slotMinutes, currentExactMin, exactMinKey, onConfirm) {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay open';
+  const defaultVal = Math.min(Math.max(Math.round(currentExactMin), 0), 29);
+  overlay.innerHTML = `
+    <div class="modal insulin-dose-modal">
+      <div class="slider-modal-header">
+        <div class="slider-modal-icon-wrap"><i class="fas fa-clock"></i></div>
+        <div class="slider-modal-label">Injektionszeitpunkt</div>
+      </div>
+      <div class="insulin-dose-display"><span class="insulin-dose-value">${formatSlot(slotMinutes + defaultVal)}</span></div>
+      <div class="custom-slider" data-min="0" data-max="29" data-value="${defaultVal}" data-step="1">
+        <div class="custom-slider-track">
+          <div class="custom-slider-fill"></div>
+          <div class="custom-slider-thumb"></div>
+        </div>
+      </div>
+      <div class="insulin-dose-ticks">
+        <span>${formatSlot(slotMinutes)}</span>
+        <span>${formatSlot(slotMinutes + 10)}</span>
+        <span>${formatSlot(slotMinutes + 20)}</span>
+        <span>${formatSlot(slotMinutes + 29)}</span>
+      </div>
+      <button class="insulin-dose-confirm">Bestätigen</button>
+    </div>`;
+  document.body.appendChild(overlay);
+  const sliderEl = overlay.querySelector('.custom-slider');
+  const valueEl  = overlay.querySelector('.insulin-dose-value');
+  initCustomSlider(sliderEl, (v) => { valueEl.textContent = formatSlot(slotMinutes + v); });
+  overlay.querySelector('.insulin-dose-confirm').addEventListener('click', () => {
+    const exactMin = parseInt(sliderEl.dataset.current, 10);
+    saveItemTime(exactMinKey, exactMin);
+    overlay.remove();
+    onConfirm();
+  });
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+}
+
 function openChipActionModal({ icon, title, canAdd, addLabel, removeLabel, onAdd, onRemove }) {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay open';
@@ -1208,10 +1246,10 @@ function renderTimelineDashboard(entries) {
   const allBlocks = [];
   // Up to 2 sessions per chip type; session 1 uses unprefixed keys, session 2 uses ::2 suffix.
   if ('__show_insulin' in itemTimeMap) {
-    allBlocks.push({ type: 'insulin', tlKey: 'insulin::novorapid', sentinelKey: '__show_insulin', iuKey: '__insulin_iu', sessionIdx: 1, intraSlot: null, meal: null });
+    allBlocks.push({ type: 'insulin', tlKey: 'insulin::novorapid', sentinelKey: '__show_insulin', iuKey: '__insulin_iu', exactMinKey: '__insulin_exact_min', sessionIdx: 1, intraSlot: null, meal: null });
   }
   if ('__show_insulin::2' in itemTimeMap) {
-    allBlocks.push({ type: 'insulin', tlKey: 'insulin::novorapid::2', sentinelKey: '__show_insulin::2', iuKey: '__insulin_iu::2', sessionIdx: 2, intraSlot: null, meal: null });
+    allBlocks.push({ type: 'insulin', tlKey: 'insulin::novorapid::2', sentinelKey: '__show_insulin::2', iuKey: '__insulin_iu::2', exactMinKey: '__insulin_exact_min::2', sessionIdx: 2, intraSlot: null, meal: null });
   }
   if ('__show_training' in itemTimeMap) {
     allBlocks.push({ type: 'training', tlKey: 'training::session', sentinelKey: '__show_training', sessionIdx: 1, intraSlot: INTRA_WORKOUT_SLOT, meal: null });
@@ -1247,6 +1285,7 @@ function renderTimelineDashboard(entries) {
   }));
   const insulinSessions = allBlocks.filter(b => b.type === 'insulin').map(b => ({
     block: b, slot: itemTimeMap[b.tlKey] ?? null, iu: itemTimeMap[b.iuKey] ?? null,
+    exactMin: itemTimeMap[b.exactMinKey] ?? 0,
   }));
 
   // Items assigned to intra slots of unplaced sessions would be invisible —
@@ -1347,6 +1386,7 @@ function renderTimelineDashboard(entries) {
               const last = insulinSessions[cnt - 1];
               saveItemTime(last.block.sentinelKey, null); saveItemTime(last.block.tlKey, null);
               saveItemTime(last.block.iuKey, null);
+              if (last.block.exactMinKey) saveItemTime(last.block.exactMinKey, null);
               renderDashboard(currentDayEntries);
             },
           });
@@ -1422,6 +1462,8 @@ function renderTimelineDashboard(entries) {
   // Build insulin blocks (visual box wrapping chip-bar, window rows, footer)
   for (const sess of insulinSessions) {
     if (sess.slot == null) continue;
+    const exactMin = sess.exactMin ?? 0;
+    const injectedAt = sess.slot + exactMin;
     const endSlot = Math.min(sess.slot + 4 * 60, 1320);
     const wm = sess.block.windowMacros;
 
@@ -1440,6 +1482,10 @@ function renderTimelineDashboard(entries) {
       const row = wrap.querySelector(`[data-hour="${m}"]`);
       if (!row) continue;
       row.classList.add('tl-insulin-range');
+      if (exactMin > 0) {
+        const lbl = row.querySelector('.tl-time-label');
+        if (lbl) lbl.textContent = formatSlot(m + exactMin);
+      }
       if (m === sess.slot) {
         row.classList.add('tl-insulin-window-start');
         if (!row.querySelector('.tl-chip')) row.classList.remove('tl-has-items');
@@ -1450,7 +1496,7 @@ function renderTimelineDashboard(entries) {
     const summary = document.createElement('div');
     summary.className = 'tl-insulin-summary';
     summary.innerHTML =
-      `<span class="tl-insulin-summary-label"><i class="fas fa-syringe" style="margin-right:5px"></i>Active until ${formatSlot(Math.min(sess.slot + 4 * 60, 1320))}</span>` +
+      `<span class="tl-insulin-summary-label"><i class="fas fa-syringe" style="margin-right:5px"></i>Active until ${formatSlot(Math.min(injectedAt + 4 * 60, 1320))}</span>` +
       `<span class="tl-insulin-summary-vals">` +
         `<span>${Math.round(wm?.kcal ?? 0)}<small>kcal</small></span>` +
         `<span>${Math.round(wm?.p ?? 0)}<small>P</small></span>` +
@@ -1728,17 +1774,21 @@ function makeTlChip(block) {
   const chip = document.createElement('div');
 
   if (block.type === 'insulin') {
-    const placed = itemTimeMap[block.tlKey] != null;
+    const slotTime = itemTimeMap[block.tlKey];
+    const placed = slotTime != null;
     const iu = block.iuKey ? (itemTimeMap[block.iuKey] ?? null) : null;
+    const exactMin = block.exactMinKey ? (itemTimeMap[block.exactMinKey] ?? 0) : 0;
+    const injectedTime = placed ? slotTime + exactMin : null;
     const iuStr = iu ? ` ${iu}iu` : '';
     chip.className = 'tl-chip tl-chip-insulin' + (placed ? ' tl-chip-insulin-placed' : '');
     chip.dataset.entryIds = '';
     chip.dataset.checkKeys = block.tlKey;
     chip.dataset.dragKind = 'item';
     chip.dataset.meal = 'insulin';
+    chip.dataset.exactMinKey = block.exactMinKey || '';
     chip.innerHTML = placed
       ? `<span class="tl-insulin-summary-label">
-           <i class="fas fa-syringe" style="margin-right:5px"></i>Novorapid${iuStr} &middot; injected ${formatSlot(itemTimeMap[block.tlKey])}
+           <i class="fas fa-syringe" style="margin-right:5px"></i>Novorapid${iuStr} &middot; injected ${formatSlot(injectedTime)}
          </span>
          <div class="tl-chip-grip"><i class="fas fa-grip-lines"></i></div>`
       : `<div class="tl-chip-grip"><i class="fas fa-grip-lines"></i></div>
@@ -5053,6 +5103,16 @@ initTweaks();
       } else {
         // Same meal or no time-range mapping: just update the time slot
         oldKeys.forEach(k => saveItemTime(k, hour));
+      }
+      if (fromMeal === 'insulin' && hour !== null) {
+        const exactMinKey = src.dataset.exactMinKey;
+        if (exactMinKey) {
+          renderTimelineDashboard(currentDayEntries);
+          openInsulinTimeModal(hour, itemTimeMap[exactMinKey] ?? 0, exactMinKey, () => {
+            renderTimelineDashboard(currentDayEntries);
+          });
+          return;
+        }
       }
       renderTimelineDashboard(currentDayEntries);
       return;
