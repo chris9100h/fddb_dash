@@ -5288,6 +5288,7 @@ initTweaks();
 
   function showTlContextMenu(chipEl) {
     const isTreat = chipEl.dataset.meal === WEEKLY_TREAT_MEAL;
+    const isMoc   = chipEl.dataset.meal === MEAL_OF_CHOICE;
     const name = chipEl.querySelector('.tl-chip-name')?.textContent || 'Item';
 
     // Detect if chip is inside an insulin window row (and is a food chip)
@@ -5323,7 +5324,22 @@ initTweaks();
       ? `<button class="tl-ctx-action tl-ctx-action-bg" id="tlCtxBg"><i class="fas fa-droplet"></i> ${existingBg != null ? `Edit Blood Glucose (${existingBg} mg/dL)` : 'Add Blood Glucose'}</button>`
       : '';
 
-    if (!isTreat) {
+    if (isMoc) {
+      const entryId = chipEl.dataset.entryIds;
+      sheet.innerHTML = `
+        <div class="tl-ctx-title">${name}</div>
+        <button class="tl-ctx-action tl-ctx-action-danger" id="tlCtxRemoveMoc"><i class="fas fa-trash-alt"></i> Remove Meal of Choice</button>
+        <button class="tl-ctx-cancel">Cancel</button>`;
+      overlay.appendChild(sheet);
+      document.body.appendChild(overlay);
+      requestAnimationFrame(() => overlay.classList.add('show'));
+      overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+      sheet.querySelector('.tl-ctx-cancel').addEventListener('click', close);
+      sheet.querySelector('#tlCtxRemoveMoc').addEventListener('click', () => {
+        close();
+        removeMealOfChoice(entryId);
+      });
+    } else if (!isTreat) {
       sheet.innerHTML = `
         <div class="tl-ctx-title">${name}</div>
         ${bgBtn}
