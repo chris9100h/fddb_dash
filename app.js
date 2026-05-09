@@ -723,7 +723,7 @@ function openCardioDurationModal(sessionKey)   { openDurationModal(sessionKey, '
 function openTrainingDurationModal(sessionKey) { openDurationModal(sessionKey, 'dumbbell',       'Training', '#b91c1c', 'rgba(185,28,28,.4)', 'rgba(185,28,28,.12)', 60, 180); }
 
 function openMocKcalModal(freeKcal, onConfirm) {
-  const maxVal     = Math.ceil((freeKcal + 100) / 50) * 50;
+  const maxVal     = Math.max(500, Math.ceil((freeKcal + 100) / 50) * 50);
   const defaultVal = Math.min(1200, maxVal);
   const t1 = Math.round((500 + (maxVal - 500) * 0.25) / 50) * 50;
   const t2 = Math.round((500 + (maxVal - 500) * 0.50) / 50) * 50;
@@ -2968,10 +2968,6 @@ async function confirmAddMealOfChoice() {
   let consumedKcal = 0;
   currentDayEntries.forEach(e => { if (e.meal !== MEAL_OF_CHOICE) consumedKcal += e.kcal || 0; });
   const freeKcal = Math.max(0, (tgt.kcal || 0) - consumedKcal);
-
-  if (freeKcal + 100 < 500) {
-    showToast('Zu wenig freie kcal für ein Meal of Choice', 'error'); return;
-  }
 
   openMocKcalModal(freeKcal, (mocKcal) => addMealOfChoice(name, mocKcal));
 }
