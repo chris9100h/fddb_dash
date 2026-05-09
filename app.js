@@ -373,20 +373,6 @@ function initSettingsUI() {
     });
   }
 
-  const trainingDurationEl = document.getElementById('setTrainingDuration');
-  if (trainingDurationEl) {
-    trainingDurationEl.value = settings.trainingDuration;
-    trainingDurationEl.addEventListener('change', () => {
-      const v = parseInt(trainingDurationEl.value, 10);
-      if (Number.isFinite(v) && v >= 15) {
-        settings.trainingDuration = v;
-        cacheSettings();
-        writeSettingToDb('trainingDuration', settings.trainingDuration);
-        if (timelineMode) renderDashboard(currentDayEntries);
-      }
-    });
-  }
-
   const showNowLineEl = document.getElementById('setShowNowLine');
   if (showNowLineEl) {
     showNowLineEl.checked = !!settings.showNowLine;
