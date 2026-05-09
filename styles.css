@@ -2849,6 +2849,7 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   display: grid;
   grid-template-columns: 3.4rem 2.6rem 3.2rem auto;
   column-gap: 4px;
+  justify-items: end;
   margin-top: 2px;
 }
 .tl-chip-macros span {
