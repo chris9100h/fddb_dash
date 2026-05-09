@@ -585,6 +585,7 @@ function toggleMergeServings() {
 
 /* ── Timeline toggle ── */
 let _nowLineTimer = null;
+let _insulinOffsets = []; // [{from, to, exactMin}] — updated by renderTimelineDashboard
 
 function updateNowLine() {
   const wrap = document.querySelector('.timeline-view');
@@ -595,7 +596,17 @@ function updateNowLine() {
   const cur = now.getHours() * 60 + now.getMinutes();
   if (cur < 180 || cur > 1320) return;
 
-  const slot = Math.floor(cur / 30) * 30;
+  // If cur falls inside an insulin block with an offset, shift back so the
+  // anchor row matches the visual label rather than the raw data-hour.
+  let adjusted = cur;
+  for (const off of _insulinOffsets) {
+    if (off.exactMin > 0 && cur >= off.from && cur <= off.to) {
+      adjusted = cur - off.exactMin;
+      break;
+    }
+  }
+
+  const slot = Math.floor(adjusted / 30) * 30;
   const anchor = wrap.querySelector(`[data-hour="${slot}"]`);
   if (!anchor) return;
 
@@ -1287,6 +1298,9 @@ function renderTimelineDashboard(entries) {
     block: b, slot: itemTimeMap[b.tlKey] ?? null, iu: itemTimeMap[b.iuKey] ?? null,
     exactMin: itemTimeMap[b.exactMinKey] ?? 0,
   }));
+  _insulinOffsets = insulinSessions
+    .filter(s => s.slot != null && (s.exactMin ?? 0) > 0)
+    .map(s => ({ from: s.slot, to: Math.min(s.slot + 4 * 60, 1320), exactMin: s.exactMin }));
 
   // Items assigned to intra slots of unplaced sessions would be invisible —
   // fall them back to the unassigned slot so they remain accessible.
