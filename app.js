@@ -4333,7 +4333,9 @@ async function loadStats() {
   hmLegend.innerHTML = [
     jokerHmItem,
     mocHmItem,
-    hasFreeze ? `<span style="color:rgba(96,165,250,.9)"><i class="fas fa-snowflake" style="font-size:.55rem"></i> Freeze</span>` : '',
+    hasFreeze ? (statsPeriod === 'week'
+    ? `<span style="color:rgba(96,165,250,.9)"><span style="display:inline-block;width:14px;height:3px;border-radius:99px;background:rgba(96,165,250,.9);vertical-align:middle"></span> Freeze</span>`
+    : `<span style="color:rgba(96,165,250,.9)"><i class="fas fa-snowflake" style="font-size:.55rem"></i> Freeze</span>`) : '',
     hasSick ? `<span style="color:rgba(251,191,36,.9)"><i class="fas fa-thermometer-half" style="font-size:.55rem"></i> Sick</span>` : '',
   ].filter(Boolean).join('');
   if (hmLegend.innerHTML) hm.appendChild(hmLegend);
