@@ -2816,7 +2816,7 @@ function renderDashboard(entries) {
         if (mergeServings) {
           row.innerHTML = `<div class="cb-box"><i class="fas fa-check"></i></div><div class="food-name" style="font-size:.82rem">${e.item_name}</div>`;
         } else {
-          row.innerHTML = `<div class="cb-box"><i class="fas fa-check"></i></div><div class="food-item-body"><div class="food-name">${e.item_name}</div><div class="macro-pills">${pillsHTML(m)}</div></div>`;
+          row.innerHTML = `<div class="cb-box"><i class="fas fa-check"></i></div><div class="food-item-body"><div class="food-name">${e.item_name}</div>${ipPillsHTML(m)}</div>`;
         }
         row.addEventListener('click', () => {
           row.classList.toggle('checked');
@@ -2876,7 +2876,7 @@ function renderDashboard(entries) {
                   <span class="recipe-tag">Recipe</span>
                   ${portionLabel}
                 </div>
-                <div class="macro-pills">${pillsHTML(portionM)}</div>
+                ${ipPillsHTML(portionM)}
               </div>
               <button class="recipe-chevron"><i class="fas fa-chevron-down"></i></button>`;
           }
@@ -2968,7 +2968,7 @@ function renderWeeklyTreatCard(items, container) {
       row.dataset.entryIds = String(e.id);
       row.dataset.checkKeys = `${WEEKLY_TREAT_MEAL}::${e.item_name}`;
       row.dataset.dragKind = 'item';
-      row.innerHTML = `<div class="weekly-treat-joker-icon"><i class="fas fa-star"></i></div><div class="food-item-body"><div class="food-name">${e.item_name}</div><div class="macro-pills weekly-treat-pills">${pillsHTML(m)}</div></div>`;
+      row.innerHTML = `<div class="weekly-treat-joker-icon"><i class="fas fa-star"></i></div><div class="food-item-body"><div class="food-name">${e.item_name}</div>${ipPillsHTML(m)}</div>`;
       list.appendChild(row);
     });
   }
@@ -3006,7 +3006,7 @@ function renderMealOfChoiceCard(items, container) {
 
   const row = document.createElement('div');
   row.className = 'food-item checked';
-  row.innerHTML = `<div class="cb-box"><i class="fas fa-check"></i></div><div class="food-item-body"><div class="food-name">${displayName}</div><div class="macro-pills">${pillsHTML(m)}</div></div>`;
+  row.innerHTML = `<div class="cb-box"><i class="fas fa-check"></i></div><div class="food-item-body"><div class="food-name">${displayName}</div>${ipPillsHTML(m)}</div>`;
   card.appendChild(row);
   checkables.push({ get checked() { return true; }, macros: m });
 
