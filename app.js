@@ -4219,16 +4219,16 @@ async function loadStats() {
   hmLegend.className = 'chart-legend';
   hmLegend.style.marginTop = '10px';
   const jokerHmItem = hasJoker ? (statsPeriod === 'week'
-    ? `<span><span style="display:inline-block;width:14px;height:3px;border-radius:99px;background:var(--gold);vertical-align:middle"></span> Weekly Treat</span>`
-    : `<span><i class="fas fa-star" style="color:var(--gold);font-size:.55rem"></i> Weekly Treat</span>`) : '';
+    ? `<span style="color:var(--gold)"><span style="display:inline-block;width:14px;height:3px;border-radius:99px;background:var(--gold);vertical-align:middle"></span> Weekly Treat</span>`
+    : `<span style="color:var(--gold)"><i class="fas fa-star" style="font-size:.55rem"></i> Weekly Treat</span>`) : '';
   const mocHmItem = hasMoC ? (statsPeriod === 'week'
-    ? `<span><span style="display:inline-block;width:14px;height:3px;border-radius:99px;background:var(--moc);vertical-align:middle"></span> Meal of Choice</span>`
-    : `<span><i class="fas fa-utensils" style="color:var(--moc);font-size:.55rem"></i> Meal of Choice</span>`) : '';
+    ? `<span style="color:var(--moc)"><span style="display:inline-block;width:14px;height:3px;border-radius:99px;background:var(--moc);vertical-align:middle"></span> Meal of Choice</span>`
+    : `<span style="color:var(--moc)"><i class="fas fa-utensils" style="font-size:.55rem"></i> Meal of Choice</span>`) : '';
   hmLegend.innerHTML = [
     jokerHmItem,
     mocHmItem,
-    hasFreeze ? `<span><i class="fas fa-snowflake" style="color:rgba(96,165,250,.9);font-size:.55rem"></i> Freeze</span>` : '',
-    hasSick ? `<span><i class="fas fa-thermometer-half" style="color:rgba(251,191,36,.9);font-size:.55rem"></i> Sick</span>` : '',
+    hasFreeze ? `<span style="color:rgba(96,165,250,.9)"><i class="fas fa-snowflake" style="font-size:.55rem"></i> Freeze</span>` : '',
+    hasSick ? `<span style="color:rgba(251,191,36,.9)"><i class="fas fa-thermometer-half" style="font-size:.55rem"></i> Sick</span>` : '',
   ].filter(Boolean).join('');
   if (hmLegend.innerHTML) hm.appendChild(hmLegend);
 
