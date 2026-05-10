@@ -609,18 +609,18 @@ body.is-dragging .meal-card-empty { display: block; }
 .merge-active .food-item { padding: 6px 10px; }
 .merge-active .recipe-row-header { padding: 6px 10px; }
 /* Macro inline text (dashboard food items) */
-.macro-pills { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 2px; }
+.macro-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 1px; }
 .macro-pills span {
-  font-size: .78rem; font-weight: 700;
-  display: flex; align-items: baseline; gap: 2px;
+  font-size: .72rem; font-weight: 700;
+  display: flex; align-items: baseline; gap: 1px;
 }
 .macro-pills span:nth-child(1) { color: var(--orange); }
 .macro-pills span:nth-child(2) { color: var(--blue); }
 .macro-pills span:nth-child(3) { color: var(--yellow); }
 .macro-pills span:nth-child(4) { color: var(--red); }
 .macro-pills small {
-  font-size: .55rem; font-weight: 600;
-  opacity: .65; text-transform: uppercase; letter-spacing: .05em;
+  font-size: .5rem; font-weight: 600;
+  opacity: .65; text-transform: uppercase; letter-spacing: .04em;
 }
 
 /* Food item */
@@ -647,7 +647,7 @@ body.is-dragging .meal-card-empty { display: block; }
   background: var(--accent); border-color: var(--accent); color: #fff;
   box-shadow: 0 0 0 3px rgba(255,107,0,.15);
 }
-.food-item-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+.food-item-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 .food-name { font-size: .85rem; font-weight: 500; line-height: 1.35; word-break: break-word; }
 
 /* Recipe row */
@@ -664,7 +664,7 @@ body.is-dragging .meal-card-empty { display: block; }
   transition: opacity .2s;
 }
 .recipe-row.checked .recipe-row-header { opacity: .4; }
-.recipe-row-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+.recipe-row-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 .recipe-row-title { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .recipe-row-name { font-size: .85rem; font-weight: 600; line-height: 1.35; }
 .recipe-tag {
