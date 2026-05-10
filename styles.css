@@ -2347,7 +2347,7 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   display: flex;
   align-items: baseline;
   gap: 6px;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
 }
 
 .tl-chip-name {

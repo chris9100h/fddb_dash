@@ -1874,7 +1874,7 @@ function makeTlChip(block) {
         <div class="tl-chip-name-row">
           <span class="tl-chip-name">${e.item_name}</span>${mealTag}
         </div>
-        <div class="tl-chip-macros">${tlMacrosHTML(m)}</div>
+        ${ipPillsHTML(m)}
       </div>
       <div class="tl-chip-cb"><i class="fas fa-check"></i></div>`;
   } else {
@@ -1902,7 +1902,7 @@ function makeTlChip(block) {
         <div class="tl-chip-name-row">
           <span class="tl-chip-name">${displayName}${portionLabel}</span>${mealTag}
         </div>
-        <div class="tl-chip-macros">${tlMacrosHTML(portionM)}</div>
+        ${ipPillsHTML(portionM)}
       </div>
       <button class="tl-recipe-chevron" title="Zutaten anzeigen"><i class="fas fa-chevron-down"></i></button>
       <div class="tl-chip-cb"><i class="fas fa-check"></i></div>`;
@@ -2133,6 +2133,9 @@ function tlMacrosHTML(m) {
          `<span>${m.p.toFixed(1)}</span><small>P</small>` +
          `<span>${m.c.toFixed(1)}</span><small>C</small>` +
          `<span>${m.f.toFixed(1)}</span><small>F</small>`;
+}
+function ipPillsHTML(m) {
+  return `<div class="ing-pills"><div class="ip ip-kcal">${Math.round(m.kcal)}</div><div class="ip ip-p">${m.p.toFixed(1)}</div><div class="ip ip-c">${m.c.toFixed(1)}</div><div class="ip ip-f">${m.f.toFixed(1)}</div></div>`;
 }
 function pillsHTML(m) {
   return `<span>${Math.round(m.kcal)}<small>kcal</small></span>` +
