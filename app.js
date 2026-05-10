@@ -1753,7 +1753,7 @@ function buildTlRow(minutes, blocks) {
     );
     footer.innerHTML =
       `<div class="tl-sf-pill">` +
-        `<span class="tl-sf-label">${timeStr ? timeStr + ' · ' : ''}Total</span>` +
+        `<span class="tl-sf-label">Total</span>` +
         `<span class="tl-sf-kcal">${Math.round(total.kcal)}<small>kcal</small></span>` +
         `<span class="tl-sf-p">${total.p.toFixed(1)}<small>P</small></span>` +
         `<span class="tl-sf-c">${total.c.toFixed(1)}<small>C</small></span>` +
