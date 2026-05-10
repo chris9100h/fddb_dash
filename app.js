@@ -2140,9 +2140,6 @@ function pillsHTML(m) {
          `<span>${m.c.toFixed(1)}<small>C</small></span>` +
          `<span>${m.f.toFixed(1)}<small>F</small></span>`;
 }
-function ipPillsHTML(m) {
-  return `<div class="ing-pills"><div class="ip ip-kcal">${Math.round(m.kcal)}</div><div class="ip ip-p">${m.p.toFixed(1)}</div><div class="ip ip-c">${m.c.toFixed(1)}</div><div class="ip ip-f">${m.f.toFixed(1)}</div></div>`;
-}
 function statPillsHTML(m) {
   return `<div class="stat-pill"><div class="stat-val c-kcal">${Math.round(m.kcal)}</div><div class="stat-lbl">Kcal</div></div><div class="stat-pill"><div class="stat-val c-p">${m.p.toFixed(1)}</div><div class="stat-lbl">Protein</div></div><div class="stat-pill"><div class="stat-val c-c">${m.c.toFixed(1)}</div><div class="stat-lbl">Carbs</div></div><div class="stat-pill"><div class="stat-val c-f">${m.f.toFixed(1)}</div><div class="stat-lbl">Fat</div></div>`;
 }
@@ -2819,7 +2816,7 @@ function renderDashboard(entries) {
         if (mergeServings) {
           row.innerHTML = `<div class="cb-box"><i class="fas fa-check"></i></div><div class="food-name" style="font-size:.82rem">${e.item_name}</div>`;
         } else {
-          row.innerHTML = `<div class="cb-box"><i class="fas fa-check"></i></div><div class="food-name food-name-inline">${e.item_name}</div>${ipPillsHTML(m)}`;
+          row.innerHTML = `<div class="cb-box"><i class="fas fa-check"></i></div><div class="food-item-body"><div class="food-name">${e.item_name}</div><div class="macro-pills">${pillsHTML(m)}</div></div>`;
         }
         row.addEventListener('click', () => {
           row.classList.toggle('checked');
@@ -2879,8 +2876,8 @@ function renderDashboard(entries) {
                   <span class="recipe-tag">Recipe</span>
                   ${portionLabel}
                 </div>
+                <div class="macro-pills">${pillsHTML(portionM)}</div>
               </div>
-              ${ipPillsHTML(portionM)}
               <button class="recipe-chevron"><i class="fas fa-chevron-down"></i></button>`;
           }
           const cbBox = hdr.querySelector('.cb-box');
