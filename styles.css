@@ -2883,6 +2883,7 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
 .tl-slot-footer {
   flex: 0 0 100%;
   margin-top: 2px;
+  margin-left: 58px;
   font-size: .72rem;
 }
 .tl-sf-pill {
