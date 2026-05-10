@@ -1998,7 +1998,7 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
 .unplanned-remove-btn:hover { background: rgba(239,68,68,.2); }
 
 /* ── Unplanned timeline chip ── */
-.tl-chip-unplanned {
+.tl-chip.tl-chip-unplanned {
   border-color: rgba(239,68,68,.55);
   background: linear-gradient(135deg, rgba(239,68,68,.18) 0%, var(--card) 60%);
 }
