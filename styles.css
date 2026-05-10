@@ -213,6 +213,7 @@ body {
 .dp-status.failed  { background: #6b7280; color: #fff; }
 .dp-status.freeze  { background: #7dd3fc; color: #0c4a6e; }
 .dp-status.sick    { background: #fb923c; color: #431407; }
+.dp-status.vacation { background: #22d3ee; color: #083344; }
 
 /* Context menu for date-pill */
 .date-menu {
@@ -257,6 +258,7 @@ body {
 .dmi-icon.failed       { background: rgba(107,114,128,.2); color: #d1d5db; }
 .dmi-icon.freeze       { background: rgba(125,211,252,.18); color: #7dd3fc; }
 .dmi-icon.sick         { background: rgba(251,146,60,.18); color: #fb923c; }
+.dmi-icon.vacation     { background: rgba(34,211,238,.18); color: #22d3ee; }
 .dmi-icon.reset        { background: rgba(248,113,113,.15); color: #f87171; }
 .dmi-label { flex: 1; }
 .dmi-hint { font-size: .72rem; color: var(--text-dim); }
@@ -333,6 +335,36 @@ body {
 .hero-card.sick-mode .hero-card-inner,
 .hero-card.sick-mode .hero-top-bar,
 .hero-card.sick-mode > :not(.sick-overlay) {
+  opacity: .35;
+  filter: grayscale(.4);
+  transition: opacity .2s, filter .2s;
+}
+
+/* Vacation mode overlay */
+.vacation-overlay {
+  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: linear-gradient(145deg, rgba(34, 211, 238, 0.18) 0%, rgba(34, 211, 238, 0.08) 100%);
+  color: #7ff3fc;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  border-radius: var(--radius-lg);
+  pointer-events: none;
+  text-shadow: 0 1px 3px rgba(0,0,0,.4);
+}
+.vacation-overlay i { font-size: 1.35rem; }
+.hero-card.vacation-mode .vacation-overlay { display: flex; }
+.hero-card.vacation-mode .hero-card-inner,
+.hero-card.vacation-mode .hero-top-bar,
+.hero-card.vacation-mode > :not(.vacation-overlay) {
   opacity: .35;
   filter: grayscale(.4);
   transition: opacity .2s, filter .2s;

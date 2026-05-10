@@ -97,6 +97,10 @@
           <i class="fas fa-thermometer-half"></i>
           <span>Sick mode active</span>
         </div>
+        <div class="vacation-overlay" id="vacationOverlay">
+          <i class="fas fa-umbrella-beach"></i>
+          <span>Vacation mode active</span>
+        </div>
         <div class="hero-top-bar">
           <div class="hero-title"><i class="fas fa-bullseye"></i>Planned / Target</div>
           <div class="hero-badge" id="heroBadge"></div>
@@ -413,10 +417,22 @@
         </div>
       </div>
 
-      <!-- ── Sick Mode ── -->
+      <!-- ── Vacation & Sick Mode ── -->
       <div class="settings-section">
-        <div class="settings-section-title"><i class="fas fa-thermometer-half"></i> Sick Mode</div>
+        <div class="settings-section-title"><i class="fas fa-umbrella-beach"></i> Vacation &amp; Sick Mode</div>
         <div class="list-group">
+          <div class="settings-row">
+            <div class="settings-row-text">
+              <div class="settings-row-label">Vacation mode active</div>
+              <div class="settings-row-sub" id="vacationModeSub">Off</div>
+            </div>
+            <div class="settings-row-control">
+              <label class="toggle-switch">
+                <input type="checkbox" id="setVacationMode">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
           <div class="settings-row">
             <div class="settings-row-text">
               <div class="settings-row-label">Sick mode active</div>
