@@ -1910,7 +1910,7 @@ function makeTlChip(block) {
     // Build ingredient list
     const ingList = document.createElement('div');
     ingList.className = 'tl-recipe-ingredients';
-    entries.forEach(ing => {
+    [...entries].sort((a, b) => extractAmount(b.item_name) - extractAmount(a.item_name)).forEach(ing => {
       const row = document.createElement('div');
       row.className = 'tl-ingredient-row';
       row.innerHTML =
@@ -2897,7 +2897,7 @@ function renderDashboard(entries) {
 
           const ingList = document.createElement('div');
           ingList.className = 'recipe-ingredients';
-          [...recEntries].sort((a, b) => stripAmount(a.item_name).localeCompare(stripAmount(b.item_name))).forEach(ing => {
+          [...recEntries].sort((a, b) => extractAmount(b.item_name) - extractAmount(a.item_name)).forEach(ing => {
             const ingRow = document.createElement('div');
             ingRow.className = 'ingredient-row';
             ingRow.innerHTML = `<span class="ingredient-name">${ing.item_name}</span><div class="ing-pills"><div class="ip ip-kcal">${Math.round((ing.kcal||0)/divisor)}</div><div class="ip ip-p">${(parseFloat(ing.protein||0)/divisor).toFixed(1)}</div><div class="ip ip-c">${(parseFloat(ing.carbs||0)/divisor).toFixed(1)}</div><div class="ip ip-f">${(parseFloat(ing.fat||0)/divisor).toFixed(1)}</div></div>`;
@@ -3444,6 +3444,7 @@ function buildStripRegex() {
   stripRegex = new RegExp(`^(?:\\d+[\\.,]?\\d*\\s*(?:${units})?|(?:${units}))\\s*`, 'i');
 }
 function stripAmount(name) { return name.replace(stripRegex, '').trim(); }
+function extractAmount(name) { const m = name.match(/^[\d.,]+/); return m ? parseFloat(m[0].replace(',', '.')) : 0; }
 
 /* ── Edit Modal ── */
 let editTargetId = null, editName = '', editItems = [], editServings = 1, editCatIds = [], editAddTab = 'day', editTemplateId = null, editIsTemplate = false;
