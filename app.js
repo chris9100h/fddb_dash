@@ -13,7 +13,7 @@ const WATER_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIs
 const dbWater = supabase.createClient(WATER_URL, WATER_KEY);
 
 const ORDER = ['frühstück','zwischenmahlzeit 1','snack_2','mittagessen','zwischenmahlzeit 2','snack_4','abendbrot','abendessen'];
-const LABELS = { 'frühstück':'Breakfast','zwischenmahlzeit 1':'Snack 1','snack_2':'Snack 2','mittagessen':'Lunch','zwischenmahlzeit 2':'Snack 3','snack_4':'Snack 4','abendbrot':'Dinner','abendessen':'Dinner','weekly_treat':'Weekly Treat','meal_of_choice':'Meal of Choice','unplanned':'Unplanned' };
+const LABELS = { 'frühstück':'Breakfast','zwischenmahlzeit 1':'Snack 1','snack_2':'Snack 2','mittagessen':'Lunch','zwischenmahlzeit 2':'Snack 3','snack_4':'Snack 4','abendbrot':'Dinner','abendessen':'Dinner','weekly_treat':'Weekly Treat','meal_of_choice':'Meal of Choice','unplanned':'Oopsie' };
 const WEEKLY_TREAT_MEAL = 'weekly_treat';
 const MEAL_OF_CHOICE = 'meal_of_choice';
 const UNPLANNED_MEAL = 'unplanned';
@@ -1863,7 +1863,7 @@ function makeTlChip(block) {
     : isMoc
     ? `<span class="tl-chip-meal-tag tl-moc-tag">🍽️ MoC</span>`
     : isUnplanned
-    ? `<span class="tl-chip-meal-tag tl-unplanned-tag">🍪 Extra</span>`
+    ? `<span class="tl-chip-meal-tag tl-unplanned-tag">🍪 Oopsie</span>`
     : '';
 
   if (block.type === 'item') {
@@ -3034,7 +3034,7 @@ function renderUnplannedCard(items, container) {
 
   card.innerHTML = `<div class="meal-title unplanned-title">
     <span class="unplanned-icon">🍪</span>
-    <div class="meal-name unplanned-name">Unplanned</div>
+    <div class="meal-name unplanned-name">Oopsie</div>
     <div class="unplanned-badge">${Math.round(totalKcal)} kcal</div>
   </div>`;
 
@@ -3179,7 +3179,7 @@ function openUnplannedMealModal() {
     <div class="modal dur-slider-modal" style="--dur-accent:#ef4444;--dur-shadow:rgba(239,68,68,.4);--dur-soft:rgba(239,68,68,.12)">
       <div class="slider-modal-header">
         <div class="slider-modal-icon-wrap" style="background:rgba(239,68,68,.15);color:#ef4444"><i class="fas fa-cookie-bite"></i></div>
-        <div class="slider-modal-label">Unplanned Meal</div>
+        <div class="slider-modal-label">Oopsie</div>
       </div>
       <input class="text-input" placeholder="Name (e.g. Slice of Cake)" autocomplete="off" style="margin-bottom:16px">
       <div class="dur-slider-display"><span class="dur-slider-value">400</span><span class="dur-slider-unit">kcal</span></div>
