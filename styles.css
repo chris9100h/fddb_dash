@@ -1999,8 +1999,8 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
 
 /* ── Unplanned timeline chip ── */
 .tl-chip-unplanned {
-  border-color: rgba(239,68,68,.32);
-  background: linear-gradient(135deg, rgba(239,68,68,.07) 0%, var(--card) 55%);
+  border-color: rgba(239,68,68,.55);
+  background: linear-gradient(135deg, rgba(239,68,68,.18) 0%, var(--card) 60%);
 }
 .tl-unplanned-tag {
   background: rgba(239,68,68,.13);
