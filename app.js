@@ -1863,7 +1863,7 @@ function makeTlChip(block) {
     : isMoc
     ? `<span class="tl-chip-meal-tag tl-moc-tag">🍽️ MoC</span>`
     : isUnplanned
-    ? `<span class="tl-chip-meal-tag tl-unplanned-tag">⚡ Extra</span>`
+    ? `<span class="tl-chip-meal-tag tl-unplanned-tag">🍪 Extra</span>`
     : '';
 
   if (block.type === 'item') {
@@ -3033,7 +3033,7 @@ function renderUnplannedCard(items, container) {
   card.className = 'meal-card unplanned-card';
 
   card.innerHTML = `<div class="meal-title unplanned-title">
-    <span class="unplanned-icon">⚡</span>
+    <span class="unplanned-icon">🍪</span>
     <div class="meal-name unplanned-name">Unplanned</div>
     <div class="unplanned-badge">${Math.round(totalKcal)} kcal</div>
   </div>`;
