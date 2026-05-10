@@ -3047,6 +3047,7 @@ function renderUnplannedCard(items, container) {
     row.innerHTML = `<div class="food-item-body"><div class="food-name">${e.item_name}</div>${ipPillsHTML(m)}</div>
       <button class="unplanned-remove-btn" onclick="removeUnplannedMeal('${e.id}')"><i class="fas fa-trash-alt"></i></button>`;
     list.appendChild(row);
+    checkables.push({ get checked() { return true; }, macros: m });
   });
 
   card.appendChild(list);
