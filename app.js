@@ -13,9 +13,10 @@ const WATER_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIs
 const dbWater = supabase.createClient(WATER_URL, WATER_KEY);
 
 const ORDER = ['frühstück','zwischenmahlzeit 1','snack_2','mittagessen','zwischenmahlzeit 2','snack_4','abendbrot','abendessen'];
-const LABELS = { 'frühstück':'Breakfast','zwischenmahlzeit 1':'Snack 1','snack_2':'Snack 2','mittagessen':'Lunch','zwischenmahlzeit 2':'Snack 3','snack_4':'Snack 4','abendbrot':'Dinner','abendessen':'Dinner','weekly_treat':'Weekly Treat','meal_of_choice':'Meal of Choice' };
+const LABELS = { 'frühstück':'Breakfast','zwischenmahlzeit 1':'Snack 1','snack_2':'Snack 2','mittagessen':'Lunch','zwischenmahlzeit 2':'Snack 3','snack_4':'Snack 4','abendbrot':'Dinner','abendessen':'Dinner','weekly_treat':'Weekly Treat','meal_of_choice':'Meal of Choice','unplanned':'Unplanned' };
 const WEEKLY_TREAT_MEAL = 'weekly_treat';
 const MEAL_OF_CHOICE = 'meal_of_choice';
+const UNPLANNED_MEAL = 'unplanned';
 
 let checkables = [];
 let totals = { kcal:0, p:0, c:0, f:0 };
@@ -1850,15 +1851,19 @@ function makeTlChip(block) {
   chip.className = 'tl-chip';
   let returnEl = chip;
   const meal = block.meal;
-  const isTreat = meal === WEEKLY_TREAT_MEAL;
-  const isMoc   = meal === MEAL_OF_CHOICE;
+  const isTreat     = meal === WEEKLY_TREAT_MEAL;
+  const isMoc       = meal === MEAL_OF_CHOICE;
+  const isUnplanned = meal === UNPLANNED_MEAL;
   if (isTreat) chip.className += ' tl-chip-treat';
   else if (isMoc) chip.className += ' tl-chip-moc';
+  else if (isUnplanned) chip.className += ' tl-chip-unplanned';
 
   const mealTag = isTreat
     ? `<span class="tl-chip-meal-tag tl-treat-tag">⭐ Treat</span>`
     : isMoc
     ? `<span class="tl-chip-meal-tag tl-moc-tag">🍽️ MoC</span>`
+    : isUnplanned
+    ? `<span class="tl-chip-meal-tag tl-unplanned-tag">🍪 Extra</span>`
     : '';
 
   if (block.type === 'item') {
@@ -2564,6 +2569,7 @@ function renderDashboard(entries) {
     totals = {kcal:0,p:0,c:0,f:0};
     renderWeeklyTreatCard([], content);
     renderMealOfChoiceCard([], content);
+    renderUnplannedCard([], content);
     renderTargetBlock();
     updateChecked();
     return;
@@ -2598,7 +2604,7 @@ function renderDashboard(entries) {
   // after a meal is emptied. Custom meals outside ORDER are appended only if they have items.
   // Skip empty aliases whose label is already used by a non-empty meal (e.g. abendbrot/abendessen → "Dinner").
   // weekly_treat and meal_of_choice are handled separately below — exclude from the standard loop.
-  const customMeals = Object.keys(grouped).filter(m => ORDER.indexOf(m) < 0 && m !== WEEKLY_TREAT_MEAL && m !== MEAL_OF_CHOICE);
+  const customMeals = Object.keys(grouped).filter(m => ORDER.indexOf(m) < 0 && m !== WEEKLY_TREAT_MEAL && m !== MEAL_OF_CHOICE && m !== UNPLANNED_MEAL);
   const orderedMeals = [...ORDER, ...customMeals.sort()];
   const usedLabels = new Set(
     orderedMeals.filter(m => (grouped[m] || []).length > 0).map(m => LABELS[m] || m)
@@ -2924,6 +2930,9 @@ function renderDashboard(entries) {
   // Meal of Choice card — counts toward macros, added via + button.
   renderMealOfChoiceCard(grouped[MEAL_OF_CHOICE] || [], content);
 
+  // Unplanned meals — extra items added outside the plan.
+  renderUnplannedCard(grouped[UNPLANNED_MEAL] || [], content);
+
   renderTargetBlock();
   updateChecked();
 }
@@ -3013,6 +3022,34 @@ function renderMealOfChoiceCard(items, container) {
   card.appendChild(row);
   checkables.push({ get checked() { return true; }, macros: m });
 
+  container.appendChild(card);
+}
+
+function renderUnplannedCard(items, container) {
+  if (items.length === 0) return;
+
+  const totalKcal = items.reduce((s, e) => s + (e.kcal||0), 0);
+  const card = document.createElement('div');
+  card.className = 'meal-card unplanned-card';
+
+  card.innerHTML = `<div class="meal-title unplanned-title">
+    <span class="unplanned-icon">🍪</span>
+    <div class="meal-name unplanned-name">Unplanned</div>
+    <div class="unplanned-badge">${Math.round(totalKcal)} kcal</div>
+  </div>`;
+
+  const list = document.createElement('div');
+  list.className = 'items-list';
+  items.forEach(e => {
+    const m = { kcal: e.kcal||0, p: parseFloat(e.protein)||0, c: parseFloat(e.carbs)||0, f: parseFloat(e.fat)||0 };
+    const row = document.createElement('div');
+    row.className = 'food-item';
+    row.innerHTML = `<div class="food-item-body"><div class="food-name">${e.item_name}</div>${ipPillsHTML(m)}</div>
+      <button class="unplanned-remove-btn" onclick="removeUnplannedMeal('${e.id}')"><i class="fas fa-trash-alt"></i></button>`;
+    list.appendChild(row);
+  });
+
+  card.appendChild(list);
   container.appendChild(card);
 }
 
@@ -3133,6 +3170,71 @@ async function editMealOfChoice(id) {
 /* ── Action chooser ── */
 function openActionChooser() { document.getElementById('actionChooserOverlay').classList.add('open'); }
 function closeActionChooser() { document.getElementById('actionChooserOverlay').classList.remove('open'); }
+
+/* ── Unplanned Meal ── */
+function openUnplannedMealModal() {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay open';
+  overlay.innerHTML = `
+    <div class="modal dur-slider-modal" style="--dur-accent:#ef4444;--dur-shadow:rgba(239,68,68,.4);--dur-soft:rgba(239,68,68,.12)">
+      <div class="slider-modal-header">
+        <div class="slider-modal-icon-wrap" style="background:rgba(239,68,68,.15);color:#ef4444"><i class="fas fa-cookie-bite"></i></div>
+        <div class="slider-modal-label">Unplanned Meal</div>
+      </div>
+      <input class="text-input" placeholder="Name (z.B. Stück Kuchen)" autocomplete="off" style="margin-bottom:16px">
+      <div class="dur-slider-display"><span class="dur-slider-value">400</span><span class="dur-slider-unit">kcal</span></div>
+      <div class="custom-slider" data-min="50" data-max="2000" data-value="400" data-step="50">
+        <div class="custom-slider-track">
+          <div class="custom-slider-fill"></div>
+          <div class="custom-slider-thumb"></div>
+        </div>
+      </div>
+      <div class="dur-slider-ticks">
+        <span>50</span><span>550</span><span>1000</span><span>1500</span><span>2000</span>
+      </div>
+      <button class="dur-slider-confirm" style="background:#ef4444">Add</button>
+    </div>`;
+  document.body.appendChild(overlay);
+  const sliderEl  = overlay.querySelector('.custom-slider');
+  const valueEl   = overlay.querySelector('.dur-slider-value');
+  const nameInput = overlay.querySelector('.text-input');
+  initCustomSlider(sliderEl, (v) => { valueEl.textContent = v; });
+  setTimeout(() => nameInput.focus(), 150);
+  overlay.querySelector('.dur-slider-confirm').addEventListener('click', () => {
+    const name = nameInput.value.trim();
+    if (!name) { nameInput.focus(); nameInput.style.outline = '2px solid #ef4444'; return; }
+    const kcal = parseInt(sliderEl.dataset.current, 10);
+    overlay.remove();
+    saveUnplannedMeal(name, kcal);
+  });
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+}
+
+async function saveUnplannedMeal(name, kcal) {
+  // Sweet-food macro split: 10% P / 50% C / 40% F (by energy contribution)
+  const protein = parseFloat((kcal * 0.10 / 4).toFixed(1));
+  const carbs   = parseFloat((kcal * 0.50 / 4).toFixed(1));
+  const fat     = parseFloat((kcal * 0.40 / 9).toFixed(1));
+  const { error } = await db.from('fddb_daily_macros').insert({
+    date: currentDate,
+    meal: UNPLANNED_MEAL,
+    item_name: name,
+    kcal,
+    protein,
+    carbs,
+    fat,
+  });
+  if (error) { showToast('Error adding unplanned meal', 'error'); return; }
+  showToast(`${name} added`);
+  await loadDay();
+}
+
+async function removeUnplannedMeal(id) {
+  const { error } = await db.from('fddb_daily_macros').delete().eq('id', id);
+  if (error) { showToast('Error removing entry', 'error'); return; }
+  showToast('Entry removed');
+  await loadDay();
+}
 
 /* ── Add unit ── */
 function openAddUnit() {

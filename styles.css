@@ -1883,6 +1883,7 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
 :root { --moc: #a78bfa; --moc-soft: rgba(167,139,250,.14); --moc-glow: 0 0 20px rgba(167,139,250,.22); }
 
 .bg-purple { background: rgba(167,139,250,.14); color: var(--moc); }
+.bg-red    { background: rgba(239,68,68,.14);   color: #ef4444; }
 
 .moc-card {
   border-color: rgba(167,139,250,.25);
@@ -1955,6 +1956,57 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   transition: background .15s;
 }
 .moc-remove-btn:hover { background: rgba(248,113,113,.2); }
+
+/* ── Unplanned Meal card (dashboard) ── */
+.unplanned-card {
+  border-color: rgba(239,68,68,.25);
+  background: linear-gradient(160deg, rgba(239,68,68,.06) 0%, var(--surface) 60%);
+  margin-top: 4px;
+}
+.unplanned-title {
+  background: linear-gradient(90deg, rgba(239,68,68,.10) 0%, transparent 70%) !important;
+  border-bottom: 1px solid rgba(239,68,68,.18);
+  gap: 8px;
+}
+.unplanned-icon { font-size: .95rem; flex-shrink: 0; }
+.unplanned-name { color: #ef4444 !important; }
+.unplanned-badge {
+  margin-left: auto;
+  font-size: .55rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: #ef4444;
+  background: rgba(239,68,68,.13);
+  border: 1px solid rgba(239,68,68,.28);
+  border-radius: 999px;
+  padding: 2px 7px;
+}
+.unplanned-remove-btn {
+  background: rgba(239,68,68,.08);
+  color: #ef4444;
+  border: 1px solid rgba(239,68,68,.2);
+  border-radius: 7px;
+  width: 30px; height: 30px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .75rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background .15s;
+  margin-left: auto;
+}
+.unplanned-remove-btn:hover { background: rgba(239,68,68,.2); }
+
+/* ── Unplanned timeline chip ── */
+.tl-chip-unplanned {
+  border-color: rgba(239,68,68,.32);
+  background: linear-gradient(135deg, rgba(239,68,68,.07) 0%, var(--card) 55%);
+}
+.tl-unplanned-tag {
+  background: rgba(239,68,68,.13);
+  color: #ef4444;
+  border: 1px solid rgba(239,68,68,.28);
+}
 
 /* ════════════════════════════════════════════════════════
    LOGIN OVERLAY
