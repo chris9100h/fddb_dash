@@ -4104,7 +4104,7 @@ async function loadStats() {
     const type = dayTypeMap[date] || 'training';
     const tgt = getTarget(date, type);
     const status = finalizedStatusMap[date] || null;
-    const isExcluded = status === 'sick' || status === 'freeze';
+    const isExcluded = status === 'sick' || status === 'freeze' || status === 'vacation';
     if (!tgt || (tgt.p === 0 && tgt.c === 0 && tgt.f === 0)) return { date, adh: null, p: null, c: null, f: null, devP: null, devC: null, devF: null, devAvg: null, status };
     const rawP = tgt.p > 0 ? Math.round((d.p / tgt.p) * 100) : null;
     const rawC = tgt.c > 0 ? Math.round((d.c / tgt.c) * 100) : null;
@@ -4128,11 +4128,12 @@ async function loadStats() {
   const avgDevF = withAdh.filter(d=>d.devF!==null).length ? Math.round(withAdh.filter(d=>d.devF!==null).reduce((s,d)=>s+d.devF,0)/withAdh.filter(d=>d.devF!==null).length) : null;
   const trainingDays = dates.filter(d => (dayTypeMap[d] || 'training') === 'training').length;
   const restDays = dates.filter(d => dayTypeMap[d] === 'rest').length;
-  const excludedDays = dayData.filter(d => d.status === 'freeze' || d.status === 'sick').length;
+  const excludedDays = dayData.filter(d => d.status === 'freeze' || d.status === 'sick' || d.status === 'vacation').length;
   const hasJoker = dayData.some(d => jokerDates.has(d.date));
   const hasMoC = dayData.some(d => mocDates.has(d.date));
   const hasFreeze = dayData.some(d => d.status === 'freeze');
   const hasSick = dayData.some(d => d.status === 'sick');
+  const hasVacation = dayData.some(d => d.status === 'vacation');
 
   const adhColor = avgAdh !== null ? adherenceColor(avgAdh) : 'var(--muted)';
   document.getElementById('statsTrainingRest').innerHTML = `
@@ -4146,7 +4147,7 @@ async function loadStats() {
     </div>`;
   document.getElementById('statsOverallAdh').innerHTML = `
     <div class="stats-summary-val" style="color:${adhColor}">${avgAdh !== null ? avgAdh + '%' : '–'}</div>
-    <div class="stats-summary-sub">${withAdh.length} of ${dates.length} days counted${excludedDays > 0 ? ` · ${excludedDays} excluded (sick/freeze)` : ''}</div>`;
+    <div class="stats-summary-sub">${withAdh.length} of ${dates.length} days counted${excludedDays > 0 ? ` · ${excludedDays} excluded (sick/freeze/vacation)` : ''}</div>`;
 
   if (statsLineChart) { statsLineChart.destroy(); statsLineChart = null; }
   const lineCtx = document.getElementById('statsLineChart').getContext('2d');
@@ -4229,7 +4230,7 @@ async function loadStats() {
         legend: { display: false },
         tooltip: { callbacks: { label: ctx => {
           const d = dayData[ctx.dataIndex];
-          const statusLabel = d && d.status === 'freeze' ? ' · Freeze ❄' : d && d.status === 'sick' ? ' · Sick 🤒' : d && jokerDates.has(d.date) ? ' · Weekly Treat ⭐' : d && mocDates.has(d.date) ? ' · Meal of Choice 🍽️' : '';
+          const statusLabel = d && d.status === 'freeze' ? ' · Freeze ❄' : d && d.status === 'sick' ? ' · Sick 🤒' : d && d.status === 'vacation' ? ' · Vacation 🏖' : d && jokerDates.has(d.date) ? ' · Weekly Treat ⭐' : d && mocDates.has(d.date) ? ' · Meal of Choice 🍽️' : '';
           return ctx.raw !== null ? 'Dev: ' + (ctx.raw > 0 ? '+' : '') + ctx.raw + '%' + statusLabel : 'N/A';
         }}}
       },
@@ -4317,16 +4318,19 @@ async function loadStats() {
       let bg = cellBg(a);
       if (status === 'freeze') bg = 'rgba(96,165,250,0.2)';
       else if (status === 'sick') bg = 'rgba(251,191,36,0.2)';
+      else if (status === 'vacation') bg = 'rgba(34,211,238,0.2)';
       cell.style.cssText = `flex:1;position:relative;background:${bg};border-radius:8px;padding:12px 4px;text-align:center;display:flex;align-items:center;justify-content:center`;
       let mainContent;
       if (status === 'freeze') {
         mainContent = `<i class="fas fa-snowflake" style="font-size:1.05rem;color:rgba(96,165,250,.9)"></i>`;
       } else if (status === 'sick') {
         mainContent = `<i class="fas fa-thermometer-half" style="font-size:1.05rem;color:rgba(251,191,36,.9)"></i>`;
+      } else if (status === 'vacation') {
+        mainContent = `<i class="fas fa-umbrella-beach" style="font-size:1.05rem;color:rgba(34,211,238,.9)"></i>`;
       } else {
         mainContent = `<div style="font-family:'Bebas Neue',sans-serif;font-size:1.15rem;color:${a!==null?'#fff':'#444'}">${a !== null ? a+'%' : '–'}</div>`;
       }
-      const tipText = status === 'freeze' ? `${d.date}: Freeze` : status === 'sick' ? `${d.date}: Sick` : `${d.date}: ${a !== null ? a + '%' : 'N/A'}${isJoker ? ' · Weekly Treat ⭐' : isMoC ? ' · Meal of Choice 🍽️' : ''}`;
+      const tipText = status === 'freeze' ? `${d.date}: Freeze` : status === 'sick' ? `${d.date}: Sick` : status === 'vacation' ? `${d.date}: Vacation` : `${d.date}: ${a !== null ? a + '%' : 'N/A'}${isJoker ? ' · Weekly Treat ⭐' : isMoC ? ' · Meal of Choice 🍽️' : ''}`;
       cell.innerHTML = `${mainContent}${typeIcon}`;
       cell.setAttribute('data-tip', tipText);
       const wrapper = document.createElement('div');
@@ -4366,13 +4370,16 @@ async function loadStats() {
       let bg = cellBg(a);
       if (status === 'freeze') bg = 'rgba(96,165,250,0.25)';
       else if (status === 'sick') bg = 'rgba(251,191,36,0.25)';
+      else if (status === 'vacation') bg = 'rgba(34,211,238,0.25)';
       cell.style.cssText = `border-radius:4px;background:${bg};height:20px;width:100%;display:flex;align-items:center;justify-content:center;overflow:hidden`;
-      const tipText = status === 'freeze' ? `${d.date}: Freeze` : status === 'sick' ? `${d.date}: Sick` : `${d.date}: ${a !== null ? a + '%' : 'N/A'}${isJoker ? ' · Weekly Treat ⭐' : isMoC ? ' · Meal of Choice 🍽️' : ''}`;
+      const tipText = status === 'freeze' ? `${d.date}: Freeze` : status === 'sick' ? `${d.date}: Sick` : status === 'vacation' ? `${d.date}: Vacation` : `${d.date}: ${a !== null ? a + '%' : 'N/A'}${isJoker ? ' · Weekly Treat ⭐' : isMoC ? ' · Meal of Choice 🍽️' : ''}`;
       cell.setAttribute('data-tip', tipText);
       if (status === 'freeze') {
         cell.innerHTML = `<span style="display:inline-flex;background:rgba(96,165,250,.45);border-radius:3px;padding:2px 3px;line-height:1"><i class="fas fa-snowflake" style="font-size:.5rem;color:#fff"></i></span>`;
       } else if (status === 'sick') {
         cell.innerHTML = `<span style="display:inline-flex;background:rgba(251,191,36,.45);border-radius:3px;padding:2px 3px;line-height:1"><i class="fas fa-thermometer-half" style="font-size:.5rem;color:#fff"></i></span>`;
+      } else if (status === 'vacation') {
+        cell.innerHTML = `<span style="display:inline-flex;background:rgba(34,211,238,.45);border-radius:3px;padding:2px 3px;line-height:1"><i class="fas fa-umbrella-beach" style="font-size:.5rem;color:#fff"></i></span>`;
       } else if (isJoker) {
         cell.innerHTML = `<span style="display:inline-flex;background:rgba(245,158,11,.55);border-radius:3px;padding:2px 3px;line-height:1"><i class="fas fa-star" style="font-size:.5rem;color:#fff"></i></span>`;
       } else if (isMoC) {
