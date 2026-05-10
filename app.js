@@ -5207,7 +5207,7 @@ initTweaks();
 
       const newMeal = getMealForTime(hour);
       if (newMeal && newMeal !== fromMeal &&
-          fromMeal !== WEEKLY_TREAT_MEAL && fromMeal !== MEAL_OF_CHOICE &&
+          fromMeal !== WEEKLY_TREAT_MEAL && fromMeal !== MEAL_OF_CHOICE && fromMeal !== UNPLANNED_MEAL &&
           fromMeal !== 'training' && fromMeal !== 'insulin' && fromMeal !== 'cardio') {
         if (kind === 'recipe' && servings > 1) {
           // Multi-serving recipe: move only this one serving
@@ -5513,8 +5513,9 @@ initTweaks();
   }
 
   function showTlContextMenu(chipEl) {
-    const isTreat = chipEl.dataset.meal === WEEKLY_TREAT_MEAL;
-    const isMoc   = chipEl.dataset.meal === MEAL_OF_CHOICE;
+    const isTreat     = chipEl.dataset.meal === WEEKLY_TREAT_MEAL;
+    const isMoc       = chipEl.dataset.meal === MEAL_OF_CHOICE;
+    const isUnplanned = chipEl.dataset.meal === UNPLANNED_MEAL;
     const name = chipEl.querySelector('.tl-chip-name')?.textContent || 'Item';
 
     // Detect if chip is inside an insulin window row (and is a food chip)
@@ -5550,7 +5551,22 @@ initTweaks();
       ? `<button class="tl-ctx-action tl-ctx-action-bg" id="tlCtxBg"><i class="fas fa-droplet"></i> ${existingBg != null ? `Edit Blood Glucose (${existingBg} mg/dL)` : 'Add Blood Glucose'}</button>`
       : '';
 
-    if (isMoc) {
+    if (isUnplanned) {
+      const entryId = chipEl.dataset.entryIds;
+      sheet.innerHTML = `
+        <div class="tl-ctx-title">${name}</div>
+        <button class="tl-ctx-action tl-ctx-action-danger" id="tlCtxRemoveUnplanned"><i class="fas fa-trash-alt"></i> Remove</button>
+        <button class="tl-ctx-cancel">Cancel</button>`;
+      overlay.appendChild(sheet);
+      document.body.appendChild(overlay);
+      requestAnimationFrame(() => overlay.classList.add('show'));
+      overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+      sheet.querySelector('.tl-ctx-cancel').addEventListener('click', close);
+      sheet.querySelector('#tlCtxRemoveUnplanned').addEventListener('click', () => {
+        close();
+        removeUnplannedMeal(entryId);
+      });
+    } else if (isMoc) {
       const entryId = chipEl.dataset.entryIds;
       sheet.innerHTML = `
         <div class="tl-ctx-title">${name}</div>
