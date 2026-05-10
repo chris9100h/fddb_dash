@@ -4264,7 +4264,7 @@ async function loadStats() {
       wrapper.style.cssText = 'display:flex;flex-direction:column;gap:2px';
       wrapper.appendChild(cell);
       const weekBar = document.createElement('div');
-      weekBar.style.cssText = `height:3px;border-radius:99px;background:${isJoker ? 'var(--gold)' : isMoC ? 'var(--moc)' : 'transparent'};width:100%`;
+      weekBar.style.cssText = `height:3px;border-radius:99px;background:${isJoker ? 'var(--gold)' : isMoC ? 'var(--moc)' : status === 'freeze' ? 'rgba(96,165,250,.9)' : 'transparent'};width:100%`;
       wrapper.appendChild(weekBar);
       cwGrid.appendChild(wrapper);
     });
