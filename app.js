@@ -121,6 +121,8 @@ const SETTINGS_DEFAULTS = {
   adherenceCutoff: '22:00', // HH:MM — auto-finalize time
   sickModeActive: false,    // when true, every day (incl. today) is auto-marked 'sick'
   sickSince: null,          // YYYY-MM-DD — date sick mode started
+  vacationModeActive: false, // when true, every day (incl. today) is auto-marked 'vacation'
+  vacationSince: null,       // YYYY-MM-DD — date vacation mode started
   freezePerWeek: 2,         // max freeze days allowed per window
   freezeWindow: 1,          // window size in weeks (1 / 2 / 4)
   weeklyTreatMaxKcal: 0,    // 0 = no limit; excess kcal above threshold count against totals
@@ -170,6 +172,8 @@ const SETTING_DB_KEYS = {
   adherenceCutoff:     'adherence_cutoff',
   sickModeActive:      'sick_mode_active',
   sickSince:           'sick_since',
+  vacationModeActive:  'vacation_mode_active',
+  vacationSince:       'vacation_since',
   freezePerWeek:       'freeze_per_week',
   freezeWindow:        'freeze_window',
   weeklyTreatMaxKcal:  'weekly_treat_max_kcal',
@@ -234,6 +238,8 @@ function applySettingsToUI() {
   const cutoffEl = document.getElementById('setAdherenceCutoff');
   const sickEl = document.getElementById('setSickMode');
   const sickSubEl = document.getElementById('sickModeSub');
+  const vacationEl = document.getElementById('setVacationMode');
+  const vacationSubEl = document.getElementById('vacationModeSub');
   if (!goalEl) return;
   goalEl.value = settings.adherenceGoal;
   cutoffEl.value = settings.adherenceCutoff;
@@ -241,6 +247,12 @@ function applySettingsToUI() {
   if (sickSubEl) {
     sickSubEl.textContent = settings.sickModeActive
       ? `Active since ${settings.sickSince || '—'} · all days marked sick`
+      : 'Off';
+  }
+  if (vacationEl) vacationEl.checked = !!settings.vacationModeActive;
+  if (vacationSubEl) {
+    vacationSubEl.textContent = settings.vacationModeActive
+      ? `Active since ${settings.vacationSince || '—'} · all days marked vacation`
       : 'Off';
   }
   applyTimelinePrimary();
@@ -264,7 +276,9 @@ function applySickModeOverlay() {
   if (!heroCard) return;
   const row = finalizedMap.get(currentDate);
   const isSick = row && row.status === 'sick';
+  const isVacation = row && row.status === 'vacation';
   heroCard.classList.toggle('sick-mode', !!isSick);
+  heroCard.classList.toggle('vacation-mode', !!isVacation);
 }
 
 function initSettingsUI() {
@@ -312,6 +326,32 @@ function initSettingsUI() {
       if (typeof renderStreak === 'function') renderStreak();
       applySickModeOverlay();
       showToast(on ? 'Sick mode on' : 'Sick mode off');
+    });
+  }
+
+  const vacationToggleEl = document.getElementById('setVacationMode');
+  if (vacationToggleEl) {
+    vacationToggleEl.addEventListener('change', async () => {
+      const on = vacationToggleEl.checked;
+      settings.vacationModeActive = on;
+      settings.vacationSince = on ? todayISO() : null;
+      cacheSettings();
+      applySettingsToUI(); // refresh sub-label
+      await writeSettingToDb('vacationModeActive', on);
+      await writeSettingToDb('vacationSince', settings.vacationSince);
+      const today = todayISO();
+      if (on) {
+        await writeFinalizedDay(today, null, settings.adherenceGoal, 'vacation');
+      } else {
+        const row = finalizedMap.get(today);
+        if (row && row.status === 'vacation') {
+          await deleteFinalizedDay(today);
+        }
+      }
+      if (typeof renderDateStrip === 'function') renderDateStrip(currentDate || today);
+      if (typeof renderStreak === 'function') renderStreak();
+      applySickModeOverlay();
+      showToast(on ? 'Vacation mode on' : 'Vacation mode off');
     });
   }
 
@@ -483,6 +523,7 @@ function renderDateStrip(selected) {
     failed:  '<i class="fas fa-lock"></i>',
     freeze:  '<i class="fas fa-snowflake"></i>',
     sick:    '<i class="fas fa-thermometer-half"></i>',
+    vacation: '<i class="fas fa-umbrella-beach"></i>',
   };
   days.forEach(d => {
     const iso = toLocalISO(d);
@@ -2187,11 +2228,11 @@ async function writeFinalizedDay(date, adherence, goalUsed, status, totals = nul
   // NOTE: some older DB schemas have `adherence` as NOT NULL. For freeze/sick
   // (where adherence is conceptually N/A) we persist 0 as a placeholder and
   // rely on `status` to distinguish. Readers must check `status` first.
-  const isNonCounted = (status === 'freeze' || status === 'sick');
+  const isNonCounted = (status === 'freeze' || status === 'sick' || status === 'vacation');
   const row = {
     date,
     adherence: adherence ?? (isNonCounted ? 0 : null),
-    counted: (status === 'counted' || status === 'freeze' || status === 'sick'),
+    counted: (status === 'counted' || status === 'freeze' || status === 'sick' || status === 'vacation'),
     goal_used: goalUsed ?? null,
     status: status || 'counted',
     kcal: totals ? Math.round(totals.kcal) : null,
@@ -2273,7 +2314,7 @@ function calcStreaks(finalizedRows) {
   const countedDays = [...byDate.values()].filter(r => r.status === 'counted').length;
 
   const iso = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  const isStreakContinuing = s => s === 'counted' || s === 'freeze' || s === 'sick';
+  const isStreakContinuing = s => s === 'counted' || s === 'freeze' || s === 'sick' || s === 'vacation';
   const isCounted = s => s === 'counted';
 
   // Record: walk from earliest to latest day by calendar.
@@ -2328,6 +2369,14 @@ async function ensureDayFinalized(date, adherence, force, totals = null) {
   // you're usually sick for more than a day. Days *before* sickSince keep
   // their original status. Toggle-off deletes today's sick entry so the day
   // can re-auto-finalize from macros.
+  if (settings.vacationModeActive && settings.vacationSince && date >= settings.vacationSince) {
+    const existing = finalizedMap.get(date);
+    if (!existing || existing.status !== 'vacation') {
+      await writeFinalizedDay(date, null, settings.adherenceGoal, 'vacation');
+      renderDateStrip(currentDate);
+    }
+    return;
+  }
   if (settings.sickModeActive && settings.sickSince && date >= settings.sickSince) {
     const existing = finalizedMap.get(date);
     if (!existing || existing.status !== 'sick') {
@@ -2383,6 +2432,14 @@ async function setDayStatus(date, status) {
     }
     await writeFinalizedDay(date, null, settings.adherenceGoal, 'sick');
     showToast('Marked as sick day 🌡');
+  } else if (status === 'vacation') {
+    // Vacation cannot be set retroactively.
+    if (date !== todayStr) {
+      showToast('Vacation day can only be set for today', 'error');
+      return;
+    }
+    await writeFinalizedDay(date, null, settings.adherenceGoal, 'vacation');
+    showToast('Marked as vacation day 🏖');
   }
   renderDateStrip(document.getElementById('dateInput').value || todayStr);
   renderStreak();
@@ -3929,6 +3986,15 @@ async function openDateMenu(date, x, y) {
     () => setDayStatus(date, 'sick')
   ));
 
+  // Vacation (only today)
+  menu.appendChild(item(
+    'vacation', 'vacation', '<i class="fas fa-umbrella-beach"></i>',
+    'Mark as vacation',
+    isToday ? '' : 'today only',
+    !isToday,
+    () => setDayStatus(date, 'vacation')
+  ));
+
   // Reset (only if something is set)
   if (fin) {
     const div = document.createElement('div');
@@ -4094,12 +4160,13 @@ async function loadStats() {
   const ptColors = dayData.map(d => {
     if (d.status === 'freeze') return 'rgba(96,165,250,1)';
     if (d.status === 'sick') return 'rgba(251,191,36,1)';
+    if (d.status === 'vacation') return 'rgba(34,211,238,1)';
     if (jokerDates.has(d.date)) return 'rgba(245,158,11,1)';
     if (mocDates.has(d.date)) return 'rgba(167,139,250,1)';
     return devToColor(d.devAvg, 1);
   });
-  const ptStyles = dayData.map(d => d.status === 'freeze' ? 'rectRot' : d.status === 'sick' ? 'triangle' : jokerDates.has(d.date) ? 'star' : mocDates.has(d.date) ? 'rectRot' : 'circle');
-  const ptRadii = dayData.map(d => (d.status === 'freeze' || d.status === 'sick') ? 6 : (jokerDates.has(d.date) || mocDates.has(d.date)) ? 6 : (dayData.length > 30 ? 0 : 4));
+  const ptStyles = dayData.map(d => d.status === 'freeze' ? 'rectRot' : d.status === 'sick' ? 'triangle' : d.status === 'vacation' ? 'rect' : jokerDates.has(d.date) ? 'star' : mocDates.has(d.date) ? 'rectRot' : 'circle');
+  const ptRadii = dayData.map(d => (d.status === 'freeze' || d.status === 'sick' || d.status === 'vacation') ? 6 : (jokerDates.has(d.date) || mocDates.has(d.date)) ? 6 : (dayData.length > 30 ? 0 : 4));
   const ptBorderColors = dayData.map(d => jokerDates.has(d.date) ? 'rgba(245,158,11,1)' : mocDates.has(d.date) ? 'rgba(167,139,250,1)' : 'transparent');
   const ptBorderWidths = dayData.map(d => (jokerDates.has(d.date) || mocDates.has(d.date)) ? 2 : 0);
   const maxAbs = Math.max(...devValues.filter(v=>v!==null).map(Math.abs), 5);
