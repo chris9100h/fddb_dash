@@ -3181,7 +3181,7 @@ function openUnplannedMealModal() {
         <div class="slider-modal-icon-wrap" style="background:rgba(239,68,68,.15);color:#ef4444"><i class="fas fa-cookie-bite"></i></div>
         <div class="slider-modal-label">Unplanned Meal</div>
       </div>
-      <input class="text-input" placeholder="Name (z.B. Stück Kuchen)" autocomplete="off" style="margin-bottom:16px">
+      <input class="text-input" placeholder="Name (e.g. Slice of Cake)" autocomplete="off" style="margin-bottom:16px">
       <div class="dur-slider-display"><span class="dur-slider-value">400</span><span class="dur-slider-unit">kcal</span></div>
       <div class="custom-slider" data-min="50" data-max="2000" data-value="400" data-step="50">
         <div class="custom-slider-track">
@@ -4156,6 +4156,7 @@ async function loadStats() {
     },
     options: {
       responsive: true, maintainAspectRatio: false,
+      layout: { padding: { right: 24, top: 12 } },
       plugins: {
         legend: { display: false },
         tooltip: { callbacks: { label: ctx => {
