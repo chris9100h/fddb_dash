@@ -4146,7 +4146,7 @@ async function loadStats() {
         label: 'Deviation', data: devValues, borderWidth: 2,
         pointRadius: ptRadii, pointStyle: ptStyles,
         pointBackgroundColor: ptColors, pointBorderColor: ptBorderColors, pointBorderWidth: ptBorderWidths,
-        tension: .35, fill: 'origin',
+        tension: .35, fill: 'origin', clip: false,
         backgroundColor: 'rgba(90,90,90,.08)', spanGaps: true,
         segment: {
           borderColor: ctx => { const avg = (ctx.p0.parsed.y + ctx.p1.parsed.y) / 2; return devToColor(avg, 1); },
