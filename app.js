@@ -4054,7 +4054,7 @@ async function loadStats() {
         legend: { display: false },
         tooltip: { callbacks: { label: ctx => {
           const d = dayData[ctx.dataIndex];
-          const statusLabel = d && d.status === 'freeze' ? ' · Freeze ❄' : d && d.status === 'sick' ? ' · Sick 🤒' : d && jokerDates.has(d.date) ? ' · Joker ⭐' : d && mocDates.has(d.date) ? ' · Meal of Choice 🍽️' : '';
+          const statusLabel = d && d.status === 'freeze' ? ' · Freeze ❄' : d && d.status === 'sick' ? ' · Sick 🤒' : d && jokerDates.has(d.date) ? ' · Weekly Treat ⭐' : d && mocDates.has(d.date) ? ' · Meal of Choice 🍽️' : '';
           return ctx.raw !== null ? 'Dev: ' + (ctx.raw > 0 ? '+' : '') + ctx.raw + '%' + statusLabel : 'N/A';
         }}}
       },
@@ -4098,7 +4098,7 @@ async function loadStats() {
   // Line chart legend (dynamic)
   const lineLegendEl = document.getElementById('statsLineLegend');
   lineLegendEl.innerHTML = [
-    hasJoker ? `<span style="color:var(--gold)">★ Joker</span>` : '',
+    hasJoker ? `<span style="color:var(--gold)">★ Weekly Treat</span>` : '',
     hasMoC ? `<span style="color:rgba(167,139,250,1)">◆ Meal of Choice</span>` : '',
     hasFreeze ? `<span style="color:rgba(96,165,250,.9)">◆ Freeze</span>` : '',
     hasSick ? `<span style="color:rgba(251,191,36,.9)">▲ Sick</span>` : '',
@@ -4151,7 +4151,7 @@ async function loadStats() {
       } else {
         mainContent = `<div style="font-family:'Bebas Neue',sans-serif;font-size:1.15rem;color:${a!==null?'#fff':'#444'}">${a !== null ? a+'%' : '–'}</div>`;
       }
-      const tipText = status === 'freeze' ? `${d.date}: Freeze` : status === 'sick' ? `${d.date}: Sick` : `${d.date}: ${a !== null ? a + '%' : 'N/A'}${isJoker ? ' · Joker ⭐' : isMoC ? ' · Meal of Choice 🍽️' : ''}`;
+      const tipText = status === 'freeze' ? `${d.date}: Freeze` : status === 'sick' ? `${d.date}: Sick` : `${d.date}: ${a !== null ? a + '%' : 'N/A'}${isJoker ? ' · Weekly Treat ⭐' : isMoC ? ' · Meal of Choice 🍽️' : ''}`;
       cell.innerHTML = `${mainContent}${typeIcon}`;
       cell.setAttribute('data-tip', tipText);
       const wrapper = document.createElement('div');
@@ -4192,7 +4192,7 @@ async function loadStats() {
       if (status === 'freeze') bg = 'rgba(96,165,250,0.25)';
       else if (status === 'sick') bg = 'rgba(251,191,36,0.25)';
       cell.style.cssText = `border-radius:4px;background:${bg};height:20px;width:100%;display:flex;align-items:center;justify-content:center;overflow:hidden`;
-      const tipText = status === 'freeze' ? `${d.date}: Freeze` : status === 'sick' ? `${d.date}: Sick` : `${d.date}: ${a !== null ? a + '%' : 'N/A'}${isJoker ? ' · Joker ⭐' : isMoC ? ' · Meal of Choice 🍽️' : ''}`;
+      const tipText = status === 'freeze' ? `${d.date}: Freeze` : status === 'sick' ? `${d.date}: Sick` : `${d.date}: ${a !== null ? a + '%' : 'N/A'}${isJoker ? ' · Weekly Treat ⭐' : isMoC ? ' · Meal of Choice 🍽️' : ''}`;
       cell.setAttribute('data-tip', tipText);
       if (status === 'freeze') {
         cell.innerHTML = `<span style="display:inline-flex;background:rgba(96,165,250,.45);border-radius:3px;padding:2px 3px;line-height:1"><i class="fas fa-snowflake" style="font-size:.5rem;color:#fff"></i></span>`;
@@ -4219,8 +4219,8 @@ async function loadStats() {
   hmLegend.className = 'chart-legend';
   hmLegend.style.marginTop = '10px';
   const jokerHmItem = hasJoker ? (statsPeriod === 'week'
-    ? `<span><span style="display:inline-block;width:14px;height:3px;border-radius:99px;background:var(--gold);vertical-align:middle"></span> Joker</span>`
-    : `<span><i class="fas fa-star" style="color:var(--gold);font-size:.55rem"></i> Joker</span>`) : '';
+    ? `<span><span style="display:inline-block;width:14px;height:3px;border-radius:99px;background:var(--gold);vertical-align:middle"></span> Weekly Treat</span>`
+    : `<span><i class="fas fa-star" style="color:var(--gold);font-size:.55rem"></i> Weekly Treat</span>`) : '';
   const mocHmItem = hasMoC ? (statsPeriod === 'week'
     ? `<span><span style="display:inline-block;width:14px;height:3px;border-radius:99px;background:var(--moc);vertical-align:middle"></span> Meal of Choice</span>`
     : `<span><i class="fas fa-utensils" style="color:var(--moc);font-size:.55rem"></i> Meal of Choice</span>`) : '';
