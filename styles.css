@@ -1883,7 +1883,7 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
 :root { --moc: #a78bfa; --moc-soft: rgba(167,139,250,.14); --moc-glow: 0 0 20px rgba(167,139,250,.22); }
 
 .bg-purple { background: rgba(167,139,250,.14); color: var(--moc); }
-.bg-red    { background: rgba(239,68,68,.14);   color: #ef4444; }
+.bg-oopsie { background: rgba(236,72,153,.14);   color: #ec4899; }
 
 .moc-card {
   border-color: rgba(167,139,250,.25);
@@ -1959,33 +1959,33 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
 
 /* ── Unplanned Meal card (dashboard) ── */
 .unplanned-card {
-  border-color: rgba(239,68,68,.25);
-  background: linear-gradient(160deg, rgba(239,68,68,.06) 0%, var(--surface) 60%);
+  border-color: rgba(236,72,153,.25);
+  background: linear-gradient(160deg, rgba(236,72,153,.06) 0%, var(--surface) 60%);
   margin-top: 4px;
 }
 .unplanned-title {
-  background: linear-gradient(90deg, rgba(239,68,68,.10) 0%, transparent 70%) !important;
-  border-bottom: 1px solid rgba(239,68,68,.18);
+  background: linear-gradient(90deg, rgba(236,72,153,.10) 0%, transparent 70%) !important;
+  border-bottom: 1px solid rgba(236,72,153,.18);
   gap: 8px;
 }
 .unplanned-icon { font-size: .95rem; flex-shrink: 0; }
-.unplanned-name { color: #ef4444 !important; }
+.unplanned-name { color: #ec4899 !important; }
 .unplanned-badge {
   margin-left: auto;
   font-size: .55rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: .1em;
-  color: #ef4444;
-  background: rgba(239,68,68,.13);
-  border: 1px solid rgba(239,68,68,.28);
+  color: #ec4899;
+  background: rgba(236,72,153,.13);
+  border: 1px solid rgba(236,72,153,.28);
   border-radius: 999px;
   padding: 2px 7px;
 }
 .unplanned-remove-btn {
-  background: rgba(239,68,68,.08);
-  color: #ef4444;
-  border: 1px solid rgba(239,68,68,.2);
+  background: rgba(236,72,153,.08);
+  color: #ec4899;
+  border: 1px solid rgba(236,72,153,.2);
   border-radius: 7px;
   width: 30px; height: 30px;
   display: flex; align-items: center; justify-content: center;
@@ -1995,17 +1995,17 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   transition: background .15s;
   margin-left: auto;
 }
-.unplanned-remove-btn:hover { background: rgba(239,68,68,.2); }
+.unplanned-remove-btn:hover { background: rgba(236,72,153,.2); }
 
 /* ── Unplanned timeline chip ── */
 .tl-chip.tl-chip-unplanned {
-  border-color: rgba(239,68,68,.55);
-  background: linear-gradient(135deg, rgba(239,68,68,.18) 0%, var(--card) 60%);
+  border-color: rgba(236,72,153,.55);
+  background: linear-gradient(135deg, rgba(236,72,153,.18) 0%, var(--card) 60%);
 }
 .tl-unplanned-tag {
-  background: rgba(239,68,68,.13);
-  color: #ef4444;
-  border: 1px solid rgba(239,68,68,.28);
+  background: rgba(236,72,153,.13);
+  color: #ec4899;
+  border: 1px solid rgba(236,72,153,.28);
 }
 
 /* ════════════════════════════════════════════════════════

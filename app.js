@@ -3176,9 +3176,9 @@ function openUnplannedMealModal() {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay open';
   overlay.innerHTML = `
-    <div class="modal dur-slider-modal" style="--dur-accent:#ef4444;--dur-shadow:rgba(239,68,68,.4);--dur-soft:rgba(239,68,68,.12)">
+    <div class="modal dur-slider-modal" style="--dur-accent:#ec4899;--dur-shadow:rgba(236,72,153,.4);--dur-soft:rgba(236,72,153,.12)">
       <div class="slider-modal-header">
-        <div class="slider-modal-icon-wrap" style="background:rgba(239,68,68,.15);color:#ef4444"><i class="fas fa-cookie-bite"></i></div>
+        <div class="slider-modal-icon-wrap" style="background:rgba(236,72,153,.15);color:#ec4899"><i class="fas fa-cookie-bite"></i></div>
         <div class="slider-modal-label">Oopsie</div>
       </div>
       <input class="text-input" placeholder="Name (e.g. Slice of Cake)" autocomplete="off" style="margin-bottom:16px">
@@ -3192,7 +3192,7 @@ function openUnplannedMealModal() {
       <div class="dur-slider-ticks">
         <span>50</span><span>550</span><span>1000</span><span>1500</span><span>2000</span>
       </div>
-      <button class="dur-slider-confirm" style="background:#ef4444">Add</button>
+      <button class="dur-slider-confirm" style="background:#ec4899">Add</button>
     </div>`;
   document.body.appendChild(overlay);
   const sliderEl  = overlay.querySelector('.custom-slider');
@@ -3202,7 +3202,7 @@ function openUnplannedMealModal() {
   setTimeout(() => nameInput.focus(), 150);
   overlay.querySelector('.dur-slider-confirm').addEventListener('click', () => {
     const name = nameInput.value.trim();
-    if (!name) { nameInput.focus(); nameInput.style.outline = '2px solid #ef4444'; return; }
+    if (!name) { nameInput.focus(); nameInput.style.outline = '2px solid #ec4899'; return; }
     const kcal = parseInt(sliderEl.dataset.current, 10);
     overlay.remove();
     saveUnplannedMeal(name, kcal);
