@@ -605,8 +605,7 @@
 <div class="modal-overlay" id="actionChooserOverlay" onclick="if(event.target===this) closeActionChooser()">
   <div class="modal sheet-sm">
     <div class="modal-handle"></div>
-    <div class="modal-header">
-      <div class="modal-title">Add</div>
+    <div class="modal-header" style="justify-content:flex-end">
       <button class="modal-close" onclick="closeActionChooser()"><i class="fas fa-times"></i></button>
     </div>
     <div class="modal-body">
@@ -634,19 +633,19 @@
         </div>
         <i class="fas fa-chevron-right"></i>
       </button>
-      <button class="action-tile" onclick="closeActionChooser(); takeFullScreenshot()">
-        <div class="action-tile-icon bg-blue"><i class="fas fa-camera"></i></div>
-        <div class="action-tile-text">
-          <div class="action-tile-label">Screenshot</div>
-          <div class="action-tile-sub">Full-page PNG</div>
-        </div>
-        <i class="fas fa-chevron-right"></i>
-      </button>
       <button class="action-tile" onclick="closeActionChooser(); openUnplannedMealModal()">
         <div class="action-tile-icon bg-oopsie"><i class="fas fa-cookie-bite"></i></div>
         <div class="action-tile-text">
           <div class="action-tile-label">Oopsie</div>
           <div class="action-tile-sub">Happens to the best of us.</div>
+        </div>
+        <i class="fas fa-chevron-right"></i>
+      </button>
+      <button class="action-tile" onclick="closeActionChooser(); takeFullScreenshot()">
+        <div class="action-tile-icon bg-blue"><i class="fas fa-camera"></i></div>
+        <div class="action-tile-text">
+          <div class="action-tile-label">Screenshot</div>
+          <div class="action-tile-sub">Full-page PNG</div>
         </div>
         <i class="fas fa-chevron-right"></i>
       </button>
