@@ -605,9 +605,6 @@
 <div class="modal-overlay" id="actionChooserOverlay" onclick="if(event.target===this) closeActionChooser()">
   <div class="modal sheet-sm">
     <div class="modal-handle"></div>
-    <div class="modal-header" style="justify-content:flex-end">
-      <button class="modal-close" onclick="closeActionChooser()"><i class="fas fa-times"></i></button>
-    </div>
     <div class="modal-body">
       <button class="action-tile" onclick="closeActionChooser(); openCreator()">
         <div class="action-tile-icon bg-orange"><i class="fas fa-book-open"></i></div>
@@ -657,6 +654,9 @@
         </div>
         <i class="fas fa-chevron-right"></i>
       </button>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeActionChooser()">Close</button>
     </div>
   </div>
 </div>
