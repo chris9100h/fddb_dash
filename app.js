@@ -4822,14 +4822,23 @@ async function takeFullScreenshot() {
       foreignObjectRendering: false,
     });
 
-    canvas.toBlob(blob => {
+    canvas.toBlob(async blob => {
       if (!blob) { showToast('Screenshot failed', 'error'); return; }
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = filename;
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-      showToast('Screenshot saved: ' + filename, 'success');
+      const file = new File([blob], filename, { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title: filename });
+        } catch (err) {
+          if (err.name !== 'AbortError') showToast('Fehler beim Teilen: ' + (err.message || err), 'error');
+        }
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = filename;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        showToast('Screenshot saved: ' + filename, 'success');
+      }
     }, 'image/png');
   } catch (err) {
     console.error('Screenshot failed:', err);
