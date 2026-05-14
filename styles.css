@@ -2356,6 +2356,7 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 10px;
