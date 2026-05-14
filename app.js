@@ -1360,7 +1360,7 @@ function renderTimelineDashboard(entries) {
   // Convenience arrays for each chip type (session objects include slot and duration)
   const trainingSessions = allBlocks.filter(b => b.type === 'training').map(b => {
     const v = itemTimeMap[b.sentinelKey];
-    return { block: b, slot: itemTimeMap[b.tlKey] ?? null, duration: (v && v > 1) ? v : settings.trainingDuration };
+    return { block: b, slot: itemTimeMap[b.tlKey] ?? null, duration: (v && v > 1) ? v : settings.trainingDuration, exactMin: b.exactMinKey ? (itemTimeMap[b.exactMinKey] ?? 0) : 0 };
   });
   const cardioSessions = allBlocks.filter(b => b.type === 'cardio').map(b => ({
     block: b, slot: itemTimeMap[b.tlKey] ?? null, duration: itemTimeMap[b.sentinelKey] ?? 60,
@@ -1632,7 +1632,7 @@ function renderTimelineDashboard(entries) {
     const summary = document.createElement('div');
     summary.className = 'tl-training-summary';
     summary.innerHTML =
-      `<span class="tl-training-summary-label"><i class="fas fa-dumbbell" style="margin-right:5px"></i>Ends ${formatSlot(sess.slot + sess.duration)}</span>` +
+      `<span class="tl-training-summary-label"><i class="fas fa-dumbbell" style="margin-right:5px"></i>Ends ${formatSlot(sess.slot + sess.exactMin + sess.duration)}</span>` +
       `<span class="tl-training-summary-vals">` +
         `<span>${Math.round(wm?.kcal ?? 0)}<small>kcal</small></span>` +
         `<span>${Math.round(wm?.p ?? 0)}<small>P</small></span>` +
