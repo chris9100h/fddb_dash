@@ -1238,8 +1238,13 @@ function buildTlRenderBlocks(meal, items) {
     }
   });
 
-  remaining.filter(r => !r.used).forEach(r => {
-    renderBlocks.push({ type: 'item', entry: r.item, firstIdx: r.idx, meal, tlKey: `${meal}::${r.item.item_name}` });
+  const remainingUnused = remaining.filter(r => !r.used);
+  const nameCount = {};
+  remainingUnused.forEach(r => { nameCount[r.item.item_name] = (nameCount[r.item.item_name] || 0) + 1; });
+  remainingUnused.forEach(r => {
+    const baseKey = `${meal}::${r.item.item_name}`;
+    const tlKey = nameCount[r.item.item_name] > 1 ? `${baseKey}::${r.item.id}` : baseKey;
+    renderBlocks.push({ type: 'item', entry: r.item, firstIdx: r.idx, meal, tlKey });
   });
 
   renderBlocks.sort((a, b) => a.firstIdx - b.firstIdx);
