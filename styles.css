@@ -2338,6 +2338,7 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
 
 .tl-slot {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 5px;
