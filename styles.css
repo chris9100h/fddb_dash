@@ -2803,6 +2803,15 @@ body.is-dragging .weekly-treat-card:not(.dnd-treat-pill) { display: none; }
 }
 .insulin-dose-confirm:hover { background: #d97706; }
 
+.training-time-modal {
+  max-width: 300px; padding: 28px 24px 24px;
+  --dur-accent: #b91c1c; --dur-shadow: rgba(185,28,28,.4); --dur-soft: rgba(185,28,28,.12);
+}
+.training-time-modal .insulin-dose-value { color: #b91c1c; }
+.training-time-modal .insulin-dose-ticks { color: #b91c1c; }
+.training-time-modal .insulin-dose-confirm { background: #b91c1c; color: #fff; }
+.training-time-modal .insulin-dose-confirm:hover { background: #991b1b; }
+
 .dur-slider-modal { max-width: 300px; padding: 28px 24px 24px; }
 .slider-modal-header {
   display: flex; flex-direction: column; align-items: center; gap: 10px;

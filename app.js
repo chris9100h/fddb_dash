@@ -725,7 +725,7 @@ function initCustomSlider(container, onChange) {
   container.addEventListener('pointercancel', () => { active = false; });
 }
 
-function openDurationModal(sessionKey, icon, title, accentColor, accentShadow, accentSoft, defaultVal = 60, maxVal = 120) {
+function openDurationModal(sessionKey, icon, title, accentColor, accentShadow, accentSoft, defaultVal = 60, maxVal = 120, onConfirm = null) {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay open';
   overlay.innerHTML = `
@@ -753,13 +753,13 @@ function openDurationModal(sessionKey, icon, title, accentColor, accentShadow, a
   overlay.querySelector('.dur-slider-confirm').addEventListener('click', () => {
     saveItemTime(sessionKey, parseInt(sliderEl.dataset.current, 10));
     overlay.remove();
-    renderDashboard(currentDayEntries);
+    if (onConfirm) onConfirm(); else renderDashboard(currentDayEntries);
   });
   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 }
 
 function openCardioDurationModal(sessionKey)   { openDurationModal(sessionKey, 'person-running', 'Cardio',   '#0891b2', 'rgba(8,145,178,.4)',  'rgba(8,145,178,.12)',  30, 120); }
-function openTrainingDurationModal(sessionKey) { openDurationModal(sessionKey, 'dumbbell',       'Training', '#b91c1c', 'rgba(185,28,28,.4)', 'rgba(185,28,28,.12)', 60, 180); }
+function openTrainingDurationModal(sessionKey, currentDur = 60, onConfirm = null) { openDurationModal(sessionKey, 'dumbbell', 'Training', '#b91c1c', 'rgba(185,28,28,.4)', 'rgba(185,28,28,.12)', currentDur, 180, onConfirm); }
 
 function openMocKcalModal(freeKcal, onConfirm) {
   const maxVal     = Math.max(500, Math.ceil((freeKcal + 100) / 50) * 50);
@@ -874,7 +874,7 @@ function openTrainingTimeModal(slotMinutes, currentExactMin, exactMinKey, onConf
   overlay.className = 'modal-overlay open';
   const defaultVal = Math.min(Math.max(Math.round(currentExactMin), 0), 29);
   overlay.innerHTML = `
-    <div class="modal insulin-dose-modal">
+    <div class="modal training-time-modal">
       <div class="slider-modal-header">
         <div class="slider-modal-icon-wrap"><i class="fas fa-dumbbell"></i></div>
         <div class="slider-modal-label">Training Start</div>
@@ -1920,6 +1920,7 @@ function makeTlChip(block) {
     chip.dataset.dragKind = 'item';
     chip.dataset.meal = 'training';
     chip.dataset.exactMinKey = block.exactMinKey || '';
+    chip.dataset.sentinelKey = block.sentinelKey || '';
     chip.innerHTML = placed
       ? `<span class="tl-training-summary-label">
            <i class="fas fa-dumbbell" style="margin-right:5px"></i>Training &middot; ${timeStr}
@@ -5375,10 +5376,12 @@ initTweaks();
       }
       if (fromMeal === 'training' && hour !== null) {
         const exactMinKey = src.dataset.exactMinKey;
+        const sentinelKey = src.dataset.sentinelKey;
         if (exactMinKey) {
           renderTimelineDashboard(currentDayEntries);
           openTrainingTimeModal(hour, itemTimeMap[exactMinKey] ?? 0, exactMinKey, () => {
-            renderTimelineDashboard(currentDayEntries);
+            const curDur = sentinelKey ? (itemTimeMap[sentinelKey] ?? 60) : 60;
+            openTrainingDurationModal(sentinelKey || '__show_training', curDur, () => renderTimelineDashboard(currentDayEntries));
           });
           return;
         }
