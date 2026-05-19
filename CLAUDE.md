@@ -45,21 +45,57 @@ const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);       // main food
 const dbWater = supabase.createClient(WATER_URL, WATER_KEY);         // separate water-tracking DB
 ```
 
-Main DB tables used at runtime:
+Main DB tables and their columns:
 
-| Table | Purpose |
-|-------|---------|
-| `fddb_daily_macros` | Raw food entries per date/meal |
-| `fddb_checklist_status` | item_key → checked state per date |
-| `fddb_coach_targets` | Training/rest macro targets (versioned by `valid_from`) |
-| `fddb_day_type` | `training` or `rest` per date |
-| `fddb_item_times` | Minute-of-day assignments for timeline drag positions |
-| `fddb_finalized_days` | Adherence scores, streaks, freeze/sick/vacation status |
-| `fddb_settings` | User settings (keyed by snake_case string, JSON values) |
-| `fddb_config` | `gh_token` and `gh_repo` used to trigger the scraper workflow |
-| `fddb_recipes` | Recipe definitions (ingredients, categories, servings) |
+**`fddb_daily_macros`** — one row per food item per day
+`id`, `date`, `meal` (slot key), `item_name`, `kcal`, `protein`, `carbs`, `fat`, `serving_index` (0-based for multi-serving recipes), `sort_order` (int, drag-reorder position), `fddb_group_id` (UUID grouping servings of the same recipe on a day)
 
-Water DB tables: `water_logs`, `water_settings`.
+**`fddb_checklist_status`** — checkbox state
+`date`, `item_key` (composite key format `meal::item_name` or `meal::recipe_name::serving_index`), `checked` (bool) — unique on `(date, item_key)`
+
+**`fddb_item_times`** — timeline drag positions
+`date`, `item_key`, `minutes` (int, minutes since midnight; 0–1439 for real times, sentinels above 1439) — unique on `(date, item_key)`
+
+**`fddb_day_type`** — training vs rest classification
+`date` (PK), `type` (`'training'` | `'rest'`)
+
+**`fddb_day_finalized`** — adherence history and streak data
+`date` (PK), `adherence` (float 0–100; 0 for non-counted statuses), `counted` (bool), `goal_used` (float), `status` (`'counted'` | `'freeze'` | `'sick'` | `'vacation'`), `kcal`, `protein`, `carbs`, `fat`
+
+**`fddb_coach_targets`** — macro goals, versioned
+`id`, `type` (`'training'` | `'rest'`), `valid_from` (date), `kcal`, `protein`, `carbs`, `fat` — the most recent row with `valid_from ≤ today` wins
+
+**`fddb_settings`** — per-user app settings
+`key` (snake_case string, PK), `value` (JSON-encoded) — see `SETTING_DB_KEYS` in `app.js:170` for all keys
+
+**`fddb_config`** — scraper credentials
+`key`, `value` — stores `gh_token` and `gh_repo` for triggering the GitHub Actions scraper
+
+**`fddb_recipes`** — recipe definitions
+`id`, `name`, `servings` (int), `is_template` (bool), `template_id` (FK → `fddb_recipes.id`, null if standalone)
+
+**`fddb_recipe_items`** — ingredient list per recipe
+`recipe_id` (FK), `item_name` (string matching names in `fddb_daily_macros`)
+
+**`fddb_recipe_categories`** — category tags per recipe
+`recipe_id` (FK), `category_id` (FK → `fddb_categories.id`)
+
+**`fddb_categories`** — user-defined recipe categories
+`id`, `name`
+
+**`fddb_units`** — units recognised by the strip-amount regex
+`unit` (string, e.g. `'g'`, `'ml'`, `'stk'`)
+
+Water DB (separate Supabase project):
+
+**`water_logs`** — daily water intake entries
+`date`, `amount` (ml)
+
+**`water_settings`** — water goal config
+`id` (always 1), `goal` (ml)
+
+**`weight_entries`** — body weight log (read-only in stats)
+`date`, `weight` (float)
 
 ### Sync / scraper
 
