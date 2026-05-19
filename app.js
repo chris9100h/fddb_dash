@@ -725,7 +725,7 @@ function initCustomSlider(container, onChange) {
   container.addEventListener('pointercancel', () => { active = false; });
 }
 
-function openDurationModal(sessionKey, icon, title, accentColor, accentShadow, accentSoft, defaultVal = 60, maxVal = 120) {
+function openDurationModal(sessionKey, icon, title, accentColor, accentShadow, accentSoft, defaultVal = 60, maxVal = 120, onConfirm = null) {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay open';
   overlay.innerHTML = `
@@ -753,13 +753,13 @@ function openDurationModal(sessionKey, icon, title, accentColor, accentShadow, a
   overlay.querySelector('.dur-slider-confirm').addEventListener('click', () => {
     saveItemTime(sessionKey, parseInt(sliderEl.dataset.current, 10));
     overlay.remove();
-    renderDashboard(currentDayEntries);
+    if (onConfirm) onConfirm(); else renderDashboard(currentDayEntries);
   });
   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 }
 
 function openCardioDurationModal(sessionKey)   { openDurationModal(sessionKey, 'person-running', 'Cardio',   '#0891b2', 'rgba(8,145,178,.4)',  'rgba(8,145,178,.12)',  30, 120); }
-function openTrainingDurationModal(sessionKey) { openDurationModal(sessionKey, 'dumbbell',       'Training', '#b91c1c', 'rgba(185,28,28,.4)', 'rgba(185,28,28,.12)', 60, 180); }
+function openTrainingDurationModal(sessionKey, currentDur = 60, onConfirm = null) { openDurationModal(sessionKey, 'dumbbell', 'Training', '#b91c1c', 'rgba(185,28,28,.4)', 'rgba(185,28,28,.12)', currentDur, 180, onConfirm); }
 
 function openMocKcalModal(freeKcal, onConfirm) {
   const maxVal     = Math.max(500, Math.ceil((freeKcal + 100) / 50) * 50);
@@ -840,6 +840,44 @@ function openInsulinTimeModal(slotMinutes, currentExactMin, exactMinKey, onConfi
       <div class="slider-modal-header">
         <div class="slider-modal-icon-wrap"><i class="fas fa-clock"></i></div>
         <div class="slider-modal-label">Injection Time</div>
+      </div>
+      <div class="insulin-dose-display"><span class="insulin-dose-value">${formatSlot(slotMinutes + defaultVal)}</span></div>
+      <div class="custom-slider" data-min="0" data-max="29" data-value="${defaultVal}" data-step="1">
+        <div class="custom-slider-track">
+          <div class="custom-slider-fill"></div>
+          <div class="custom-slider-thumb"></div>
+        </div>
+      </div>
+      <div class="insulin-dose-ticks">
+        <span>${formatSlot(slotMinutes)}</span>
+        <span>${formatSlot(slotMinutes + 10)}</span>
+        <span>${formatSlot(slotMinutes + 20)}</span>
+        <span>${formatSlot(slotMinutes + 29)}</span>
+      </div>
+      <button class="insulin-dose-confirm">Confirm</button>
+    </div>`;
+  document.body.appendChild(overlay);
+  const sliderEl = overlay.querySelector('.custom-slider');
+  const valueEl  = overlay.querySelector('.insulin-dose-value');
+  initCustomSlider(sliderEl, (v) => { valueEl.textContent = formatSlot(slotMinutes + v); });
+  overlay.querySelector('.insulin-dose-confirm').addEventListener('click', () => {
+    const exactMin = parseInt(sliderEl.dataset.current, 10);
+    saveItemTime(exactMinKey, exactMin);
+    overlay.remove();
+    onConfirm();
+  });
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+}
+
+function openTrainingTimeModal(slotMinutes, currentExactMin, exactMinKey, onConfirm) {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay open';
+  const defaultVal = Math.min(Math.max(Math.round(currentExactMin), 0), 29);
+  overlay.innerHTML = `
+    <div class="modal training-time-modal">
+      <div class="slider-modal-header">
+        <div class="slider-modal-icon-wrap"><i class="fas fa-dumbbell"></i></div>
+        <div class="slider-modal-label">Training Start</div>
       </div>
       <div class="insulin-dose-display"><span class="insulin-dose-value">${formatSlot(slotMinutes + defaultVal)}</span></div>
       <div class="custom-slider" data-min="0" data-max="29" data-value="${defaultVal}" data-step="1">
@@ -1238,8 +1276,13 @@ function buildTlRenderBlocks(meal, items) {
     }
   });
 
-  remaining.filter(r => !r.used).forEach(r => {
-    renderBlocks.push({ type: 'item', entry: r.item, firstIdx: r.idx, meal, tlKey: `${meal}::${r.item.item_name}` });
+  const remainingUnused = remaining.filter(r => !r.used);
+  const nameCount = {};
+  remainingUnused.forEach(r => { nameCount[r.item.item_name] = (nameCount[r.item.item_name] || 0) + 1; });
+  remainingUnused.forEach(r => {
+    const baseKey = `${meal}::${r.item.item_name}`;
+    const tlKey = nameCount[r.item.item_name] > 1 ? `${baseKey}::${r.item.id}` : baseKey;
+    renderBlocks.push({ type: 'item', entry: r.item, firstIdx: r.idx, meal, tlKey });
   });
 
   renderBlocks.sort((a, b) => a.firstIdx - b.firstIdx);
@@ -1291,10 +1334,10 @@ function renderTimelineDashboard(entries) {
     allBlocks.push({ type: 'insulin', tlKey: 'insulin::novorapid::2', sentinelKey: '__show_insulin::2', iuKey: '__insulin_iu::2', exactMinKey: '__insulin_exact_min::2', sessionIdx: 2, intraSlot: null, meal: null });
   }
   if ('__show_training' in itemTimeMap) {
-    allBlocks.push({ type: 'training', tlKey: 'training::session', sentinelKey: '__show_training', sessionIdx: 1, intraSlot: INTRA_WORKOUT_SLOT, meal: null });
+    allBlocks.push({ type: 'training', tlKey: 'training::session', sentinelKey: '__show_training', exactMinKey: '__training_exact_min', sessionIdx: 1, intraSlot: INTRA_WORKOUT_SLOT, meal: null });
   }
   if ('__show_training::2' in itemTimeMap) {
-    allBlocks.push({ type: 'training', tlKey: 'training::session::2', sentinelKey: '__show_training::2', sessionIdx: 2, intraSlot: INTRA_WORKOUT_SLOT_2, meal: null });
+    allBlocks.push({ type: 'training', tlKey: 'training::session::2', sentinelKey: '__show_training::2', exactMinKey: '__training_exact_min::2', sessionIdx: 2, intraSlot: INTRA_WORKOUT_SLOT_2, meal: null });
   }
   if ('__show_cardio' in itemTimeMap) {
     allBlocks.push({ type: 'cardio', tlKey: 'cardio::session', sentinelKey: '__show_cardio', sessionIdx: 1, intraSlot: INTRA_CARDIO_SLOT, meal: null });
@@ -1317,7 +1360,7 @@ function renderTimelineDashboard(entries) {
   // Convenience arrays for each chip type (session objects include slot and duration)
   const trainingSessions = allBlocks.filter(b => b.type === 'training').map(b => {
     const v = itemTimeMap[b.sentinelKey];
-    return { block: b, slot: itemTimeMap[b.tlKey] ?? null, duration: (v && v > 1) ? v : settings.trainingDuration };
+    return { block: b, slot: itemTimeMap[b.tlKey] ?? null, duration: (v && v > 1) ? v : settings.trainingDuration, exactMin: b.exactMinKey ? (itemTimeMap[b.exactMinKey] ?? 0) : 0 };
   });
   const cardioSessions = allBlocks.filter(b => b.type === 'cardio').map(b => ({
     block: b, slot: itemTimeMap[b.tlKey] ?? null, duration: itemTimeMap[b.sentinelKey] ?? 60,
@@ -1589,7 +1632,7 @@ function renderTimelineDashboard(entries) {
     const summary = document.createElement('div');
     summary.className = 'tl-training-summary';
     summary.innerHTML =
-      `<span class="tl-training-summary-label"><i class="fas fa-dumbbell" style="margin-right:5px"></i>Ends ${formatSlot(sess.slot + sess.duration)}</span>` +
+      `<span class="tl-training-summary-label"><i class="fas fa-dumbbell" style="margin-right:5px"></i>Ends ${formatSlot(sess.slot + sess.exactMin + sess.duration)}</span>` +
       `<span class="tl-training-summary-vals">` +
         `<span>${Math.round(wm?.kcal ?? 0)}<small>kcal</small></span>` +
         `<span>${Math.round(wm?.p ?? 0)}<small>P</small></span>` +
@@ -1867,13 +1910,17 @@ function makeTlChip(block) {
   }
 
   if (block.type === 'training') {
-    const placed = itemTimeMap[block.tlKey] != null;
-    const timeStr = placed ? formatSlot(itemTimeMap[block.tlKey]) : '';
+    const slotTime = itemTimeMap[block.tlKey];
+    const placed = slotTime != null;
+    const exactMin = block.exactMinKey ? (itemTimeMap[block.exactMinKey] ?? 0) : 0;
+    const timeStr = placed ? formatSlot(slotTime + exactMin) : '';
     chip.className = 'tl-chip tl-chip-training' + (placed ? ' tl-chip-training-placed' : '');
     chip.dataset.entryIds = '';
     chip.dataset.checkKeys = block.tlKey;
     chip.dataset.dragKind = 'item';
     chip.dataset.meal = 'training';
+    chip.dataset.exactMinKey = block.exactMinKey || '';
+    chip.dataset.sentinelKey = block.sentinelKey || '';
     chip.innerHTML = placed
       ? `<span class="tl-training-summary-label">
            <i class="fas fa-dumbbell" style="margin-right:5px"></i>Training &middot; ${timeStr}
@@ -4822,14 +4869,23 @@ async function takeFullScreenshot() {
       foreignObjectRendering: false,
     });
 
-    canvas.toBlob(blob => {
+    canvas.toBlob(async blob => {
       if (!blob) { showToast('Screenshot failed', 'error'); return; }
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = filename;
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-      showToast('Screenshot saved: ' + filename, 'success');
+      const file = new File([blob], filename, { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title: filename });
+        } catch (err) {
+          if (err.name !== 'AbortError') showToast('Fehler beim Teilen: ' + (err.message || err), 'error');
+        }
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = filename;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        showToast('Screenshot saved: ' + filename, 'success');
+      }
     }, 'image/png');
   } catch (err) {
     console.error('Screenshot failed:', err);
@@ -5314,6 +5370,18 @@ initTweaks();
           renderTimelineDashboard(currentDayEntries);
           openInsulinTimeModal(hour, itemTimeMap[exactMinKey] ?? 0, exactMinKey, () => {
             renderTimelineDashboard(currentDayEntries);
+          });
+          return;
+        }
+      }
+      if (fromMeal === 'training' && hour !== null) {
+        const exactMinKey = src.dataset.exactMinKey;
+        const sentinelKey = src.dataset.sentinelKey;
+        if (exactMinKey) {
+          renderTimelineDashboard(currentDayEntries);
+          openTrainingTimeModal(hour, itemTimeMap[exactMinKey] ?? 0, exactMinKey, () => {
+            const curDur = sentinelKey ? (itemTimeMap[sentinelKey] ?? 60) : 60;
+            openTrainingDurationModal(sentinelKey || '__show_training', curDur, () => renderTimelineDashboard(currentDayEntries));
           });
           return;
         }
