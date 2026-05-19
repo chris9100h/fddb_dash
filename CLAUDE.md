@@ -6,6 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 FDDB Dash (internal name "FDDB Check") is a PWA for daily calorie and macro tracking. It pulls food diary data from fddb.info via a GitHub Actions scraper and displays it as a checklist with adherence tracking, a timeline view, stats charts, and a recipe library.
 
+## Pflichtregeln
+
+- **DB-Migrationen**: Wenn eine Änderung eine neue Tabelle, Spalte, Index oder sonstiges Schema-Update in Supabase erfordert, muss das explizit kommuniziert werden — inklusive dem genauen SQL, das im Supabase SQL Editor ausgeführt werden muss. Niemals stillschweigend davon ausgehen, dass das Schema bereits passt.
+- **CLAUDE.md aktuell halten**: Wenn eine neue Spalte oder Tabelle hinzukommt, muss der Abschnitt „DB schema" in dieser Datei im selben Commit aktualisiert werden.
+
 ## No build step
 
 This is a vanilla HTML/CSS/JS project with no bundler or framework. There are no `npm install`, `build`, `lint`, or `test` commands. To develop:
