@@ -77,7 +77,7 @@ Main DB tables and their columns:
 `key`, `value` — stores `gh_token` and `gh_repo` for triggering the GitHub Actions scraper
 
 **`fddb_recipes`** — recipe definitions
-`id`, `name`, `servings` (int), `is_template` (bool), `template_id` (FK → `fddb_recipes.id`, null if standalone)
+`id`, `name`, `servings` (int), `is_template` (bool), `template_id` (FK → `fddb_recipes.id`, null if standalone), `expires_at` (timestamptz, null = permanent; set = temporary recipe, purged on next app load after expiry)
 
 **`fddb_recipe_items`** — ingredient list per recipe
 `recipe_id` (FK), `item_name` (string matching names in `fddb_daily_macros`)

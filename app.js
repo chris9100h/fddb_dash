@@ -2096,7 +2096,8 @@ function showView(id) {
 
 /* ── Load recipes ── */
 async function loadRecipes() {
-  const { data: recipes } = await db.from('fddb_recipes').select('id, name, servings, template_id, is_template').order('name');
+  await db.from('fddb_recipes').delete().not('expires_at', 'is', null).lt('expires_at', new Date().toISOString());
+  const { data: recipes } = await db.from('fddb_recipes').select('id, name, servings, template_id, is_template, expires_at').order('name');
   if (!recipes) return;
   const { data: items } = await db.from('fddb_recipe_items').select('recipe_id, item_name');
   const { data: rcats } = await db.from('fddb_recipe_categories').select('recipe_id, category_id');
@@ -2109,6 +2110,7 @@ async function loadRecipes() {
     id: r.id, name: r.name, servings: r.servings || 1,
     isTemplate: !!r.is_template,
     templateId: r.template_id || null,
+    expiresAt: r.expires_at || null,
     items: (items || []).filter(i => i.recipe_id === r.id).map(i => i.item_name),
     catIds: (rcats || []).filter(c => c.recipe_id === r.id).map(c => c.category_id),
   }));
@@ -3360,11 +3362,12 @@ async function saveNewUnit() {
 }
 
 /* ── Recipe Creator ── */
-let creatorStep = 0, creatorMeal = null, creatorSelected = [], creatorIsTemplate = false;
+let creatorStep = 0, creatorMeal = null, creatorSelected = [], creatorIsTemplate = false, creatorIsTemporary = false;
 function openCreator() {
-  creatorStep = 0; creatorMeal = null; creatorSelected = []; creatorIsTemplate = false;
+  creatorStep = 0; creatorMeal = null; creatorSelected = []; creatorIsTemplate = false; creatorIsTemporary = false;
   document.getElementById('recipeNameInput').value = '';
   document.getElementById('creatorIsTemplateCheck')?.classList.remove('active');
+  document.getElementById('creatorIsTempCheck')?.classList.remove('active');
   renderCreatorStep();
   document.getElementById('creatorOverlay').classList.add('open');
 }
@@ -3409,12 +3412,20 @@ function renderCreatorStep() {
 }
 function selectMeal(meal) { creatorMeal = meal; creatorSelected = []; renderCreatorStep(); }
 function creatorBack() { if (creatorStep > 0) { creatorStep--; renderCreatorStep(); } }
+function todayMidnightISO() {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString();
+}
 async function creatorNext() {
   if (creatorStep < 2) { creatorStep++; renderCreatorStep(); return; }
   const name = document.getElementById('recipeNameInput').value.trim();
   document.getElementById('btnNext').disabled = true;
   document.getElementById('btnNext').textContent = '…';
-  const { data: recipe, error: recErr } = await db.from('fddb_recipes').insert({ name, is_template: creatorIsTemplate }).select().single();
+  const insertData = { name, is_template: creatorIsTemplate };
+  if (creatorIsTemporary) insertData.expires_at = todayMidnightISO();
+  const { data: recipe, error: recErr } = await db.from('fddb_recipes').insert(insertData).select().single();
   if (recErr) { showToast('Error: ' + recErr.message, 'error'); document.getElementById('btnNext').disabled = false; document.getElementById('btnNext').textContent = 'Save'; return; }
   const itemRows = creatorSelected.map(item_name => ({ recipe_id: recipe.id, item_name: stripAmount(item_name) }));
   const { error: itemErr } = await db.from('fddb_recipe_items').insert(itemRows);
@@ -3548,6 +3559,7 @@ function renderRecipeManage() {
           <div class="recipe-manage-name">${recipe.name}</div>
           ${showCatTags && catNames.length ? `<div class="recipe-cat-tags">${catNames.map(n=>`<span class="recipe-cat-tag">${n}</span>`).join('')}</div>` : ''}
         </div>
+        ${recipe.expiresAt ? `<span class="temp-recipe-badge"><i class="fas fa-clock"></i> Heute</span>` : ''}
         <div class="recipe-manage-count">${recipe.items.length} · ${recipe.servings}×</div>
         <div class="recipe-manage-actions">
           <button class="btn-icon-sm btn-dupe" onclick="event.stopPropagation(); duplicateRecipe('${recipe.id}')"><i class="fas fa-copy"></i></button>

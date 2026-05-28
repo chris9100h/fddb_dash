@@ -854,6 +854,10 @@ body.is-dragging .meal-card-empty { display: block; }
   font-size: .65rem; background: var(--accent-soft); color: var(--accent);
   border-radius: 5px; padding: 2px 7px; font-weight: 500;
 }
+.temp-recipe-badge {
+  font-size: .65rem; background: rgba(251,191,36,.15); color: #fbbf24;
+  border-radius: 5px; padding: 2px 7px; font-weight: 500; white-space: nowrap; flex-shrink: 0;
+}
 .empty-recipes { text-align: center; padding: 50px 20px; color: var(--muted); }
 .empty-recipes i { font-size: 2.5rem; color: rgba(255,255,255,.08); display: block; margin-bottom: 14px; }
 .recipe-section-header {
