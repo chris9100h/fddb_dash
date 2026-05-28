@@ -3669,7 +3669,7 @@ function stripAmount(name) { return name.replace(stripRegex, '').trim(); }
 function extractAmount(name) { const m = name.match(/^[\d.,]+/); return m ? parseFloat(m[0].replace(',', '.')) : 0; }
 
 /* ── Edit Modal ── */
-let editTargetId = null, editName = '', editItems = [], editServings = 1, editCatIds = [], editAddTab = 'day', editTemplateId = null, editIsTemplate = false;
+let editTargetId = null, editName = '', editItems = [], editServings = 1, editCatIds = [], editAddTab = 'day', editTemplateId = null, editIsTemplate = false, editExpiresAt = null;
 function openEditModal(id) {
   const recipe = allRecipes.find(r => r.id === id);
   if (!recipe) return;
@@ -3677,6 +3677,7 @@ function openEditModal(id) {
   editServings = recipe.servings || 1; editCatIds = [...(recipe.catIds || [])]; editAddTab = 'day';
   editTemplateId = recipe.templateId || null;
   editIsTemplate = recipe.isTemplate || false;
+  editExpiresAt = recipe.expiresAt || null;
   document.getElementById('editOverlay').classList.add('open');
   renderEditModal();
 }
@@ -3711,6 +3712,11 @@ function renderEditModal() {
           ? `<span style="font-size:.8rem;color:var(--muted)">No categories yet.</span>`
           : allCategories.map(c => `<div class="cat-chip${editCatIds.includes(c.id)?' active':''}" onclick="toggleEditCat('${c.id}')">${c.name}</div>`).join('')}
       </div>
+    </div>
+    <div class="edit-section">
+      <div class="edit-section-title"><i class="fas fa-clock"></i> Temporary</div>
+      <div class="cat-chip${editExpiresAt ? ' active' : ''}" style="display:inline-flex;align-items:center;gap:6px;margin-bottom:4px" onclick="editExpiresAt=editExpiresAt?null:todayMidnightISO();renderEditModal()"><i class="fas fa-clock"></i>Expires tonight</div>
+      ${editExpiresAt ? `<div style="font-size:.76rem;color:#fbbf24;margin-top:4px"><i class="fas fa-exclamation-triangle" style="font-size:.65rem"></i> Wird heute um Mitternacht gelöscht</div>` : `<div style="font-size:.76rem;color:var(--muted);margin-top:4px">Toggle aktivieren, um dieses Rezept heute Nacht automatisch zu löschen.</div>`}
     </div>
     <div class="edit-section">
       <div class="edit-section-title"><i class="fas fa-layer-group"></i> Template</div>
@@ -3807,7 +3813,7 @@ async function saveEdit() {
   if (!name) { showToast('Please enter a name', 'error'); return; }
   if (!editTargetId) return;
   document.getElementById('editSaveBtn').disabled = true;
-  const { error: nameErr } = await db.from('fddb_recipes').update({ name, servings: editServings, is_template: editIsTemplate, template_id: editIsTemplate ? null : (editTemplateId || null) }).eq('id', editTargetId);
+  const { error: nameErr } = await db.from('fddb_recipes').update({ name, servings: editServings, is_template: editIsTemplate, template_id: editIsTemplate ? null : (editTemplateId || null), expires_at: editExpiresAt }).eq('id', editTargetId);
   if (nameErr) { showToast('Error: ' + nameErr.message, 'error'); document.getElementById('editSaveBtn').disabled = false; return; }
   await db.from('fddb_recipe_items').delete().eq('recipe_id', editTargetId);
   if (editItems.length > 0) {
