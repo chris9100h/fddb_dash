@@ -3716,7 +3716,7 @@ function renderEditModal() {
     <div class="edit-section">
       <div class="edit-section-title"><i class="fas fa-clock"></i> Temporary</div>
       <div class="cat-chip${editExpiresAt ? ' active' : ''}" style="display:inline-flex;align-items:center;gap:6px;margin-bottom:4px" onclick="editExpiresAt=editExpiresAt?null:todayMidnightISO();renderEditModal()"><i class="fas fa-clock"></i>Expires tonight</div>
-      ${editExpiresAt ? `<div style="font-size:.76rem;color:#fbbf24;margin-top:4px"><i class="fas fa-exclamation-triangle" style="font-size:.65rem"></i> Wird heute um Mitternacht gelöscht</div>` : `<div style="font-size:.76rem;color:var(--muted);margin-top:4px">Toggle aktivieren, um dieses Rezept heute Nacht automatisch zu löschen.</div>`}
+      ${editExpiresAt ? `<div style="font-size:.76rem;color:#fbbf24;margin-top:4px"><i class="fas fa-exclamation-triangle" style="font-size:.65rem"></i> Will be deleted at midnight tonight</div>` : `<div style="font-size:.76rem;color:var(--muted);margin-top:4px">Enable to automatically delete this recipe at midnight.</div>`}
     </div>
     <div class="edit-section">
       <div class="edit-section-title"><i class="fas fa-layer-group"></i> Template</div>
