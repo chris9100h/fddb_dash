@@ -10,6 +10,7 @@ FDDB Dash (internal name "FDDB Check") is a PWA for daily calorie and macro trac
 
 - **DB-Migrationen**: Wenn eine Änderung eine neue Tabelle, Spalte, Index oder sonstiges Schema-Update in Supabase erfordert, muss das explizit kommuniziert werden — inklusive dem genauen SQL, das im Supabase SQL Editor ausgeführt werden muss. Niemals stillschweigend davon ausgehen, dass das Schema bereits passt.
 - **CLAUDE.md aktuell halten**: Wenn eine neue Spalte oder Tabelle hinzukommt, muss der Abschnitt „DB schema" in dieser Datei im selben Commit aktualisiert werden.
+- **UI-Sprache ist Englisch**: Alle sichtbaren Strings in `index.html` und `app.js` (Labels, Buttons, Toasts, Placeholder, Fehlermeldungen) müssen auf Englisch sein. Kein Deutsch im UI.
 
 ## No build step
 
