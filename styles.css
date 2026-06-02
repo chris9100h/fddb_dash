@@ -1769,6 +1769,36 @@ body.dnd-active {
 .tl-ctx-action-danger { background: rgba(231,76,60,.08) !important; border-color: rgba(231,76,60,.2) !important; color: #e05e4e !important; }
 .tl-ctx-action-danger:active { background: rgba(231,76,60,.18) !important; }
 
+/* Weekly Treat macro-select inside context sheet */
+.treat-macro-select {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 8px 4px;
+}
+.treat-macro-hint {
+  font-size: .73rem; color: var(--text-dim); padding: 0 4px 6px;
+  line-height: 1.4;
+}
+.treat-macro-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 10px; cursor: pointer;
+  font-size: .88rem; font-weight: 500; color: var(--text);
+  transition: background .12s;
+}
+.treat-macro-row:active { background: var(--surface-2); }
+.treat-macro-row input[type="checkbox"] {
+  width: 16px; height: 16px; accent-color: var(--accent);
+  flex-shrink: 0; cursor: pointer;
+}
+
+/* Partial-ignore badge on weekly treat card */
+.weekly-treat-partial {
+  color: var(--accent) !important;
+  background: rgba(255,107,0,.12) !important;
+  border-color: rgba(255,107,0,.3) !important;
+}
+
 /* BG input row inside sheet */
 .tl-bg-input-row {
   display: flex; align-items: center; gap: 10px;

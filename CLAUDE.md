@@ -53,7 +53,7 @@ const dbWater = supabase.createClient(WATER_URL, WATER_KEY);         // separate
 Main DB tables and their columns:
 
 **`fddb_daily_macros`** — one row per food item per day
-`id`, `date`, `meal` (slot key), `item_name`, `kcal`, `protein`, `carbs`, `fat`, `serving_index` (0-based for multi-serving recipes), `sort_order` (int, drag-reorder position), `fddb_group_id` (UUID grouping servings of the same recipe on a day)
+`id`, `date`, `meal` (slot key), `item_name`, `kcal`, `protein`, `carbs`, `fat`, `serving_index` (0-based for multi-serving recipes), `sort_order` (int, drag-reorder position), `fddb_group_id` (UUID grouping servings of the same recipe on a day), `treat_ignore_macros` (text, nullable — comma-separated macros excluded from daily totals when in `weekly_treat` slot, e.g. `'protein,carbs'`; null = all excluded / legacy behavior)
 
 **`fddb_checklist_status`** — checkbox state
 `date`, `item_key` (composite key format `meal::item_name` or `meal::recipe_name::serving_index`), `checked` (bool) — unique on `(date, item_key)`
