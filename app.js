@@ -2096,7 +2096,8 @@ function showView(id) {
 
 /* ── Load recipes ── */
 async function loadRecipes() {
-  const { data: recipes } = await db.from('fddb_recipes').select('id, name, servings, template_id, is_template').order('name');
+  await db.from('fddb_recipes').delete().not('expires_at', 'is', null).lt('expires_at', new Date().toISOString());
+  const { data: recipes } = await db.from('fddb_recipes').select('id, name, servings, template_id, is_template, expires_at').order('name');
   if (!recipes) return;
   const { data: items } = await db.from('fddb_recipe_items').select('recipe_id, item_name');
   const { data: rcats } = await db.from('fddb_recipe_categories').select('recipe_id, category_id');
@@ -2109,6 +2110,7 @@ async function loadRecipes() {
     id: r.id, name: r.name, servings: r.servings || 1,
     isTemplate: !!r.is_template,
     templateId: r.template_id || null,
+    expiresAt: r.expires_at || null,
     items: (items || []).filter(i => i.recipe_id === r.id).map(i => i.item_name),
     catIds: (rcats || []).filter(c => c.recipe_id === r.id).map(c => c.category_id),
   }));
@@ -3360,11 +3362,12 @@ async function saveNewUnit() {
 }
 
 /* ── Recipe Creator ── */
-let creatorStep = 0, creatorMeal = null, creatorSelected = [], creatorIsTemplate = false;
+let creatorStep = 0, creatorMeal = null, creatorSelected = [], creatorIsTemplate = false, creatorIsTemporary = false;
 function openCreator() {
-  creatorStep = 0; creatorMeal = null; creatorSelected = []; creatorIsTemplate = false;
+  creatorStep = 0; creatorMeal = null; creatorSelected = []; creatorIsTemplate = false; creatorIsTemporary = false;
   document.getElementById('recipeNameInput').value = '';
   document.getElementById('creatorIsTemplateCheck')?.classList.remove('active');
+  document.getElementById('creatorIsTempCheck')?.classList.remove('active');
   renderCreatorStep();
   document.getElementById('creatorOverlay').classList.add('open');
 }
@@ -3409,12 +3412,20 @@ function renderCreatorStep() {
 }
 function selectMeal(meal) { creatorMeal = meal; creatorSelected = []; renderCreatorStep(); }
 function creatorBack() { if (creatorStep > 0) { creatorStep--; renderCreatorStep(); } }
+function todayMidnightISO() {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString();
+}
 async function creatorNext() {
   if (creatorStep < 2) { creatorStep++; renderCreatorStep(); return; }
   const name = document.getElementById('recipeNameInput').value.trim();
   document.getElementById('btnNext').disabled = true;
   document.getElementById('btnNext').textContent = '…';
-  const { data: recipe, error: recErr } = await db.from('fddb_recipes').insert({ name, is_template: creatorIsTemplate }).select().single();
+  const insertData = { name, is_template: creatorIsTemplate };
+  if (creatorIsTemporary) insertData.expires_at = todayMidnightISO();
+  const { data: recipe, error: recErr } = await db.from('fddb_recipes').insert(insertData).select().single();
   if (recErr) { showToast('Error: ' + recErr.message, 'error'); document.getElementById('btnNext').disabled = false; document.getElementById('btnNext').textContent = 'Save'; return; }
   const itemRows = creatorSelected.map(item_name => ({ recipe_id: recipe.id, item_name: stripAmount(item_name) }));
   const { error: itemErr } = await db.from('fddb_recipe_items').insert(itemRows);
@@ -3548,6 +3559,7 @@ function renderRecipeManage() {
           <div class="recipe-manage-name">${recipe.name}</div>
           ${showCatTags && catNames.length ? `<div class="recipe-cat-tags">${catNames.map(n=>`<span class="recipe-cat-tag">${n}</span>`).join('')}</div>` : ''}
         </div>
+        ${recipe.expiresAt ? `<span class="temp-recipe-badge"><i class="fas fa-clock"></i> Heute</span>` : ''}
         <div class="recipe-manage-count">${recipe.items.length} · ${recipe.servings}×</div>
         <div class="recipe-manage-actions">
           <button class="btn-icon-sm btn-dupe" onclick="event.stopPropagation(); duplicateRecipe('${recipe.id}')"><i class="fas fa-copy"></i></button>
@@ -3657,7 +3669,7 @@ function stripAmount(name) { return name.replace(stripRegex, '').trim(); }
 function extractAmount(name) { const m = name.match(/^[\d.,]+/); return m ? parseFloat(m[0].replace(',', '.')) : 0; }
 
 /* ── Edit Modal ── */
-let editTargetId = null, editName = '', editItems = [], editServings = 1, editCatIds = [], editAddTab = 'day', editTemplateId = null, editIsTemplate = false;
+let editTargetId = null, editName = '', editItems = [], editServings = 1, editCatIds = [], editAddTab = 'day', editTemplateId = null, editIsTemplate = false, editExpiresAt = null;
 function openEditModal(id) {
   const recipe = allRecipes.find(r => r.id === id);
   if (!recipe) return;
@@ -3665,6 +3677,7 @@ function openEditModal(id) {
   editServings = recipe.servings || 1; editCatIds = [...(recipe.catIds || [])]; editAddTab = 'day';
   editTemplateId = recipe.templateId || null;
   editIsTemplate = recipe.isTemplate || false;
+  editExpiresAt = recipe.expiresAt || null;
   document.getElementById('editOverlay').classList.add('open');
   renderEditModal();
 }
@@ -3699,6 +3712,11 @@ function renderEditModal() {
           ? `<span style="font-size:.8rem;color:var(--muted)">No categories yet.</span>`
           : allCategories.map(c => `<div class="cat-chip${editCatIds.includes(c.id)?' active':''}" onclick="toggleEditCat('${c.id}')">${c.name}</div>`).join('')}
       </div>
+    </div>
+    <div class="edit-section">
+      <div class="edit-section-title"><i class="fas fa-clock"></i> Temporary</div>
+      <div class="cat-chip${editExpiresAt ? ' active' : ''}" style="display:inline-flex;align-items:center;gap:6px;margin-bottom:4px" onclick="editExpiresAt=editExpiresAt?null:todayMidnightISO();renderEditModal()"><i class="fas fa-clock"></i>Expires tonight</div>
+      ${editExpiresAt ? `<div style="font-size:.76rem;color:#fbbf24;margin-top:4px"><i class="fas fa-exclamation-triangle" style="font-size:.65rem"></i> Will be deleted at midnight tonight</div>` : `<div style="font-size:.76rem;color:var(--muted);margin-top:4px">Enable to automatically delete this recipe at midnight.</div>`}
     </div>
     <div class="edit-section">
       <div class="edit-section-title"><i class="fas fa-layer-group"></i> Template</div>
@@ -3795,7 +3813,7 @@ async function saveEdit() {
   if (!name) { showToast('Please enter a name', 'error'); return; }
   if (!editTargetId) return;
   document.getElementById('editSaveBtn').disabled = true;
-  const { error: nameErr } = await db.from('fddb_recipes').update({ name, servings: editServings, is_template: editIsTemplate, template_id: editIsTemplate ? null : (editTemplateId || null) }).eq('id', editTargetId);
+  const { error: nameErr } = await db.from('fddb_recipes').update({ name, servings: editServings, is_template: editIsTemplate, template_id: editIsTemplate ? null : (editTemplateId || null), expires_at: editExpiresAt }).eq('id', editTargetId);
   if (nameErr) { showToast('Error: ' + nameErr.message, 'error'); document.getElementById('editSaveBtn').disabled = false; return; }
   await db.from('fddb_recipe_items').delete().eq('recipe_id', editTargetId);
   if (editItems.length > 0) {

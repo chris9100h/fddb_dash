@@ -10,6 +10,7 @@ FDDB Dash (internal name "FDDB Check") is a PWA for daily calorie and macro trac
 
 - **DB-Migrationen**: Wenn eine Änderung eine neue Tabelle, Spalte, Index oder sonstiges Schema-Update in Supabase erfordert, muss das explizit kommuniziert werden — inklusive dem genauen SQL, das im Supabase SQL Editor ausgeführt werden muss. Niemals stillschweigend davon ausgehen, dass das Schema bereits passt.
 - **CLAUDE.md aktuell halten**: Wenn eine neue Spalte oder Tabelle hinzukommt, muss der Abschnitt „DB schema" in dieser Datei im selben Commit aktualisiert werden.
+- **UI-Sprache ist Englisch**: Alle sichtbaren Strings in `index.html` und `app.js` (Labels, Buttons, Toasts, Placeholder, Fehlermeldungen) müssen auf Englisch sein. Kein Deutsch im UI.
 
 ## No build step
 
@@ -77,7 +78,7 @@ Main DB tables and their columns:
 `key`, `value` — stores `gh_token` and `gh_repo` for triggering the GitHub Actions scraper
 
 **`fddb_recipes`** — recipe definitions
-`id`, `name`, `servings` (int), `is_template` (bool), `template_id` (FK → `fddb_recipes.id`, null if standalone)
+`id`, `name`, `servings` (int), `is_template` (bool), `template_id` (FK → `fddb_recipes.id`, null if standalone), `expires_at` (timestamptz, null = permanent; set = temporary recipe, purged on next app load after expiry)
 
 **`fddb_recipe_items`** — ingredient list per recipe
 `recipe_id` (FK), `item_name` (string matching names in `fddb_daily_macros`)
