@@ -20,15 +20,14 @@ const UNPLANNED_MEAL = 'unplanned';
 
 // Returns the macro amounts from a weekly-treat item that count toward daily totals.
 // null treat_ignore_macros = legacy "ignore everything" behavior.
+// kcal is always derived from counted macros (P×4 + C×4 + F×9) so totals stay consistent.
 function treatMacroContrib(e) {
   if (e.treat_ignore_macros == null) return { kcal:0, p:0, c:0, f:0 };
   const ign = e.treat_ignore_macros ? e.treat_ignore_macros.split(',') : [];
-  return {
-    kcal: ign.includes('kcal')    ? 0 : (e.kcal||0),
-    p:    ign.includes('protein') ? 0 : (parseFloat(e.protein)||0),
-    c:    ign.includes('carbs')   ? 0 : (parseFloat(e.carbs)||0),
-    f:    ign.includes('fat')     ? 0 : (parseFloat(e.fat)||0),
-  };
+  const p = ign.includes('protein') ? 0 : (parseFloat(e.protein)||0);
+  const c = ign.includes('carbs')   ? 0 : (parseFloat(e.carbs)||0);
+  const f = ign.includes('fat')     ? 0 : (parseFloat(e.fat)||0);
+  return { kcal: p * 4 + c * 4 + f * 9, p, c, f };
 }
 
 let checkables = [];
@@ -3082,12 +3081,12 @@ function renderWeeklyTreatCard(items, container) {
       const excess = Math.round(treatKcal - cap);
       badge = `<div class="weekly-treat-excluded-badge weekly-treat-over-budget">+${excess} kcal counted</div>`;
     } else {
-      const MACRO_LABELS = { kcal:'kcal', protein:'P', carbs:'C', fat:'F' };
+      const MACRO_LABELS = { protein:'P', carbs:'C', fat:'F' };
       const counted = new Set();
       items.forEach(e => {
         if (e.treat_ignore_macros != null) {
           const ign = e.treat_ignore_macros ? e.treat_ignore_macros.split(',') : [];
-          ['kcal','protein','carbs','fat'].filter(k => !ign.includes(k)).forEach(k => counted.add(k));
+          ['protein','carbs','fat'].filter(k => !ign.includes(k)).forEach(k => counted.add(k));
         }
       });
       if (counted.size > 0) {
@@ -5812,8 +5811,7 @@ initTweaks();
         sheet.innerHTML = `
           <div class="tl-ctx-title"><i class="fas fa-star" style="color:var(--accent);margin-right:6px"></i>Weekly Treat</div>
           <div class="treat-macro-select">
-            <div class="treat-macro-hint">Which macros should be excluded from your daily totals?</div>
-            <label class="treat-macro-row"><input type="checkbox" class="treat-macro-cb" value="kcal" checked><span>Calories</span></label>
+            <div class="treat-macro-hint">Which macros should be excluded from your daily totals? Calories are always derived from what counts.</div>
             <label class="treat-macro-row"><input type="checkbox" class="treat-macro-cb" value="protein" checked><span>Protein</span></label>
             <label class="treat-macro-row"><input type="checkbox" class="treat-macro-cb" value="carbs" checked><span>Carbs</span></label>
             <label class="treat-macro-row"><input type="checkbox" class="treat-macro-cb" value="fat" checked><span>Fat</span></label>
@@ -5824,7 +5822,7 @@ initTweaks();
         sheet.querySelector('#tlCtxTreatConfirm').addEventListener('click', () => {
           const checked = [...sheet.querySelectorAll('.treat-macro-cb:checked')].map(cb => cb.value);
           // null = all ignored (legacy); explicit string for partial
-          const treatIgnoreMacros = checked.length === 4 ? null : checked.join(',');
+          const treatIgnoreMacros = checked.length === 3 ? null : checked.join(',');
           doMove(WEEKLY_TREAT_MEAL, treatIgnoreMacros);
         });
       });
