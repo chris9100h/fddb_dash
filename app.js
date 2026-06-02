@@ -18,6 +18,19 @@ const WEEKLY_TREAT_MEAL = 'weekly_treat';
 const MEAL_OF_CHOICE = 'meal_of_choice';
 const UNPLANNED_MEAL = 'unplanned';
 
+// Returns the macro amounts from a weekly-treat item that count toward daily totals.
+// null treat_ignore_macros = legacy "ignore everything" behavior.
+function treatMacroContrib(e) {
+  if (e.treat_ignore_macros == null) return { kcal:0, p:0, c:0, f:0 };
+  const ign = e.treat_ignore_macros ? e.treat_ignore_macros.split(',') : [];
+  return {
+    kcal: ign.includes('kcal')    ? 0 : (e.kcal||0),
+    p:    ign.includes('protein') ? 0 : (parseFloat(e.protein)||0),
+    c:    ign.includes('carbs')   ? 0 : (parseFloat(e.carbs)||0),
+    f:    ign.includes('fat')     ? 0 : (parseFloat(e.fat)||0),
+  };
+}
+
 let checkables = [];
 let totals = { kcal:0, p:0, c:0, f:0 };
 let allRecipes = [];
@@ -1300,14 +1313,19 @@ function renderTimelineDashboard(entries) {
     if (e.meal !== WEEKLY_TREAT_MEAL) {
       totals.kcal += e.kcal||0; totals.p += parseFloat(e.protein)||0;
       totals.c += parseFloat(e.carbs)||0; totals.f += parseFloat(e.fat)||0;
+    } else {
+      const contrib = treatMacroContrib(e);
+      totals.kcal += contrib.kcal; totals.p += contrib.p;
+      totals.c += contrib.c; totals.f += contrib.f;
     }
   });
   const treatItems = entries.filter(e => e.meal === WEEKLY_TREAT_MEAL);
-  if (treatItems.length && settings.weeklyTreatMaxKcal > 0) {
-    const treatKcal = treatItems.reduce((s,e) => s+(e.kcal||0), 0);
+  const legacyTreatsT = treatItems.filter(e => e.treat_ignore_macros == null);
+  if (legacyTreatsT.length > 0 && settings.weeklyTreatMaxKcal > 0) {
+    const treatKcal = legacyTreatsT.reduce((s,e) => s+(e.kcal||0), 0);
     if (treatKcal > settings.weeklyTreatMaxKcal) {
       const f = (treatKcal - settings.weeklyTreatMaxKcal) / treatKcal;
-      treatItems.forEach(e => {
+      legacyTreatsT.forEach(e => {
         totals.kcal += (e.kcal||0)*f; totals.p += (parseFloat(e.protein)||0)*f;
         totals.c += (parseFloat(e.carbs)||0)*f; totals.f += (parseFloat(e.fat)||0)*f;
       });
@@ -2688,16 +2706,21 @@ function renderDashboard(entries) {
     if (e.meal !== WEEKLY_TREAT_MEAL) {
       totals.kcal += e.kcal||0; totals.p += parseFloat(e.protein)||0;
       totals.c += parseFloat(e.carbs)||0; totals.f += parseFloat(e.fat)||0;
+    } else {
+      const contrib = treatMacroContrib(e);
+      totals.kcal += contrib.kcal; totals.p += contrib.p;
+      totals.c += contrib.c; totals.f += contrib.f;
     }
   });
 
-  // If a calorie cap is set, add back the excess fraction of the treat's macros
+  // For legacy treat items (no explicit ignore list), apply the kcal cap
   const treatItems = grouped[WEEKLY_TREAT_MEAL] || [];
-  if (treatItems.length > 0 && settings.weeklyTreatMaxKcal > 0) {
-    const treatKcal = treatItems.reduce((s, e) => s + (e.kcal||0), 0);
+  const legacyTreats = treatItems.filter(e => e.treat_ignore_macros == null);
+  if (legacyTreats.length > 0 && settings.weeklyTreatMaxKcal > 0) {
+    const treatKcal = legacyTreats.reduce((s, e) => s + (e.kcal||0), 0);
     if (treatKcal > settings.weeklyTreatMaxKcal) {
       const excessFraction = (treatKcal - settings.weeklyTreatMaxKcal) / treatKcal;
-      treatItems.forEach(e => {
+      legacyTreats.forEach(e => {
         totals.kcal += (e.kcal||0)                  * excessFraction;
         totals.p    += (parseFloat(e.protein)||0)    * excessFraction;
         totals.c    += (parseFloat(e.carbs)||0)      * excessFraction;
@@ -3059,7 +3082,19 @@ function renderWeeklyTreatCard(items, container) {
       const excess = Math.round(treatKcal - cap);
       badge = `<div class="weekly-treat-excluded-badge weekly-treat-over-budget">+${excess} kcal counted</div>`;
     } else {
-      badge = `<div class="weekly-treat-excluded-badge">excluded</div>`;
+      const MACRO_LABELS = { kcal:'kcal', protein:'P', carbs:'C', fat:'F' };
+      const counted = new Set();
+      items.forEach(e => {
+        if (e.treat_ignore_macros != null) {
+          const ign = e.treat_ignore_macros ? e.treat_ignore_macros.split(',') : [];
+          ['kcal','protein','carbs','fat'].filter(k => !ign.includes(k)).forEach(k => counted.add(k));
+        }
+      });
+      if (counted.size > 0) {
+        badge = `<div class="weekly-treat-excluded-badge weekly-treat-partial">${[...counted].map(k => MACRO_LABELS[k]).join(' + ')} counted</div>`;
+      } else {
+        badge = `<div class="weekly-treat-excluded-badge">excluded</div>`;
+      }
     }
   }
 
@@ -5466,7 +5501,7 @@ initTweaks();
     return { monday: fmt(mon), sunday: fmt(sun) };
   }
 
-  async function moveEntries({ ids, fromMeal, toMeal, kind, oldKeys, recipeName }) {
+  async function moveEntries({ ids, fromMeal, toMeal, kind, oldKeys, recipeName, treatIgnoreMacros }) {
     if (!ids.length || fromMeal === toMeal) return;
 
     if (toMeal === WEEKLY_TREAT_MEAL) {
@@ -5487,7 +5522,16 @@ initTweaks();
 
     // Optimistic: patch local arrays (ids are UUID strings)
     const idSet = new Set(ids);
-    currentDayEntries.forEach(e => { if (idSet.has(e.id)) e.meal = toMeal; });
+    currentDayEntries.forEach(e => {
+      if (idSet.has(e.id)) {
+        e.meal = toMeal;
+        if (toMeal === WEEKLY_TREAT_MEAL) {
+          e.treat_ignore_macros = treatIgnoreMacros ?? null;
+        } else if (fromMeal === WEEKLY_TREAT_MEAL) {
+          e.treat_ignore_macros = null;
+        }
+      }
+    });
 
     // Migrate check keys locally
     const keyMoves = [];
@@ -5520,7 +5564,10 @@ initTweaks();
     renderDashboard(currentDayEntries);
 
     try {
-      const updateRes = await db.from('fddb_daily_macros').update({ meal: toMeal }).in('id', ids);
+      const updateFields = { meal: toMeal };
+      if (toMeal === WEEKLY_TREAT_MEAL) updateFields.treat_ignore_macros = treatIgnoreMacros ?? null;
+      else if (fromMeal === WEEKLY_TREAT_MEAL) updateFields.treat_ignore_macros = null;
+      const updateRes = await db.from('fddb_daily_macros').update(updateFields).in('id', ids);
       if (updateRes.error) throw updateRes.error;
 
       for (const { oldK, newK, v } of keyMoves) {
@@ -5701,14 +5748,14 @@ initTweaks();
       setTimeout(() => overlay.remove(), 220);
     };
 
-    const doMove = async (toMeal) => {
+    const doMove = async (toMeal, treatIgnoreMacros) => {
       close();
       const ids = chipEl.dataset.entryIds.split(',').map(s => s.trim()).filter(Boolean);
       const fromMeal = chipEl.dataset.meal;
       const kind = chipEl.dataset.dragKind;
       const oldKeys = chipEl.dataset.checkKeys.split('|').filter(Boolean);
       const recipeName = chipEl.dataset.recipeName || '';
-      await moveEntries({ ids, fromMeal, toMeal, kind, oldKeys, recipeName });
+      await moveEntries({ ids, fromMeal, toMeal, kind, oldKeys, recipeName, treatIgnoreMacros });
     };
 
     const bgBtn = isInInsulinWindow
@@ -5761,7 +5808,26 @@ initTweaks();
       requestAnimationFrame(() => overlay.classList.add('show'));
       overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
       sheet.querySelector('.tl-ctx-cancel').addEventListener('click', close);
-      sheet.querySelector('#tlCtxTreat').addEventListener('click', () => doMove(WEEKLY_TREAT_MEAL));
+      sheet.querySelector('#tlCtxTreat').addEventListener('click', () => {
+        sheet.innerHTML = `
+          <div class="tl-ctx-title"><i class="fas fa-star" style="color:var(--accent);margin-right:6px"></i>Weekly Treat</div>
+          <div class="treat-macro-select">
+            <div class="treat-macro-hint">Which macros should be excluded from your daily totals?</div>
+            <label class="treat-macro-row"><input type="checkbox" class="treat-macro-cb" value="kcal" checked><span>Calories</span></label>
+            <label class="treat-macro-row"><input type="checkbox" class="treat-macro-cb" value="protein" checked><span>Protein</span></label>
+            <label class="treat-macro-row"><input type="checkbox" class="treat-macro-cb" value="carbs" checked><span>Carbs</span></label>
+            <label class="treat-macro-row"><input type="checkbox" class="treat-macro-cb" value="fat" checked><span>Fat</span></label>
+          </div>
+          <button class="tl-ctx-action" id="tlCtxTreatConfirm"><i class="fas fa-star"></i> Mark as Weekly Treat</button>
+          <button class="tl-ctx-cancel">Cancel</button>`;
+        sheet.querySelector('.tl-ctx-cancel').addEventListener('click', close);
+        sheet.querySelector('#tlCtxTreatConfirm').addEventListener('click', () => {
+          const checked = [...sheet.querySelectorAll('.treat-macro-cb:checked')].map(cb => cb.value);
+          // null = all ignored (legacy); explicit string for partial
+          const treatIgnoreMacros = checked.length === 4 ? null : checked.join(',');
+          doMove(WEEKLY_TREAT_MEAL, treatIgnoreMacros);
+        });
+      });
     } else {
       const oldKeys = chipEl.dataset.checkKeys.split('|').filter(Boolean);
       const assignedMinutes = oldKeys.reduce((found, k) => found ?? itemTimeMap[k] ?? null, null);
