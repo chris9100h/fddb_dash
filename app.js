@@ -4031,17 +4031,18 @@ async function openDateMenu(date, x, y) {
   let canFinalize = false, adhForFinalize = null, totalsForFinalize = null;
   if (!isFuture) {
     const [macroRes, tgtRes] = await Promise.all([
-      db.from('fddb_daily_macros').select('kcal, protein, carbs, fat').eq('date', date).neq('meal', WEEKLY_TREAT_MEAL),
+      db.from('fddb_daily_macros').select('meal, kcal, protein, carbs, fat, treat_ignore_macros').eq('date', date),
       db.from('fddb_coach_targets').select('*').lte('valid_from', date).order('valid_from', { ascending: false }),
     ]);
     const rows = macroRes.data || [];
     if (rows.length) {
-      const menuTotals = rows.reduce((s, r) => ({
-        kcal: s.kcal + (r.kcal||0),
-        p: s.p + (parseFloat(r.protein)||0),
-        c: s.c + (parseFloat(r.carbs)||0),
-        f: s.f + (parseFloat(r.fat)||0),
-      }), { kcal:0, p:0, c:0, f:0 });
+      const menuTotals = rows.reduce((s, r) => {
+        if (r.meal === WEEKLY_TREAT_MEAL) {
+          const contrib = treatMacroContrib(r);
+          return { kcal: s.kcal + contrib.kcal, p: s.p + contrib.p, c: s.c + contrib.c, f: s.f + contrib.f };
+        }
+        return { kcal: s.kcal + (r.kcal||0), p: s.p + (parseFloat(r.protein)||0), c: s.c + (parseFloat(r.carbs)||0), f: s.f + (parseFloat(r.fat)||0) };
+      }, { kcal:0, p:0, c:0, f:0 });
       const match = (tgtRes.data || []).find(t => t.type === menuDayType);
       if (match) {
         adhForFinalize = computeDayAdherence(menuTotals, { p: match.protein, c: match.carbs, f: match.fat });
@@ -4179,7 +4180,7 @@ async function loadStats() {
   document.getElementById('statsEmpty').style.display = 'none';
 
   const [macroRes, dayTypeRes, targetsRes, finalizedRes, jokerRes, mocRes, weightRes] = await Promise.all([
-    db.from('fddb_daily_macros').select('date, kcal, protein, carbs, fat').gte('date', from).lte('date', to).neq('meal', WEEKLY_TREAT_MEAL),
+    db.from('fddb_daily_macros').select('date, meal, kcal, protein, carbs, fat, treat_ignore_macros').gte('date', from).lte('date', to),
     db.from('fddb_day_type').select('date, type').gte('date', from).lte('date', to),
     db.from('fddb_coach_targets').select('*').lte('valid_from', to).order('valid_from', { ascending: false }),
     db.from('fddb_day_finalized').select('date, status').gte('date', from).lte('date', to),
@@ -4200,10 +4201,18 @@ async function loadStats() {
   const byDate = {};
   macros.forEach(r => {
     if (!byDate[r.date]) byDate[r.date] = { kcal:0, p:0, c:0, f:0 };
-    byDate[r.date].kcal += r.kcal || 0;
-    byDate[r.date].p += parseFloat(r.protein) || 0;
-    byDate[r.date].c += parseFloat(r.carbs) || 0;
-    byDate[r.date].f += parseFloat(r.fat) || 0;
+    if (r.meal === WEEKLY_TREAT_MEAL) {
+      const contrib = treatMacroContrib(r);
+      byDate[r.date].kcal += contrib.kcal;
+      byDate[r.date].p += contrib.p;
+      byDate[r.date].c += contrib.c;
+      byDate[r.date].f += contrib.f;
+    } else {
+      byDate[r.date].kcal += r.kcal || 0;
+      byDate[r.date].p += parseFloat(r.protein) || 0;
+      byDate[r.date].c += parseFloat(r.carbs) || 0;
+      byDate[r.date].f += parseFloat(r.fat) || 0;
+    }
   });
   const dayTypeMap = Object.fromEntries(dayTypes.map(d => [d.date, d.type]));
   const finalizedStatusMap = {};
@@ -5827,18 +5836,19 @@ initTweaks();
         sheet.innerHTML = `
           <div class="tl-ctx-title"><i class="fas fa-star" style="color:var(--accent);margin-right:6px"></i>Weekly Treat</div>
           <div class="treat-macro-select">
-            <div class="treat-macro-hint">Which macros should be excluded from your daily totals? Calories are always derived from what counts.</div>
-            <label class="treat-macro-row"><input type="checkbox" class="treat-macro-cb" value="protein" checked><span>Protein</span></label>
-            <label class="treat-macro-row"><input type="checkbox" class="treat-macro-cb" value="carbs" checked><span>Carbs</span></label>
-            <label class="treat-macro-row"><input type="checkbox" class="treat-macro-cb" value="fat" checked><span>Fat</span></label>
+            <div class="treat-macro-hint">Which macros should count toward your daily totals?</div>
+            <label class="treat-macro-row"><input type="checkbox" class="treat-macro-cb" value="protein"><span>Protein</span></label>
+            <label class="treat-macro-row"><input type="checkbox" class="treat-macro-cb" value="carbs"><span>Carbs</span></label>
+            <label class="treat-macro-row"><input type="checkbox" class="treat-macro-cb" value="fat"><span>Fat</span></label>
           </div>
           <button class="tl-ctx-action" id="tlCtxTreatConfirm"><i class="fas fa-star"></i> Mark as Weekly Treat</button>
           <button class="tl-ctx-cancel">Cancel</button>`;
         sheet.querySelector('.tl-ctx-cancel').addEventListener('click', close);
         sheet.querySelector('#tlCtxTreatConfirm').addEventListener('click', () => {
-          const checked = [...sheet.querySelectorAll('.treat-macro-cb:checked')].map(cb => cb.value);
-          // null = all ignored (legacy); explicit string for partial
-          const treatIgnoreMacros = checked.length === 3 ? null : checked.join(',');
+          const counted = [...sheet.querySelectorAll('.treat-macro-cb:checked')].map(cb => cb.value);
+          // null = nothing counts (legacy all-ignored); explicit ignore list otherwise
+          const ignored = ['protein','carbs','fat'].filter(m => !counted.includes(m));
+          const treatIgnoreMacros = counted.length === 0 ? null : ignored.join(',');
           doMove(WEEKLY_TREAT_MEAL, treatIgnoreMacros);
         });
       });
