@@ -18,6 +18,18 @@ const WEEKLY_TREAT_MEAL = 'weekly_treat';
 const MEAL_OF_CHOICE = 'meal_of_choice';
 const UNPLANNED_MEAL = 'unplanned';
 
+// Returns the macro amounts from a weekly-treat item that count toward daily totals.
+// null treat_ignore_macros = legacy "ignore everything" behavior.
+// kcal is always derived from counted macros (P×4 + C×4 + F×9) so totals stay consistent.
+function treatMacroContrib(e) {
+  if (e.treat_ignore_macros == null) return { kcal:0, p:0, c:0, f:0 };
+  const ign = e.treat_ignore_macros ? e.treat_ignore_macros.split(',') : [];
+  const p = ign.includes('protein') ? 0 : (parseFloat(e.protein)||0);
+  const c = ign.includes('carbs')   ? 0 : (parseFloat(e.carbs)||0);
+  const f = ign.includes('fat')     ? 0 : (parseFloat(e.fat)||0);
+  return { kcal: p * 4 + c * 4 + f * 9, p, c, f };
+}
+
 let checkables = [];
 let totals = { kcal:0, p:0, c:0, f:0 };
 let allRecipes = [];
@@ -1300,14 +1312,19 @@ function renderTimelineDashboard(entries) {
     if (e.meal !== WEEKLY_TREAT_MEAL) {
       totals.kcal += e.kcal||0; totals.p += parseFloat(e.protein)||0;
       totals.c += parseFloat(e.carbs)||0; totals.f += parseFloat(e.fat)||0;
+    } else {
+      const contrib = treatMacroContrib(e);
+      totals.kcal += contrib.kcal; totals.p += contrib.p;
+      totals.c += contrib.c; totals.f += contrib.f;
     }
   });
   const treatItems = entries.filter(e => e.meal === WEEKLY_TREAT_MEAL);
-  if (treatItems.length && settings.weeklyTreatMaxKcal > 0) {
-    const treatKcal = treatItems.reduce((s,e) => s+(e.kcal||0), 0);
+  const legacyTreatsT = treatItems.filter(e => e.treat_ignore_macros == null);
+  if (legacyTreatsT.length > 0 && settings.weeklyTreatMaxKcal > 0) {
+    const treatKcal = legacyTreatsT.reduce((s,e) => s+(e.kcal||0), 0);
     if (treatKcal > settings.weeklyTreatMaxKcal) {
       const f = (treatKcal - settings.weeklyTreatMaxKcal) / treatKcal;
-      treatItems.forEach(e => {
+      legacyTreatsT.forEach(e => {
         totals.kcal += (e.kcal||0)*f; totals.p += (parseFloat(e.protein)||0)*f;
         totals.c += (parseFloat(e.carbs)||0)*f; totals.f += (parseFloat(e.fat)||0)*f;
       });
@@ -2096,7 +2113,8 @@ function showView(id) {
 
 /* ── Load recipes ── */
 async function loadRecipes() {
-  const { data: recipes } = await db.from('fddb_recipes').select('id, name, servings, template_id, is_template').order('name');
+  await db.from('fddb_recipes').delete().not('expires_at', 'is', null).lt('expires_at', new Date().toISOString());
+  const { data: recipes } = await db.from('fddb_recipes').select('id, name, servings, template_id, is_template, expires_at').order('name');
   if (!recipes) return;
   const { data: items } = await db.from('fddb_recipe_items').select('recipe_id, item_name');
   const { data: rcats } = await db.from('fddb_recipe_categories').select('recipe_id, category_id');
@@ -2109,6 +2127,7 @@ async function loadRecipes() {
     id: r.id, name: r.name, servings: r.servings || 1,
     isTemplate: !!r.is_template,
     templateId: r.template_id || null,
+    expiresAt: r.expires_at || null,
     items: (items || []).filter(i => i.recipe_id === r.id).map(i => i.item_name),
     catIds: (rcats || []).filter(c => c.recipe_id === r.id).map(c => c.category_id),
   }));
@@ -2702,16 +2721,21 @@ function renderDashboard(entries) {
     if (e.meal !== WEEKLY_TREAT_MEAL) {
       totals.kcal += e.kcal||0; totals.p += parseFloat(e.protein)||0;
       totals.c += parseFloat(e.carbs)||0; totals.f += parseFloat(e.fat)||0;
+    } else {
+      const contrib = treatMacroContrib(e);
+      totals.kcal += contrib.kcal; totals.p += contrib.p;
+      totals.c += contrib.c; totals.f += contrib.f;
     }
   });
 
-  // If a calorie cap is set, add back the excess fraction of the treat's macros
+  // For legacy treat items (no explicit ignore list), apply the kcal cap
   const treatItems = grouped[WEEKLY_TREAT_MEAL] || [];
-  if (treatItems.length > 0 && settings.weeklyTreatMaxKcal > 0) {
-    const treatKcal = treatItems.reduce((s, e) => s + (e.kcal||0), 0);
+  const legacyTreats = treatItems.filter(e => e.treat_ignore_macros == null);
+  if (legacyTreats.length > 0 && settings.weeklyTreatMaxKcal > 0) {
+    const treatKcal = legacyTreats.reduce((s, e) => s + (e.kcal||0), 0);
     if (treatKcal > settings.weeklyTreatMaxKcal) {
       const excessFraction = (treatKcal - settings.weeklyTreatMaxKcal) / treatKcal;
-      treatItems.forEach(e => {
+      legacyTreats.forEach(e => {
         totals.kcal += (e.kcal||0)                  * excessFraction;
         totals.p    += (parseFloat(e.protein)||0)    * excessFraction;
         totals.c    += (parseFloat(e.carbs)||0)      * excessFraction;
@@ -3073,7 +3097,19 @@ function renderWeeklyTreatCard(items, container) {
       const excess = Math.round(treatKcal - cap);
       badge = `<div class="weekly-treat-excluded-badge weekly-treat-over-budget">+${excess} kcal counted</div>`;
     } else {
-      badge = `<div class="weekly-treat-excluded-badge">excluded</div>`;
+      const MACRO_LABELS = { protein:'P', carbs:'C', fat:'F' };
+      const counted = new Set();
+      items.forEach(e => {
+        if (e.treat_ignore_macros != null) {
+          const ign = e.treat_ignore_macros ? e.treat_ignore_macros.split(',') : [];
+          ['protein','carbs','fat'].filter(k => !ign.includes(k)).forEach(k => counted.add(k));
+        }
+      });
+      if (counted.size > 0) {
+        badge = `<div class="weekly-treat-excluded-badge weekly-treat-partial">${[...counted].map(k => MACRO_LABELS[k]).join(' + ')} counted</div>`;
+      } else {
+        badge = `<div class="weekly-treat-excluded-badge">excluded</div>`;
+      }
     }
   }
 
@@ -3376,11 +3412,12 @@ async function saveNewUnit() {
 }
 
 /* ── Recipe Creator ── */
-let creatorStep = 0, creatorMeal = null, creatorSelected = [], creatorIsTemplate = false;
+let creatorStep = 0, creatorMeal = null, creatorSelected = [], creatorIsTemplate = false, creatorIsTemporary = false;
 function openCreator() {
-  creatorStep = 0; creatorMeal = null; creatorSelected = []; creatorIsTemplate = false;
+  creatorStep = 0; creatorMeal = null; creatorSelected = []; creatorIsTemplate = false; creatorIsTemporary = false;
   document.getElementById('recipeNameInput').value = '';
   document.getElementById('creatorIsTemplateCheck')?.classList.remove('active');
+  document.getElementById('creatorIsTempCheck')?.classList.remove('active');
   renderCreatorStep();
   document.getElementById('creatorOverlay').classList.add('open');
 }
@@ -3425,12 +3462,20 @@ function renderCreatorStep() {
 }
 function selectMeal(meal) { creatorMeal = meal; creatorSelected = []; renderCreatorStep(); }
 function creatorBack() { if (creatorStep > 0) { creatorStep--; renderCreatorStep(); } }
+function todayMidnightISO() {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString();
+}
 async function creatorNext() {
   if (creatorStep < 2) { creatorStep++; renderCreatorStep(); return; }
   const name = document.getElementById('recipeNameInput').value.trim();
   document.getElementById('btnNext').disabled = true;
   document.getElementById('btnNext').textContent = '…';
-  const { data: recipe, error: recErr } = await db.from('fddb_recipes').insert({ name, is_template: creatorIsTemplate }).select().single();
+  const insertData = { name, is_template: creatorIsTemplate };
+  if (creatorIsTemporary) insertData.expires_at = todayMidnightISO();
+  const { data: recipe, error: recErr } = await db.from('fddb_recipes').insert(insertData).select().single();
   if (recErr) { showToast('Error: ' + recErr.message, 'error'); document.getElementById('btnNext').disabled = false; document.getElementById('btnNext').textContent = 'Save'; return; }
   const itemRows = creatorSelected.map(item_name => ({ recipe_id: recipe.id, item_name: stripAmount(item_name) }));
   const { error: itemErr } = await db.from('fddb_recipe_items').insert(itemRows);
@@ -3564,6 +3609,7 @@ function renderRecipeManage() {
           <div class="recipe-manage-name">${recipe.name}</div>
           ${showCatTags && catNames.length ? `<div class="recipe-cat-tags">${catNames.map(n=>`<span class="recipe-cat-tag">${n}</span>`).join('')}</div>` : ''}
         </div>
+        ${recipe.expiresAt ? `<span class="temp-recipe-badge"><i class="fas fa-clock"></i> Heute</span>` : ''}
         <div class="recipe-manage-count">${recipe.items.length} · ${recipe.servings}×</div>
         <div class="recipe-manage-actions">
           <button class="btn-icon-sm btn-dupe" onclick="event.stopPropagation(); duplicateRecipe('${recipe.id}')"><i class="fas fa-copy"></i></button>
@@ -3673,7 +3719,7 @@ function stripAmount(name) { return name.replace(stripRegex, '').trim(); }
 function extractAmount(name) { const m = name.match(/^[\d.,]+/); return m ? parseFloat(m[0].replace(',', '.')) : 0; }
 
 /* ── Edit Modal ── */
-let editTargetId = null, editName = '', editItems = [], editServings = 1, editCatIds = [], editAddTab = 'day', editTemplateId = null, editIsTemplate = false;
+let editTargetId = null, editName = '', editItems = [], editServings = 1, editCatIds = [], editAddTab = 'day', editTemplateId = null, editIsTemplate = false, editExpiresAt = null;
 function openEditModal(id) {
   const recipe = allRecipes.find(r => r.id === id);
   if (!recipe) return;
@@ -3681,6 +3727,7 @@ function openEditModal(id) {
   editServings = recipe.servings || 1; editCatIds = [...(recipe.catIds || [])]; editAddTab = 'day';
   editTemplateId = recipe.templateId || null;
   editIsTemplate = recipe.isTemplate || false;
+  editExpiresAt = recipe.expiresAt || null;
   document.getElementById('editOverlay').classList.add('open');
   renderEditModal();
 }
@@ -3715,6 +3762,11 @@ function renderEditModal() {
           ? `<span style="font-size:.8rem;color:var(--muted)">No categories yet.</span>`
           : allCategories.map(c => `<div class="cat-chip${editCatIds.includes(c.id)?' active':''}" onclick="toggleEditCat('${c.id}')">${c.name}</div>`).join('')}
       </div>
+    </div>
+    <div class="edit-section">
+      <div class="edit-section-title"><i class="fas fa-clock"></i> Temporary</div>
+      <div class="cat-chip${editExpiresAt ? ' active' : ''}" style="display:inline-flex;align-items:center;gap:6px;margin-bottom:4px" onclick="editExpiresAt=editExpiresAt?null:todayMidnightISO();renderEditModal()"><i class="fas fa-clock"></i>Expires tonight</div>
+      ${editExpiresAt ? `<div style="font-size:.76rem;color:#fbbf24;margin-top:4px"><i class="fas fa-exclamation-triangle" style="font-size:.65rem"></i> Will be deleted at midnight tonight</div>` : `<div style="font-size:.76rem;color:var(--muted);margin-top:4px">Enable to automatically delete this recipe at midnight.</div>`}
     </div>
     <div class="edit-section">
       <div class="edit-section-title"><i class="fas fa-layer-group"></i> Template</div>
@@ -3811,7 +3863,7 @@ async function saveEdit() {
   if (!name) { showToast('Please enter a name', 'error'); return; }
   if (!editTargetId) return;
   document.getElementById('editSaveBtn').disabled = true;
-  const { error: nameErr } = await db.from('fddb_recipes').update({ name, servings: editServings, is_template: editIsTemplate, template_id: editIsTemplate ? null : (editTemplateId || null) }).eq('id', editTargetId);
+  const { error: nameErr } = await db.from('fddb_recipes').update({ name, servings: editServings, is_template: editIsTemplate, template_id: editIsTemplate ? null : (editTemplateId || null), expires_at: editExpiresAt }).eq('id', editTargetId);
   if (nameErr) { showToast('Error: ' + nameErr.message, 'error'); document.getElementById('editSaveBtn').disabled = false; return; }
   await db.from('fddb_recipe_items').delete().eq('recipe_id', editTargetId);
   if (editItems.length > 0) {
@@ -5464,7 +5516,7 @@ initTweaks();
     return { monday: fmt(mon), sunday: fmt(sun) };
   }
 
-  async function moveEntries({ ids, fromMeal, toMeal, kind, oldKeys, recipeName }) {
+  async function moveEntries({ ids, fromMeal, toMeal, kind, oldKeys, recipeName, treatIgnoreMacros }) {
     if (!ids.length || fromMeal === toMeal) return;
 
     if (toMeal === WEEKLY_TREAT_MEAL) {
@@ -5485,7 +5537,16 @@ initTweaks();
 
     // Optimistic: patch local arrays (ids are UUID strings)
     const idSet = new Set(ids);
-    currentDayEntries.forEach(e => { if (idSet.has(e.id)) e.meal = toMeal; });
+    currentDayEntries.forEach(e => {
+      if (idSet.has(e.id)) {
+        e.meal = toMeal;
+        if (toMeal === WEEKLY_TREAT_MEAL) {
+          e.treat_ignore_macros = treatIgnoreMacros ?? null;
+        } else if (fromMeal === WEEKLY_TREAT_MEAL) {
+          e.treat_ignore_macros = null;
+        }
+      }
+    });
 
     // Migrate check keys locally
     const keyMoves = [];
@@ -5518,7 +5579,10 @@ initTweaks();
     renderDashboard(currentDayEntries);
 
     try {
-      const updateRes = await db.from('fddb_daily_macros').update({ meal: toMeal }).in('id', ids);
+      const updateFields = { meal: toMeal };
+      if (toMeal === WEEKLY_TREAT_MEAL) updateFields.treat_ignore_macros = treatIgnoreMacros ?? null;
+      else if (fromMeal === WEEKLY_TREAT_MEAL) updateFields.treat_ignore_macros = null;
+      const updateRes = await db.from('fddb_daily_macros').update(updateFields).in('id', ids);
       if (updateRes.error) throw updateRes.error;
 
       for (const { oldK, newK, v } of keyMoves) {
@@ -5699,14 +5763,14 @@ initTweaks();
       setTimeout(() => overlay.remove(), 220);
     };
 
-    const doMove = async (toMeal) => {
+    const doMove = async (toMeal, treatIgnoreMacros) => {
       close();
       const ids = chipEl.dataset.entryIds.split(',').map(s => s.trim()).filter(Boolean);
       const fromMeal = chipEl.dataset.meal;
       const kind = chipEl.dataset.dragKind;
       const oldKeys = chipEl.dataset.checkKeys.split('|').filter(Boolean);
       const recipeName = chipEl.dataset.recipeName || '';
-      await moveEntries({ ids, fromMeal, toMeal, kind, oldKeys, recipeName });
+      await moveEntries({ ids, fromMeal, toMeal, kind, oldKeys, recipeName, treatIgnoreMacros });
     };
 
     const bgBtn = isInInsulinWindow
@@ -5759,7 +5823,25 @@ initTweaks();
       requestAnimationFrame(() => overlay.classList.add('show'));
       overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
       sheet.querySelector('.tl-ctx-cancel').addEventListener('click', close);
-      sheet.querySelector('#tlCtxTreat').addEventListener('click', () => doMove(WEEKLY_TREAT_MEAL));
+      sheet.querySelector('#tlCtxTreat').addEventListener('click', () => {
+        sheet.innerHTML = `
+          <div class="tl-ctx-title"><i class="fas fa-star" style="color:var(--accent);margin-right:6px"></i>Weekly Treat</div>
+          <div class="treat-macro-select">
+            <div class="treat-macro-hint">Which macros should be excluded from your daily totals? Calories are always derived from what counts.</div>
+            <label class="treat-macro-row"><input type="checkbox" class="treat-macro-cb" value="protein" checked><span>Protein</span></label>
+            <label class="treat-macro-row"><input type="checkbox" class="treat-macro-cb" value="carbs" checked><span>Carbs</span></label>
+            <label class="treat-macro-row"><input type="checkbox" class="treat-macro-cb" value="fat" checked><span>Fat</span></label>
+          </div>
+          <button class="tl-ctx-action" id="tlCtxTreatConfirm"><i class="fas fa-star"></i> Mark as Weekly Treat</button>
+          <button class="tl-ctx-cancel">Cancel</button>`;
+        sheet.querySelector('.tl-ctx-cancel').addEventListener('click', close);
+        sheet.querySelector('#tlCtxTreatConfirm').addEventListener('click', () => {
+          const checked = [...sheet.querySelectorAll('.treat-macro-cb:checked')].map(cb => cb.value);
+          // null = all ignored (legacy); explicit string for partial
+          const treatIgnoreMacros = checked.length === 3 ? null : checked.join(',');
+          doMove(WEEKLY_TREAT_MEAL, treatIgnoreMacros);
+        });
+      });
     } else {
       const oldKeys = chipEl.dataset.checkKeys.split('|').filter(Boolean);
       const assignedMinutes = oldKeys.reduce((found, k) => found ?? itemTimeMap[k] ?? null, null);
