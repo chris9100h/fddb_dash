@@ -326,7 +326,7 @@ function initSettingsUI() {
       const today = todayISO();
       if (on) {
         // Force-apply sick to today
-        await writeFinalizedDay(today, null, settings.adherenceGoal, 'sick');
+        await writeFinalizedDay(today, null, settings.adherenceGoal, 'sick', await fetchDayTotals(today));
       } else {
         // Turning off: remove today's sick entry so it can re-auto-finalize normally
         const row = finalizedMap.get(today);
@@ -353,7 +353,7 @@ function initSettingsUI() {
       await writeSettingToDb('vacationSince', settings.vacationSince);
       const today = todayISO();
       if (on) {
-        await writeFinalizedDay(today, null, settings.adherenceGoal, 'vacation');
+        await writeFinalizedDay(today, null, settings.adherenceGoal, 'vacation', await fetchDayTotals(today));
       } else {
         const row = finalizedMap.get(today);
         if (row && row.status === 'vacation') {
@@ -2290,6 +2290,22 @@ function computeDayAdherence(totals, target) {
   );
 }
 
+async function fetchDayTotals(date) {
+  try {
+    const { data } = await db.from('fddb_daily_macros')
+      .select('kcal, protein, carbs, fat')
+      .eq('date', date)
+      .neq('meal', WEEKLY_TREAT_MEAL);
+    if (!data || !data.length) return null;
+    return data.reduce((s, r) => ({
+      kcal: s.kcal + (r.kcal || 0),
+      p: s.p + (parseFloat(r.protein) || 0),
+      c: s.c + (parseFloat(r.carbs) || 0),
+      f: s.f + (parseFloat(r.fat) || 0),
+    }), { kcal: 0, p: 0, c: 0, f: 0 });
+  } catch (e) { return null; }
+}
+
 async function writeFinalizedDay(date, adherence, goalUsed, status, totals = null) {
   // NOTE: some older DB schemas have `adherence` as NOT NULL. For freeze/sick
   // (where adherence is conceptually N/A) we persist 0 as a placeholder and
@@ -2438,7 +2454,7 @@ async function ensureDayFinalized(date, adherence, force, totals = null) {
   if (settings.vacationModeActive && settings.vacationSince && date >= settings.vacationSince) {
     const existing = finalizedMap.get(date);
     if (!existing || existing.status !== 'vacation') {
-      await writeFinalizedDay(date, null, settings.adherenceGoal, 'vacation');
+      await writeFinalizedDay(date, null, settings.adherenceGoal, 'vacation', await fetchDayTotals(date));
       renderDateStrip(currentDate);
     }
     return;
@@ -2446,7 +2462,7 @@ async function ensureDayFinalized(date, adherence, force, totals = null) {
   if (settings.sickModeActive && settings.sickSince && date >= settings.sickSince) {
     const existing = finalizedMap.get(date);
     if (!existing || existing.status !== 'sick') {
-      await writeFinalizedDay(date, null, settings.adherenceGoal, 'sick');
+      await writeFinalizedDay(date, null, settings.adherenceGoal, 'sick', await fetchDayTotals(date));
       renderDateStrip(currentDate);
     }
     return;
@@ -2488,7 +2504,7 @@ async function setDayStatus(date, status) {
       showToast(`Freeze limit reached (${settings.freezePerWeek}/${wLabel})`, 'error');
       return;
     }
-    await writeFinalizedDay(date, null, settings.adherenceGoal, 'freeze');
+    await writeFinalizedDay(date, null, settings.adherenceGoal, 'freeze', await fetchDayTotals(date));
     showToast('Day frozen ❄');
   } else if (status === 'sick') {
     // Sick cannot be set retroactively.
@@ -2496,7 +2512,7 @@ async function setDayStatus(date, status) {
       showToast('Sick day can only be set for today', 'error');
       return;
     }
-    await writeFinalizedDay(date, null, settings.adherenceGoal, 'sick');
+    await writeFinalizedDay(date, null, settings.adherenceGoal, 'sick', await fetchDayTotals(date));
     showToast('Marked as sick day 🌡');
   } else if (status === 'vacation') {
     // Vacation cannot be set retroactively.
@@ -2504,7 +2520,7 @@ async function setDayStatus(date, status) {
       showToast('Vacation day can only be set for today', 'error');
       return;
     }
-    await writeFinalizedDay(date, null, settings.adherenceGoal, 'vacation');
+    await writeFinalizedDay(date, null, settings.adherenceGoal, 'vacation', await fetchDayTotals(date));
     showToast('Marked as vacation day 🏖');
   }
   renderDateStrip(document.getElementById('dateInput').value || todayStr);
