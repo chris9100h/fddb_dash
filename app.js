@@ -6000,7 +6000,7 @@ initTweaks();
         const newName = useScale ? entry.item_name : entry.item_name.replace(/^[\d.,]+/, fmtNum(val));
         const updates = {
           item_name: newName,
-          kcal: parseFloat((origM.kcal * scale).toFixed(1)),
+          kcal: Math.round(origM.kcal * scale),
           protein: parseFloat((origM.p * scale).toFixed(1)),
           carbs: parseFloat((origM.c * scale).toFixed(1)),
           fat: parseFloat((origM.f * scale).toFixed(1)),
@@ -6084,7 +6084,7 @@ initTweaks();
           toUpdate.push({
             id: e.id, _entry: e,
             item_name: e.item_name.replace(/^[\d.,]+/, fmtNum(newAmt)),
-            kcal: parseFloat(((e.kcal||0) * scale).toFixed(1)),
+            kcal: Math.round((e.kcal||0) * scale),
             protein: parseFloat(((parseFloat(e.protein)||0) * scale).toFixed(1)),
             carbs: parseFloat(((parseFloat(e.carbs)||0) * scale).toFixed(1)),
             fat: parseFloat(((parseFloat(e.fat)||0) * scale).toFixed(1)),
