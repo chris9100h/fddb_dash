@@ -6015,22 +6015,35 @@ initTweaks();
     } else {
       // Recipe: show all ingredients with individual editable amounts.
       // For exploded (split) recipes each serving chip has its own DB entries,
-      // so we collect ALL servings' entries by matching ingredient base names
-      // across the whole meal — then update all of them on save.
+      // possibly in different meal slots. We collect ALL servings via fddb_group_id
+      // matching — not by meal — then update every matching entry on save.
       const servings = parseInt(chipEl.dataset.servings, 10) || 1;
       const isExploded = chipEl.dataset.isExploded === 'true';
-      const meal = chipEl.dataset.meal;
       const displayName = chipEl.querySelector('.tl-chip-name')?.textContent || '';
 
       // Entries for the clicked chip's serving (used for the per-serving preview)
       const chipEntries = currentDayEntries.filter(e => entryIds.includes(String(e.id)));
 
-      // For exploded recipes find all servings' entries by ingredient base names.
-      // For non-exploded recipes chipEntries already contain all ingredients.
-      const baseNamesInChip = new Set(chipEntries.map(e => stripAmount(e.item_name)));
-      const allServingEntries = isExploded
-        ? currentDayEntries.filter(e => e.meal === meal && baseNamesInChip.has(stripAmount(e.item_name)))
-        : chipEntries;
+      // For exploded recipes collect ALL servings' entries across the whole day,
+      // regardless of meal slot. Match by fddb_group_id: find every group whose
+      // stripped ingredient names exactly equal the clicked chip's ingredient names.
+      // Falls back to chipEntries if group IDs are unavailable.
+      let allServingEntries = chipEntries;
+      if (isExploded) {
+        const chipBaseNames = [...new Set(chipEntries.map(e => stripAmount(e.item_name)))].sort();
+        const gidGroups = {};
+        currentDayEntries.forEach(e => {
+          if (!e.fddb_group_id) return;
+          (gidGroups[e.fddb_group_id] = gidGroups[e.fddb_group_id] || []).push(e);
+        });
+        const matchingEntries = Object.values(gidGroups)
+          .filter(grp => {
+            const grpNames = [...new Set(grp.map(e => stripAmount(e.item_name)))].sort();
+            return grpNames.length === chipBaseNames.length && grpNames.every((n, i) => n === chipBaseNames[i]);
+          })
+          .flat();
+        if (matchingEntries.length > 0) allServingEntries = matchingEntries;
+      }
 
       // Deduplicate to one row per ingredient base name (use first entry as reference)
       const seen = new Set();
