@@ -1832,6 +1832,30 @@ body.dnd-active {
 .tl-amt-macros span:nth-child(7) { color: var(--c-f, #f1c40f); }
 .tl-amt-macros small { font-size: .65rem; font-weight: 500; color: var(--text-dim); margin-left: 1px; }
 
+/* Ingredient list inside Edit Ingredients sheet */
+.tl-ing-list {
+  max-height: 240px; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 5px;
+  padding: 2px 0;
+}
+.tl-ing-row {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 8px 12px;
+}
+.tl-ing-amt-wrap { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.tl-ing-amt {
+  width: 62px; background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 4px 6px; font-size: .88rem; font-weight: 700;
+  color: var(--text); text-align: right;
+}
+.tl-ing-unit { font-size: .75rem; font-weight: 600; color: var(--text-dim); min-width: 14px; }
+.tl-ing-no-amt { font-size: .8rem; color: var(--text-dim); min-width: 60px; }
+.tl-ing-name {
+  font-size: .82rem; color: var(--text); flex: 1;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
 /* BG input row inside sheet */
 .tl-bg-input-row {
   display: flex; align-items: center; gap: 10px;
