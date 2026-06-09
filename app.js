@@ -6013,23 +6013,45 @@ initTweaks();
       });
 
     } else {
-      // Recipe: show all ingredients with individual editable amounts
+      // Recipe: show all ingredients with individual editable amounts.
+      // For exploded (split) recipes each serving chip has its own DB entries,
+      // so we collect ALL servings' entries by matching ingredient base names
+      // across the whole meal — then update all of them on save.
       const servings = parseInt(chipEl.dataset.servings, 10) || 1;
       const isExploded = chipEl.dataset.isExploded === 'true';
-      const recipeEntries = currentDayEntries.filter(e => entryIds.includes(String(e.id)));
+      const meal = chipEl.dataset.meal;
       const displayName = chipEl.querySelector('.tl-chip-name')?.textContent || '';
 
-      const ingredients = recipeEntries.map(e => {
-        const oldAmt = extractAmount(e.item_name);
+      // Entries for the clicked chip's serving (used for the per-serving preview)
+      const chipEntries = currentDayEntries.filter(e => entryIds.includes(String(e.id)));
+
+      // For exploded recipes find all servings' entries by ingredient base names.
+      // For non-exploded recipes chipEntries already contain all ingredients.
+      const baseNamesInChip = new Set(chipEntries.map(e => stripAmount(e.item_name)));
+      const allServingEntries = isExploded
+        ? currentDayEntries.filter(e => e.meal === meal && baseNamesInChip.has(stripAmount(e.item_name)))
+        : chipEntries;
+
+      // Deduplicate to one row per ingredient base name (use first entry as reference)
+      const seen = new Set();
+      const ingredients = [];
+      for (const e of allServingEntries) {
         const baseName = stripAmount(e.item_name);
+        if (seen.has(baseName)) continue;
+        seen.add(baseName);
+        const oldAmt = extractAmount(e.item_name);
         const prefix = e.item_name.slice(0, e.item_name.length - baseName.length).trim();
         const unitMatch = prefix.match(/^[\d.,]+\s*(.*)$/);
         const unit = unitMatch ? unitMatch[1].trim() : '';
-        return { entry: e, oldAmt, unit, baseName, canEdit: oldAmt > 0 };
-      });
+        ingredients.push({ baseName, oldAmt, unit, canEdit: oldAmt > 0 });
+      }
 
-      const totalM = macroSum(recipeEntries);
-      const portionM = isExploded ? totalM : { kcal: totalM.kcal/servings, p: totalM.p/servings, c: totalM.c/servings, f: totalM.f/servings };
+      // Preview shows macros for ONE serving (the clicked chip)
+      const portionM = macroSum(chipEntries);
+      if (!isExploded && servings > 1) {
+        portionM.kcal /= servings; portionM.p /= servings;
+        portionM.c /= servings;   portionM.f /= servings;
+      }
 
       const ingRowsHTML = ingredients.map((ing, i) => `
         <div class="tl-ing-row">
@@ -6044,7 +6066,7 @@ initTweaks();
 
       sheet.innerHTML = `
         <div class="tl-ctx-title"><i class="fas fa-pen" style="margin-right:6px;color:var(--accent)"></i>Edit Ingredients</div>
-        <div class="tl-amt-name">${displayName}${servings > 1 ? `<br><small style="font-size:.72rem;opacity:.7">${servings} servings · editing base amounts</small>` : ''}</div>
+        <div class="tl-amt-name">${displayName}${servings > 1 ? `<br><small style="font-size:.72rem;opacity:.7">${servings} servings · all updated together</small>` : ''}</div>
         <div class="tl-ing-list" id="tlIngList">${ingRowsHTML}</div>
         <div class="tl-amt-macros" id="tlAmtPreview">${pillsHTML(portionM)}</div>
         <button class="tl-ctx-action" id="tlAmtSave"><i class="fas fa-check"></i> Save</button>
@@ -6057,17 +6079,23 @@ initTweaks();
 
       const preview = sheet.querySelector('#tlAmtPreview');
 
+      // Live preview uses the clicked chip's entries (one serving worth)
       const calcPreview = () => {
-        const scaled = ingredients.reduce((acc, ing, i) => {
+        const scaled = chipEntries.reduce((acc, e) => {
+          const base = stripAmount(e.item_name);
+          const idx = ingredients.findIndex(ing => ing.baseName === base);
           let scale = 1;
-          if (ing.canEdit) {
-            const newAmt = parseFloat(sheet.querySelector(`.tl-ing-amt[data-idx="${i}"]`)?.value);
-            if (newAmt > 0) scale = newAmt / ing.oldAmt;
+          if (idx >= 0 && ingredients[idx].canEdit) {
+            const newAmt = parseFloat(sheet.querySelector(`.tl-ing-amt[data-idx="${idx}"]`)?.value);
+            const entryAmt = extractAmount(e.item_name);
+            if (newAmt > 0 && entryAmt > 0) scale = newAmt / entryAmt;
           }
-          const e = ing.entry;
           return { kcal: acc.kcal+(e.kcal||0)*scale, p: acc.p+(parseFloat(e.protein)||0)*scale, c: acc.c+(parseFloat(e.carbs)||0)*scale, f: acc.f+(parseFloat(e.fat)||0)*scale };
         }, {kcal:0,p:0,c:0,f:0});
-        return isExploded ? scaled : { kcal: scaled.kcal/servings, p: scaled.p/servings, c: scaled.c/servings, f: scaled.f/servings };
+        if (!isExploded && servings > 1) {
+          scaled.kcal /= servings; scaled.p /= servings; scaled.c /= servings; scaled.f /= servings;
+        }
+        return scaled;
       };
 
       sheet.querySelector('#tlIngList').addEventListener('input', () => { preview.innerHTML = pillsHTML(calcPreview()); });
@@ -6075,12 +6103,18 @@ initTweaks();
       sheet.querySelector('#tlAmtSave').addEventListener('click', async () => {
         close();
         const toUpdate = [];
-        ingredients.forEach((ing, i) => {
+        // Iterate ALL servings' entries and update each one that changed
+        allServingEntries.forEach(e => {
+          const base = stripAmount(e.item_name);
+          const idx = ingredients.findIndex(ing => ing.baseName === base);
+          if (idx < 0) return;
+          const ing = ingredients[idx];
           if (!ing.canEdit) return;
-          const newAmt = parseFloat(sheet.querySelector(`.tl-ing-amt[data-idx="${i}"]`)?.value);
-          if (!newAmt || newAmt <= 0 || newAmt === ing.oldAmt) return;
-          const scale = newAmt / ing.oldAmt;
-          const e = ing.entry;
+          const newAmt = parseFloat(sheet.querySelector(`.tl-ing-amt[data-idx="${idx}"]`)?.value);
+          if (!newAmt || newAmt <= 0) return;
+          const entryAmt = extractAmount(e.item_name);
+          if (!entryAmt || entryAmt === newAmt) return;
+          const scale = newAmt / entryAmt;
           toUpdate.push({
             id: e.id, _entry: e,
             item_name: e.item_name.replace(/^[\d.,]+/, fmtNum(newAmt)),
