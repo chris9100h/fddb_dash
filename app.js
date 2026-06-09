@@ -1830,13 +1830,20 @@ function buildTlRow(minutes, blocks) {
   blocks.forEach(b => slot.appendChild(makeTlChip(b)));
 
   const foodBlocks = blocks.filter(b => b.type === 'item' || b.type === 'recipe');
-  const calcBlocks = foodBlocks.filter(b => b.meal !== WEEKLY_TREAT_MEAL);
   const isIntraSlot = minutes === INTRA_WORKOUT_SLOT || minutes === INTRA_WORKOUT_SLOT_2 ||
                       minutes === INTRA_CARDIO_SLOT  || minutes === INTRA_CARDIO_SLOT_2;
   if (settings.showSlotTotals && foodBlocks.length >= 2 && !isIntraSlot) {
-    const total = calcBlocks.reduce((acc, b) => {
+    const total = foodBlocks.reduce((acc, b) => {
       let m;
-      if (b.type === 'item') {
+      if (b.meal === WEEKLY_TREAT_MEAL) {
+        if (b.type === 'item') {
+          m = treatMacroContrib(b.entry);
+        } else {
+          const contribs = b.entries.map(e => treatMacroContrib(e));
+          const sum = contribs.reduce((s, c) => ({ kcal: s.kcal+c.kcal, p: s.p+c.p, c: s.c+c.c, f: s.f+c.f }), {kcal:0,p:0,c:0,f:0});
+          m = b.isExploded ? sum : { kcal: sum.kcal/b.servings, p: sum.p/b.servings, c: sum.c/b.servings, f: sum.f/b.servings };
+        }
+      } else if (b.type === 'item') {
         const e = b.entry;
         m = { kcal: e.kcal||0, p: parseFloat(e.protein)||0, c: parseFloat(e.carbs)||0, f: parseFloat(e.fat)||0 };
       } else {
@@ -5825,6 +5832,7 @@ initTweaks();
       sheet.innerHTML = `
         <div class="tl-ctx-title">${name}</div>
         ${bgBtn}
+        <button class="tl-ctx-action" id="tlCtxEditAmt"><i class="fas fa-pen"></i> Edit Amount</button>
         <button class="tl-ctx-action" id="tlCtxTreat"><i class="fas fa-star"></i> Mark as Weekly Treat</button>
         <button class="tl-ctx-cancel">Cancel</button>`;
       overlay.appendChild(sheet);
@@ -5832,6 +5840,7 @@ initTweaks();
       requestAnimationFrame(() => overlay.classList.add('show'));
       overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
       sheet.querySelector('.tl-ctx-cancel').addEventListener('click', close);
+      sheet.querySelector('#tlCtxEditAmt').addEventListener('click', () => { close(); showAmountEditSheet(chipEl); });
       sheet.querySelector('#tlCtxTreat').addEventListener('click', () => {
         sheet.innerHTML = `
           <div class="tl-ctx-title"><i class="fas fa-star" style="color:var(--accent);margin-right:6px"></i>Weekly Treat</div>
@@ -5859,6 +5868,7 @@ initTweaks();
       sheet.innerHTML = `
         <div class="tl-ctx-title">${name}</div>
         ${bgBtn}
+        <button class="tl-ctx-action" id="tlCtxEditAmt"><i class="fas fa-pen"></i> Edit Amount</button>
         <button class="tl-ctx-action" id="tlCtxUntreat"><i class="fas fa-star"></i> Remove Weekly Treat</button>
         <button class="tl-ctx-cancel">Cancel</button>`;
       overlay.appendChild(sheet);
@@ -5866,6 +5876,7 @@ initTweaks();
       requestAnimationFrame(() => overlay.classList.add('show'));
       overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
       sheet.querySelector('.tl-ctx-cancel').addEventListener('click', close);
+      sheet.querySelector('#tlCtxEditAmt').addEventListener('click', () => { close(); showAmountEditSheet(chipEl); });
       sheet.querySelector('#tlCtxUntreat').addEventListener('click', () => doMove(defaultMeal));
     }
     if (isInInsulinWindow) {
@@ -5924,6 +5935,143 @@ initTweaks();
       sheet.querySelector('#tlBgDelete').addEventListener('click', async () => {
         close();
         await saveBgValue(slotMinutes, null);
+      });
+    }
+  }
+
+  function showAmountEditSheet(chipEl) {
+    const kind = chipEl.dataset.dragKind;
+    const entryIds = chipEl.dataset.entryIds.split(',').map(s => s.trim()).filter(Boolean);
+    if (!entryIds.length) return;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'tl-ctx-overlay';
+    const sheet = document.createElement('div');
+    sheet.className = 'tl-ctx-sheet';
+    const close = () => { overlay.classList.remove('show'); setTimeout(() => overlay.remove(), 220); };
+
+    const fmtNum = n => Number.isInteger(n) ? String(n) : parseFloat(n.toFixed(1)).toString();
+
+    if (kind === 'item') {
+      const entry = currentDayEntries.find(e => String(e.id) === entryIds[0]);
+      if (!entry) return;
+      const oldAmt = extractAmount(entry.item_name);
+      const baseName = stripAmount(entry.item_name);
+      const prefix = entry.item_name.slice(0, entry.item_name.length - baseName.length).trim();
+      const unitMatch = prefix.match(/^[\d.,]+\s*(.*)$/);
+      const unit = unitMatch ? unitMatch[1].trim() : '';
+      const origM = { kcal: entry.kcal||0, p: parseFloat(entry.protein)||0, c: parseFloat(entry.carbs)||0, f: parseFloat(entry.fat)||0 };
+
+      const useScale = oldAmt === 0;
+      sheet.innerHTML = `
+        <div class="tl-ctx-title"><i class="fas fa-pen" style="margin-right:6px;color:var(--accent)"></i>Edit Amount</div>
+        <div class="tl-amt-name">${entry.item_name}</div>
+        <div class="tl-amt-row">
+          <label class="tl-amt-label">${useScale ? 'Scale' : 'Amount'}</label>
+          <div class="tl-amt-input-wrap">
+            <input type="number" id="tlAmtInput" class="tl-amt-input" value="${useScale ? '1' : fmtNum(oldAmt)}" min="0.01" step="${useScale ? '0.1' : 'any'}">
+            <span class="tl-amt-unit">${useScale ? '×' : (unit || '')}</span>
+          </div>
+        </div>
+        <div class="tl-amt-macros" id="tlAmtPreview">${pillsHTML(origM)}</div>
+        <button class="tl-ctx-action" id="tlAmtSave"><i class="fas fa-check"></i> Save</button>
+        <button class="tl-ctx-cancel">Cancel</button>`;
+      overlay.appendChild(sheet);
+      document.body.appendChild(overlay);
+      requestAnimationFrame(() => overlay.classList.add('show'));
+      overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+      sheet.querySelector('.tl-ctx-cancel').addEventListener('click', close);
+
+      const input = sheet.querySelector('#tlAmtInput');
+      const preview = sheet.querySelector('#tlAmtPreview');
+      input.addEventListener('input', () => {
+        const val = parseFloat(input.value);
+        if (!val || val <= 0) { preview.innerHTML = '—'; return; }
+        const scale = useScale ? val : val / oldAmt;
+        preview.innerHTML = pillsHTML({ kcal: origM.kcal*scale, p: origM.p*scale, c: origM.c*scale, f: origM.f*scale });
+      });
+      input.focus(); input.select();
+
+      sheet.querySelector('#tlAmtSave').addEventListener('click', async () => {
+        const val = parseFloat(input.value);
+        if (!val || val <= 0) { showToast('Enter a valid amount', 'error'); return; }
+        close();
+        const scale = useScale ? val : val / oldAmt;
+        const newName = useScale ? entry.item_name : entry.item_name.replace(/^[\d.,]+/, fmtNum(val));
+        const updates = {
+          item_name: newName,
+          kcal: parseFloat((origM.kcal * scale).toFixed(1)),
+          protein: parseFloat((origM.p * scale).toFixed(1)),
+          carbs: parseFloat((origM.c * scale).toFixed(1)),
+          fat: parseFloat((origM.f * scale).toFixed(1)),
+        };
+        const { error } = await db.from('fddb_daily_macros').update(updates).eq('id', entry.id);
+        if (error) { showToast('Error saving amount', 'error'); return; }
+        Object.assign(entry, updates);
+        showToast('Amount updated');
+        await loadDay();
+      });
+
+    } else {
+      // Recipe: scale all ingredient entries together
+      const servings = parseInt(chipEl.dataset.servings, 10) || 1;
+      const isExploded = chipEl.dataset.isExploded === 'true';
+      const recipeEntries = currentDayEntries.filter(e => entryIds.includes(String(e.id)));
+      const totalM = macroSum(recipeEntries);
+      const portionM = isExploded ? totalM : { kcal: totalM.kcal/servings, p: totalM.p/servings, c: totalM.c/servings, f: totalM.f/servings };
+      const displayName = chipEl.querySelector('.tl-chip-name')?.textContent || '';
+
+      sheet.innerHTML = `
+        <div class="tl-ctx-title"><i class="fas fa-pen" style="margin-right:6px;color:var(--accent)"></i>Edit Serving Size</div>
+        <div class="tl-amt-name">${displayName}</div>
+        <div class="tl-amt-row">
+          <label class="tl-amt-label">Scale</label>
+          <div class="tl-amt-input-wrap">
+            <input type="number" id="tlAmtInput" class="tl-amt-input" value="1" min="0.01" step="0.1">
+            <span class="tl-amt-unit">×</span>
+          </div>
+        </div>
+        <div class="tl-amt-macros" id="tlAmtPreview">${pillsHTML(portionM)}</div>
+        <button class="tl-ctx-action" id="tlAmtSave"><i class="fas fa-check"></i> Save</button>
+        <button class="tl-ctx-cancel">Cancel</button>`;
+      overlay.appendChild(sheet);
+      document.body.appendChild(overlay);
+      requestAnimationFrame(() => overlay.classList.add('show'));
+      overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+      sheet.querySelector('.tl-ctx-cancel').addEventListener('click', close);
+
+      const input = sheet.querySelector('#tlAmtInput');
+      const preview = sheet.querySelector('#tlAmtPreview');
+      input.addEventListener('input', () => {
+        const scale = parseFloat(input.value);
+        if (!scale || scale <= 0) { preview.innerHTML = '—'; return; }
+        preview.innerHTML = pillsHTML({ kcal: portionM.kcal*scale, p: portionM.p*scale, c: portionM.c*scale, f: portionM.f*scale });
+      });
+      input.focus(); input.select();
+
+      sheet.querySelector('#tlAmtSave').addEventListener('click', async () => {
+        const scale = parseFloat(input.value);
+        if (!scale || scale <= 0) { showToast('Enter a valid scale', 'error'); return; }
+        close();
+        const results = await Promise.all(recipeEntries.map(e => {
+          const newName = e.item_name.replace(/^[\d.,]+/, v => {
+            const old = parseFloat(v.replace(',', '.'));
+            return old ? fmtNum(old * scale) : v;
+          });
+          const u = {
+            item_name: newName,
+            kcal: parseFloat(((e.kcal||0) * scale).toFixed(1)),
+            protein: parseFloat(((parseFloat(e.protein)||0) * scale).toFixed(1)),
+            carbs: parseFloat(((parseFloat(e.carbs)||0) * scale).toFixed(1)),
+            fat: parseFloat(((parseFloat(e.fat)||0) * scale).toFixed(1)),
+          };
+          return db.from('fddb_daily_macros').update(u).eq('id', e.id).then(r => ({ r, e, u }));
+        }));
+        const failed = results.find(x => x.r.error);
+        if (failed) { showToast('Error saving amount', 'error'); return; }
+        results.forEach(({ e, u }) => Object.assign(e, u));
+        showToast('Serving size updated');
+        await loadDay();
       });
     }
   }
