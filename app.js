@@ -4953,7 +4953,7 @@ async function takeFullScreenshot() {
         try {
           await navigator.share({ files: [file], title: filename });
         } catch (err) {
-          if (err.name !== 'AbortError') showToast('Fehler beim Teilen: ' + (err.message || err), 'error');
+          if (err.name !== 'AbortError') showToast('Share failed: ' + (err.message || err), 'error');
         }
       } else {
         const url = URL.createObjectURL(blob);
@@ -4966,7 +4966,7 @@ async function takeFullScreenshot() {
     }, 'image/png');
   } catch (err) {
     console.error('Screenshot failed:', err);
-    showToast('Fehler: ' + (err.message || err), 'error');
+    showToast('Error: ' + (err.message || err), 'error');
   } finally {
     // Clean up: remove the offscreen stage, style override, and overlay
     stage.remove();
@@ -5610,7 +5610,7 @@ initTweaks();
       showMoveToast(kind === 'recipe' ? recipeName : 'Item', toMeal);
     } catch (err) {
       console.error('Move failed:', err);
-      alert('Verschieben fehlgeschlagen. Lade neu...');
+      alert('Move failed. Reloading...');
       loadDay();
     }
   }
@@ -5692,7 +5692,7 @@ initTweaks();
       showMoveToast(recipeName, toMeal);
     } catch (err) {
       console.error('moveSingleServing failed:', err);
-      alert('Verschieben fehlgeschlagen. Lade neu...');
+      alert('Move failed. Reloading...');
       loadDay();
     }
   }
@@ -5729,7 +5729,7 @@ initTweaks();
       if (failed) throw failed.error;
     } catch (err) {
       console.error('Reorder failed:', err);
-      alert('Umsortieren fehlgeschlagen. Lade neu...');
+      alert('Reorder failed. Reloading...');
       loadDay();
     }
   }
